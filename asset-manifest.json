@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/stripe-dashboard-clone/static/js/main.a1cf2bcb.js",
+    "index.html": "/stripe-dashboard-clone/index.html",
+    "main.a1cf2bcb.js.map": "/stripe-dashboard-clone/static/js/main.a1cf2bcb.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.a1cf2bcb.js"
+  ]
+}
