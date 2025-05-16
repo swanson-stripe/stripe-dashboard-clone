@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/stripe-dashboard-clone/static/css/main.593bea9e.css",
-    "main.js": "/stripe-dashboard-clone/static/js/main.ac2ec555.js",
+    "main.css": "/stripe-dashboard-clone/static/css/main.5d7ade2a.css",
+    "main.js": "/stripe-dashboard-clone/static/js/main.2c1cc281.js",
     "static/js/453.aa7067d1.chunk.js": "/stripe-dashboard-clone/static/js/453.aa7067d1.chunk.js",
     "index.html": "/stripe-dashboard-clone/index.html",
-    "main.593bea9e.css.map": "/stripe-dashboard-clone/static/css/main.593bea9e.css.map",
-    "main.ac2ec555.js.map": "/stripe-dashboard-clone/static/js/main.ac2ec555.js.map",
+    "main.5d7ade2a.css.map": "/stripe-dashboard-clone/static/css/main.5d7ade2a.css.map",
+    "main.2c1cc281.js.map": "/stripe-dashboard-clone/static/js/main.2c1cc281.js.map",
     "453.aa7067d1.chunk.js.map": "/stripe-dashboard-clone/static/js/453.aa7067d1.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.593bea9e.css",
-    "static/js/main.ac2ec555.js"
+    "static/css/main.5d7ade2a.css",
+    "static/js/main.2c1cc281.js"
   ]
 }
