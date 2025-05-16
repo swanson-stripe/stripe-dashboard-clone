@@ -225,7 +225,7 @@ const MetricTrend = styled.div`
 
 const MetricChartContainer = styled.div`
   position: relative;
-  height: 80px;
+  height: 160px;
   width: 100%;
 `;
 
@@ -672,7 +672,7 @@ const BillingOverview = () => {
                 >
                   <LineChart 
                     data={metric.chartData} 
-                    height={80} 
+                    height={160} 
                     showLegend={false} 
                     type="line" 
                   />
