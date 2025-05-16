@@ -1,120 +1,173 @@
-import React from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import React, { useEffect, useRef } from 'react';
+import Chart from 'chart.js/auto';
+import styled from 'styled-components';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+const ChartWrapper = styled.div`
+  width: 100%;
+  height: 100%;
+  position: relative;
+`;
 
-const LineChart = ({ data, height, showLegend = false }) => {
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: showLegend,
-        position: 'top',
-      },
-      tooltip: {
-        backgroundColor: 'white',
-        titleColor: '#1a1f36',
-        bodyColor: '#1a1f36',
-        borderColor: '#e3e8ee',
-        borderWidth: 1,
-        padding: 12,
-        titleFont: {
-          size: 14,
-          weight: 'bold',
-        },
-        bodyFont: {
-          size: 14,
-        },
-        boxPadding: 6,
-        cornerRadius: 6,
-        displayColors: false,
-        callbacks: {
-          label: function(context) {
-            let label = context.dataset.label || '';
-            
-            if (label) {
-                label += ': ';
-            }
-            if (context.parsed.y !== null) {
-                label += new Intl.NumberFormat('en-US', { 
-                    style: 'currency', 
-                    currency: 'USD' 
-                }).format(context.parsed.y);
-            }
-            return label;
+const LineChart = ({ data, height = 400, showLegend = true, type = 'line' }) => {
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
+
+  useEffect(() => {
+    // Destroy existing chart if it exists
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+    }
+
+    // Get the context of the canvas element
+    const ctx = chartRef.current.getContext('2d');
+    
+    // Set chart type based on prop
+    let chartType = type;
+    let fill = false;
+    
+    // Handle special cases
+    if (type === 'area') {
+      chartType = 'line';
+      fill = true;
+    } else if (type === 'donut') {
+      chartType = 'doughnut';
+    }
+    
+    // Basic configuration options
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: showLegend,
+          position: 'top',
+          labels: {
+            font: {
+              family: "'Inter', sans-serif",
+              size: 12
+            },
+            usePointStyle: true,
+            padding: 20
           }
-        }
-      },
-    },
-    scales: {
-      x: {
-        grid: {
-          display: false,
         },
-        ticks: {
-          color: '#697386',
-          font: {
-            size: 12,
-          },
-        }
-      },
-      y: {
-        grid: {
-          color: '#f0f2f5',
-        },
-        ticks: {
-          color: '#697386',
-          font: {
-            size: 12,
-          },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
           padding: 10,
-          callback: function(value) {
-            return '$' + value.toLocaleString();
+          titleFont: {
+            family: "'Inter', sans-serif",
+            size: 13
+          },
+          bodyFont: {
+            family: "'Inter', sans-serif",
+            size: 14
+          },
+          displayColors: false
+        }
+      }
+    };
+    
+    // Add specific options based on chart type
+    if (chartType === 'line') {
+      options.scales = {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              family: "'Inter', sans-serif",
+              size: 11
+            }
           }
         },
-        beginAtZero: true,
-      },
-    },
-    elements: {
-      line: {
-        tension: 0.3,
-      },
-      point: {
-        radius: 3,
-        hoverRadius: 5,
-        hitRadius: 30,
-        backgroundColor: 'white',
-        borderWidth: 2,
-      },
-    },
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
-  };
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            font: {
+              family: "'Inter', sans-serif",
+              size: 11
+            },
+            callback: function(value) {
+              if (value >= 1000) {
+                return '$' + value / 1000 + 'k';
+              }
+              return '$' + value;
+            }
+          }
+        }
+      };
+      
+      // For area charts, modify the dataset
+      if (fill) {
+        data.datasets.forEach(dataset => {
+          dataset.fill = true;
+        });
+      }
+    } else if (chartType === 'bar') {
+      options.scales = {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              family: "'Inter', sans-serif",
+              size: 11
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            font: {
+              family: "'Inter', sans-serif",
+              size: 11
+            },
+            callback: function(value) {
+              if (value >= 1000) {
+                return '$' + value / 1000 + 'k';
+              }
+              return '$' + value;
+            }
+          }
+        }
+      };
+    } else if (chartType === 'pie' || chartType === 'doughnut') {
+      // Pie and doughnut charts don't need scales
+      delete options.scales;
+      
+      // Add cutout percentage for doughnut
+      if (chartType === 'doughnut') {
+        options.cutout = '60%';
+      }
+    }
 
-  return <Line data={data} options={options} height={height} />;
+    // Create the chart
+    chartInstance.current = new Chart(ctx, {
+      type: chartType,
+      data: data,
+      options: options
+    });
+    
+    // Cleanup function
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
+  }, [data, height, showLegend, type]);
+
+  return (
+    <ChartWrapper>
+      <canvas ref={chartRef} height={height} />
+    </ChartWrapper>
+  );
 };
 
 export default LineChart; 

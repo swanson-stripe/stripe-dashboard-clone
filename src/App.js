@@ -50,6 +50,7 @@ function App() {
               
               {/* Bottom */}
               <Route path="/developers" element={<EmptyPage title="Developers" />} />
+              <Route path="/settings" element={<EmptyPage title="Settings" />} />
             </Routes>
           </AnimatePresence>
         </LayoutGroup>

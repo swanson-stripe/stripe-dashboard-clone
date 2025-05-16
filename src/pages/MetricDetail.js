@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
@@ -10,27 +10,32 @@ const Container = styled(motion.div)`
   margin: 0 auto;
 `;
 
-const BackLink = styled(Link)`
+const BreadcrumbNav = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 14px;
+`;
+
+const BreadcrumbLink = styled(Link)`
   display: inline-flex;
   align-items: center;
-  color: var(--text-secondary);
-  font-size: 14px;
-  margin-bottom: 16px;
+  color: var(--primary-color);
   text-decoration: none;
   
   &:hover {
-    color: var(--primary-color);
+    text-decoration: underline;
   }
-  
-  svg {
-    margin-right: 8px;
-  }
+`;
+
+const BreadcrumbSeparator = styled.span`
+  color: var(--text-secondary);
+  margin: 0 8px;
 `;
 
 const MetricDetailContainer = styled.div`
   background: white;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   padding: 24px;
 `;
@@ -98,18 +103,119 @@ const ChartContainer = styled.div`
   margin-bottom: 32px;
 `;
 
+const TransactionsSection = styled.div`
+  margin-top: 32px;
+`;
+
+const TransactionsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const TableContainer = styled.div`
+  width: 100%;
+  overflow-x: auto;
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-color);
+`;
+
+const PageInfo = styled.div`
+  color: var(--text-secondary);
+  font-size: 14px;
+`;
+
+const PageNav = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const PageButton = styled.button`
+  background: ${props => props.active ? 'var(--primary-color)' : 'white'};
+  color: ${props => props.active ? 'white' : 'var(--text-color)'};
+  border: 1px solid ${props => props.active ? 'var(--primary-color)' : 'var(--border-color)'};
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: ${props => props.active ? 'var(--primary-color)' : '#f7f9fc'};
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
 const MetricDetail = () => {
   const { metricId } = useParams();
   const location = useLocation();
+  const [currentPage, setCurrentPage] = useState(1);
+  const transactionsPerPage = 25;
   
   // Get metric data from location state or use default values
   const metric = location.state || {
     id: metricId,
-    title: 'Metric Details',
-    value: '$0.00',
-    trend: 'neutral',
-    trendValue: 0,
+    title: 'New customers',
+    value: '1,540',
+    trend: 'up',
+    trendValue: 1.1,
   };
+  
+  // Generate realistic transaction data
+  const generateTransactions = () => {
+    const transactions = [];
+    const statuses = ['Succeeded', 'Succeeded', 'Succeeded', 'Succeeded', 'Succeeded', 'Succeeded', 'Succeeded', 'Refunded', 'Failed', 'Pending'];
+    const customers = [
+      'John Smith', 'Jane Doe', 'Alice Johnson', 'Bob Brown', 'Charlie Davis', 
+      'Diana Evans', 'Ethan Fox', 'Fiona Gallagher', 'George Harris', 'Hannah Miller',
+      'Ian Jackson', 'Julia Kim', 'Kevin Lee', 'Lisa Martin', 'Mike Nelson',
+      'Natalie Owens', 'Oscar Perez', 'Pamela Quinn', 'Robert Rice', 'Sarah Thompson',
+      'Tyler Underwood', 'Victoria Wilson', 'William Young', 'Xavier Zhang', 'Yasmine Allen',
+      'Zach Baker', 'Amanda Carter', 'Benjamin Davis', 'Catherine Edwards', 'David Franklin'
+    ];
+    
+    const amounts = [19.99, 29.99, 49.99, 99.99, 149.99, 199.99, 299.99, 499.99, 999.99];
+    
+    for (let i = 0; i < 100; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+      
+      transactions.push({
+        id: `txn_${Math.random().toString(36).substr(2, 9)}`,
+        date: date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+        amount: `$${amounts[Math.floor(Math.random() * amounts.length)].toFixed(2)}`,
+        customer: customers[Math.floor(Math.random() * customers.length)],
+        status: statuses[Math.floor(Math.random() * statuses.length)]
+      });
+    }
+    
+    return transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+  };
+  
+  const transactions = generateTransactions();
+  
+  // Get current transactions
+  const indexOfLastTransaction = currentPage * transactionsPerPage;
+  const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
+  const currentTransactions = transactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
   
   // Sample chart data
   const chartData = {
@@ -125,6 +231,10 @@ const MetricDetail = () => {
     ],
   };
   
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  
+  const totalPages = Math.ceil(transactions.length / transactionsPerPage);
+  
   return (
     <Container
       initial={{ opacity: 0 }}
@@ -132,13 +242,15 @@ const MetricDetail = () => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <BackLink to="/">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 12H5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 19L5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Back to Dashboard
-      </BackLink>
+      <BreadcrumbNav>
+        <BreadcrumbLink to="/">
+          Home
+        </BreadcrumbLink>
+        <BreadcrumbSeparator>
+          /
+        </BreadcrumbSeparator>
+        <span>{metric.title}</span>
+      </BreadcrumbNav>
       
       <MetricDetailContainer>
         <MetricDetailHeader>
@@ -176,45 +288,91 @@ const MetricDetail = () => {
           <LineChart data={chartData} height={280} showLegend={false} />
         </ChartContainer>
         
-        <div className="transactions-table">
-          <h3 className="mb-2">Recent Transactions</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Amount</th>
-                <th>Customer</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>14 Apr 2023</td>
-                <td>$123.45</td>
-                <td>John Smith</td>
-                <td><span style={{ color: 'var(--success-color)' }}>Succeeded</span></td>
-              </tr>
-              <tr>
-                <td>13 Apr 2023</td>
-                <td>$567.89</td>
-                <td>Jane Doe</td>
-                <td><span style={{ color: 'var(--success-color)' }}>Succeeded</span></td>
-              </tr>
-              <tr>
-                <td>13 Apr 2023</td>
-                <td>$50.00</td>
-                <td>Alice Johnson</td>
-                <td><span style={{ color: 'var(--success-color)' }}>Refunded</span></td>
-              </tr>
-              <tr>
-                <td>12 Apr 2023</td>
-                <td>$240.00</td>
-                <td>Bob Brown</td>
-                <td><span style={{ color: 'var(--success-color)' }}>Succeeded</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <TransactionsSection>
+          <TransactionsHeader>
+            <SectionTitle>Recent Transactions</SectionTitle>
+          </TransactionsHeader>
+          
+          <TableContainer>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Customer</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentTransactions.map((transaction) => (
+                  <tr key={transaction.id}>
+                    <td>{transaction.date}</td>
+                    <td>{transaction.amount}</td>
+                    <td>{transaction.customer}</td>
+                    <td>
+                      <span style={{ 
+                        color: transaction.status === 'Succeeded' ? 'var(--success-color)' : 
+                               transaction.status === 'Failed' ? 'var(--danger-color)' :
+                               transaction.status === 'Refunded' ? 'var(--warning-color)' : 
+                               'var(--text-secondary)'
+                      }}>
+                        {transaction.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableContainer>
+          
+          <Pagination>
+            <PageInfo>
+              Showing {indexOfFirstTransaction + 1}-{Math.min(indexOfLastTransaction, transactions.length)} of {transactions.length} transactions
+            </PageInfo>
+            <PageNav>
+              <PageButton 
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </PageButton>
+              
+              {[...Array(Math.min(5, totalPages))].map((_, index) => {
+                let pageNumber;
+                
+                if (totalPages <= 5) {
+                  pageNumber = index + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = index + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + index;
+                } else {
+                  pageNumber = currentPage - 2 + index;
+                }
+                
+                if (pageNumber > 0 && pageNumber <= totalPages) {
+                  return (
+                    <PageButton
+                      key={pageNumber}
+                      active={currentPage === pageNumber}
+                      onClick={() => paginate(pageNumber)}
+                    >
+                      {pageNumber}
+                    </PageButton>
+                  );
+                }
+                return null;
+              })}
+              
+              <PageButton 
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </PageButton>
+            </PageNav>
+          </Pagination>
+        </TransactionsSection>
       </MetricDetailContainer>
     </Container>
   );
