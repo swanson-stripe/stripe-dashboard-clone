@@ -2,6 +2,7 @@
   display: flex;
   min-height: 100vh;
   max-width: 100%;
+  background-color: #ffffff;
 }
 
 .main-content {
@@ -12,6 +13,8 @@
   transition: margin-left 0.3s ease, padding 0.3s ease, width 0.3s ease;
   display: flex;
   flex-direction: column;
+  margin-top: 60px; /* Add margin to account for the fixed header */
+  background-color: #ffffff;
 }
 
 .main-content.fullscreen {
@@ -24,15 +27,6 @@
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  transition: opacity 0.3s ease;
-  width: 100%;
 }
 
 .metrics-row {
@@ -200,15 +194,11 @@
 }
 
 .dot-grid-bg {
-  background-color: white;
-  background-image: radial-gradient(circle, #e0e4ea 1px, transparent 1px);
-  background-size: 16px 16px;
+  background-color: #ffffff;
+  background-image: none;
 }
 
 .stripe-grid-bg {
-  background-color: white;
-  background-image: 
-    linear-gradient(rgba(232, 236, 241, 0.5) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232, 236, 241, 0.5) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-color: #ffffff;
+  background-image: none;
 } 

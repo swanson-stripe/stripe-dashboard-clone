@@ -25,7 +25,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-color);
-  background-color: var(--background-color);
+  background-color: #ffffff;
+}
+
+html {
+  background-color: #ffffff;
+}
+
+#root {
+  background-color: #ffffff;
 }
 
 code {
