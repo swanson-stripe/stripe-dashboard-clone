@@ -110,6 +110,15 @@ const NavItemWithSubmenu = styled.div`
   }
 `;
 
+const SubmenuHoverArea = styled.div`
+  position: absolute;
+  left: 40px;
+  top: -16px;
+  height: 72px;
+  width: 24px;
+  z-index: 1499;
+`;
+
 const Submenu = styled.div`
   position: absolute;
   left: 54px;
@@ -121,6 +130,10 @@ const Submenu = styled.div`
   padding: 12px 0;
   z-index: 1500;
   display: none;
+  
+  &:hover {
+    display: block;
+  }
   
   &::before {
     content: '';
@@ -244,6 +257,7 @@ const Sidebar = () => {
             <path d="M8 16V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M16 16V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
+          <SubmenuHoverArea />
           <Submenu className="submenu">
             <SubmenuTitle>Billing</SubmenuTitle>
             <SubmenuItem to="/billing/overview">Overview</SubmenuItem>
