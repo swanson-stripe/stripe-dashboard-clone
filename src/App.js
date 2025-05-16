@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import MetricDetail from './pages/MetricDetail';
 import MetricEditor from './pages/MetricEditor';
 import EmptyPage from './pages/EmptyPage';
+import BillingOverview from './pages/BillingOverview';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import './styles/App.css';
@@ -67,7 +68,7 @@ function App() {
               <Route path="/settings" element={<EmptyPage title="Settings" />} />
               
               {/* Billing routes */}
-              <Route path="/billing/overview" element={<EmptyPage title="Billing Overview" />} />
+              <Route path="/billing/overview" element={<BillingOverview />} />
               <Route path="/billing/subscriptions" element={<EmptyPage title="Subscriptions" />} />
               <Route path="/billing/invoices" element={<EmptyPage title="Invoices" />} />
               <Route path="/billing/usage-based" element={<EmptyPage title="Usage-based Billing" />} />
