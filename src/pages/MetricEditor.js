@@ -292,13 +292,24 @@ const FormGroup = styled.div`
   gap: 8px;
 `;
 
-const SectionHeading = styled.h3`
-  font-size: 16px;
-  font-weight: 500;
-  margin: 0;
-  color: var(--text-color);
-  text-transform: none;
-  margin-bottom: 4px;
+const ModuleTitle = styled.h3`
+  font-family: -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 28px;
+  font-synthesis-weight: none;
+  font-weight: 700;
+  height: 36px;
+  line-height: 36px;
+  margin-bottom: 16px;
+`;
+
+const SectionHeading = styled.h2`
+  font-family: -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 28px;
+  font-synthesis-weight: none;
+  font-weight: 700;
+  height: 36px;
+  line-height: 36px;
+  margin-bottom: 16px;
 `;
 
 const Label = styled.label`

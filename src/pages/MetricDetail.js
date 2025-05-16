@@ -48,8 +48,12 @@ const MetricDetailHeader = styled.div`
 `;
 
 const MetricDetailTitle = styled.h1`
-  font-size: 24px;
-  font-weight: 600;
+  font-family: -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 28px;
+  font-synthesis-weight: none;
+  font-weight: 700;
+  height: 36px;
+  line-height: 36px;
 `;
 
 const EditButton = styled(Link)`

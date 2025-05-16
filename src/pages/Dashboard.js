@@ -23,8 +23,12 @@ const TodaySection = styled.div`
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 24px;
-  font-weight: 600;
+  font-family: -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 28px;
+  font-synthesis-weight: none;
+  font-weight: 700;
+  height: 36px;
+  line-height: 36px;
   margin-bottom: 24px;
 `;
 
@@ -973,7 +977,7 @@ const Dashboard = () => {
       
       <OverviewSection>
         <OverviewHeader>
-          <SectionTitle>Your overview</SectionTitle>
+          <SectionTitle>Overview</SectionTitle>
           
           <ControlsRow>
             <ControlGroup>
