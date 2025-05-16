@@ -8,6 +8,20 @@ import EmptyPage from './pages/EmptyPage';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import './styles/App.css';
+import styled from 'styled-components';
+
+const MainSection = styled.div`
+  margin-left: 64px;
+  width: calc(100% - 64px);
+  height: 100vh;
+  overflow-y: auto;
+`;
+
+const ContentWrapper = styled.div`
+  padding: 24px;
+  max-width: 1440px;
+  margin: 0 auto;
+`;
 
 function App() {
   const location = useLocation();
@@ -51,6 +65,16 @@ function App() {
               {/* Bottom */}
               <Route path="/developers" element={<EmptyPage title="Developers" />} />
               <Route path="/settings" element={<EmptyPage title="Settings" />} />
+              
+              {/* Billing routes */}
+              <Route path="/billing/overview" element={<EmptyPage title="Billing Overview" />} />
+              <Route path="/billing/subscriptions" element={<EmptyPage title="Subscriptions" />} />
+              <Route path="/billing/invoices" element={<EmptyPage title="Invoices" />} />
+              <Route path="/billing/usage-based" element={<EmptyPage title="Usage-based Billing" />} />
+              <Route path="/billing/revenue-recovery" element={<EmptyPage title="Revenue Recovery" />} />
+              
+              {/* Fallback route for any other paths */}
+              <Route path="*" element={<EmptyPage title="Page Not Found" subtitle="The page you're looking for doesn't exist." />} />
             </Routes>
           </AnimatePresence>
         </LayoutGroup>

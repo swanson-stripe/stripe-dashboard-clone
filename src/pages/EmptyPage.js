@@ -42,7 +42,7 @@ const EmptyIcon = styled.div`
   opacity: 0.5;
 `;
 
-const EmptyPage = ({ title }) => {
+const EmptyPage = ({ title, subtitle }) => {
   return (
     <Container
       initial={{ opacity: 0 }}
@@ -51,7 +51,7 @@ const EmptyPage = ({ title }) => {
       transition={{ duration: 0.3 }}
     >
       <Title>{title}</Title>
-      <Message>This page is still under development.</Message>
+      <Message>{subtitle || "This page is still under development."}</Message>
       
       <EmptyState>
         <EmptyIcon>
