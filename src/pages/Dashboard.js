@@ -9,6 +9,8 @@ const STRIPE_PURPLE = '#635bff';
 const STRIPE_PURPLE_LIGHT = 'rgba(99, 91, 255, 0.1)';
 const GRAY = '#9ca3af';
 const GRAY_LIGHT = 'rgba(156, 163, 175, 0.1)';
+const TREND_POSITIVE = '#217005';
+const TREND_NEGATIVE = '#B13600';
 
 const DashboardContainer = styled.div`
   width: 100%;
@@ -45,7 +47,7 @@ const ChartCard = styled.div`
   background: white;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
   height: ${props => props.height || 'auto'};
   overflow: hidden;
 `;
@@ -54,7 +56,7 @@ const SmallCard = styled.div`
   background: white;
   border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
   flex: 1;
 `;
 
@@ -223,7 +225,7 @@ const MetricCard = styled.div`
   background: white;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -231,7 +233,7 @@ const MetricCard = styled.div`
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   
   &:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     transform: translateY(-2px);
     
     .explore-action {
@@ -295,8 +297,9 @@ const MetricTrend = styled.div`
   display: flex;
   align-items: center;
   font-size: 14px;
-  color: ${props => props.trend === 'up' ? STRIPE_PURPLE : '#EF4444'};
+  color: ${props => props.trend === 'up' ? TREND_POSITIVE : TREND_NEGATIVE};
   white-space: nowrap;
+  font-weight: 500;
   
   svg {
     margin-right: 4px;
@@ -309,15 +312,17 @@ const Tooltip = styled.div`
   left: 0;
   pointer-events: none;
   opacity: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  padding: 10px 14px;
+  border-radius: 6px;
   font-size: 12px;
   white-space: nowrap;
   z-index: 10;
   transform: translate(-50%, -100%);
   transition: opacity 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee;
   
   &.visible {
     opacity: 1;
@@ -331,7 +336,21 @@ const Tooltip = styled.div`
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
-    border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+    border-color: white transparent transparent transparent;
+  }
+  
+  strong {
+    color: ${STRIPE_PURPLE};
+    font-weight: 600;
+  }
+  
+  .current-value {
+    color: ${TREND_POSITIVE};
+    font-weight: 500;
+  }
+  
+  .previous-value {
+    color: ${GRAY};
   }
 `;
 
@@ -790,10 +809,10 @@ const Dashboard = () => {
       const previousValue = chartData.previousData[dataIndex];
       
       let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong><br/>`;
-      tooltipContent += `Current: ${metric.isCurrency ? formatCurrency(currentValue) : formatNumber(currentValue)}<br/>`;
+      tooltipContent += `<span class="current-value">Current: ${metric.isCurrency ? formatCurrency(currentValue) : formatNumber(currentValue)}</span><br/>`;
       
       if (comparison !== 'no-comparison') {
-        tooltipContent += `Previous: ${metric.isCurrency ? formatCurrency(previousValue) : formatNumber(previousValue)}`;
+        tooltipContent += `<span class="previous-value">Previous: ${metric.isCurrency ? formatCurrency(previousValue) : formatNumber(previousValue)}</span>`;
       }
       
       setTooltipState({
@@ -1056,7 +1075,7 @@ const Dashboard = () => {
                           <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
-                      {metric.trendValue}% {metric.trend === 'up' ? 'up' : 'down'}
+                      {metric.trend === 'up' ? '+' : '-'}{metric.trendValue}%
                     </MetricTrend>
                   )}
                 </MetricValueRow>
