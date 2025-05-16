@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
@@ -45,7 +45,6 @@ const ChartCard = styled.div`
   background: white;
   border-radius: 8px;
   padding: 20px;
-  border: 1px solid var(--border-color);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   height: ${props => props.height || 'auto'};
   overflow: hidden;
@@ -55,7 +54,6 @@ const SmallCard = styled.div`
   background: white;
   border-radius: 8px;
   padding: 16px;
-  border: 1px solid var(--border-color);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   flex: 1;
 `;
@@ -72,6 +70,54 @@ const ChartTitle = styled.h3`
   font-weight: 500;
   margin: 0;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+`;
+
+const TitleWithDropdown = styled.div`
+  display: flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  
+  svg {
+    margin-left: 6px;
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+    transform: ${props => props.isOpen ? 'rotate(180deg)' : 'rotate(0)'};
+  }
+`;
+
+const MetricDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  min-width: 180px;
+  overflow: hidden;
+  display: ${props => props.isOpen ? 'block' : 'none'};
+`;
+
+const DropdownItem = styled.div`
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: #f5f7fa;
+  }
+  
+  &.active {
+    background-color: ${STRIPE_PURPLE_LIGHT};
+    color: ${STRIPE_PURPLE};
+    font-weight: 500;
+  }
 `;
 
 const ViewLink = styled(Link)`
@@ -326,8 +372,53 @@ const Dashboard = () => {
     }
   });
   
-  // Generate realistic volume data for Today section - independent from overview controls
-  const generateTodayVolumeData = () => {
+  // Add state for dropdown control
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState('gross-volume');
+  const dropdownRef = useRef(null);
+  
+  // Available metrics for dropdown
+  const availableMetrics = [
+    { id: 'gross-volume', label: 'Gross volume' },
+    { id: 'new-customers', label: 'New customers' },
+    { id: 'successful-payments', label: 'Successful payments' },
+    { id: 'net-volume', label: 'Net volume' }
+  ];
+  
+  // Handle dropdown item click
+  const handleMetricChange = (metricId) => {
+    setSelectedMetric(metricId);
+    setIsDropdownOpen(false);
+    
+    // Find the base metric data
+    const metric = baseMetrics.find(m => m.id === metricId);
+    if (!metric) return;
+    
+    // Generate new data for the selected metric
+    const newVolumeData = generateTodayVolumeDataForMetric(metricId);
+    
+    setTodayData({
+      volume: metric.isCurrency ? formatCurrency(metric.baseCurrencyValue) : formatNumber(metric.baseNumberValue),
+      volumeChart: newVolumeData
+    });
+  };
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Generate volume data based on metric type
+  const generateTodayVolumeDataForMetric = (metricId) => {
     const labels = Array(24).fill('').map((_, i) => {
       const hour = i % 12 === 0 ? 12 : i % 12;
       const ampm = i < 12 ? 'AM' : 'PM';
@@ -340,15 +431,31 @@ const Dashboard = () => {
     
     // Generate some data for hours that have "passed" today
     for (let i = 0; i <= currentHour; i++) {
-      // More activity during business hours
-      const hourFactor = (i >= 9 && i <= 17) ? 0.8 : 0.3;
-      data[i] = Math.round(Math.random() * 2000 * hourFactor);
+      // Different factors for different metrics
+      let hourFactor;
+      
+      if (metricId === 'gross-volume' || metricId === 'net-volume') {
+        hourFactor = (i >= 9 && i <= 17) ? 0.8 : 0.3;
+        data[i] = Math.round(Math.random() * 2000 * hourFactor);
+      } else if (metricId === 'new-customers') {
+        hourFactor = (i >= 9 && i <= 17) ? 0.7 : 0.2;
+        data[i] = Math.round(Math.random() * 10 * hourFactor);
+      } else if (metricId === 'successful-payments') {
+        hourFactor = (i >= 9 && i <= 17) ? 0.75 : 0.25;
+        data[i] = Math.round(Math.random() * 40 * hourFactor);
+      } else {
+        hourFactor = (i >= 9 && i <= 17) ? 0.8 : 0.3;
+        data[i] = Math.round(Math.random() * 2000 * hourFactor);
+      }
     }
+    
+    // Get metric title
+    const metricLabel = availableMetrics.find(m => m.id === metricId)?.label || 'Metric';
     
     return {
       labels,
       datasets: [{
-        label: 'Gross volume',
+        label: metricLabel,
         data: data,
         borderColor: STRIPE_PURPLE,
         backgroundColor: STRIPE_PURPLE_LIGHT,
@@ -357,6 +464,11 @@ const Dashboard = () => {
         borderWidth: 2
       }]
     };
+  };
+
+  // Generate realistic volume data for Today section - independent from overview controls
+  const generateTodayVolumeData = () => {
+    return generateTodayVolumeDataForMetric('gross-volume');
   };
   
   // Calculate the current day's volume for the Today section
@@ -767,20 +879,46 @@ const Dashboard = () => {
       <TodaySection>
         <SectionTitle>Today</SectionTitle>
         <TodayChartsGrid>
-          <ChartCard height="240px">
+          <ChartCard height="260px">
             <ChartHeader>
               <div>
-                <ChartTitle>Gross volume</ChartTitle>
+                <TitleWithDropdown 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
+                  isOpen={isDropdownOpen}
+                  ref={dropdownRef}
+                >
+                  <ChartTitle>
+                    {availableMetrics.find(m => m.id === selectedMetric)?.label}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </ChartTitle>
+                  
+                  <MetricDropdown isOpen={isDropdownOpen}>
+                    {availableMetrics.map(metric => (
+                      <DropdownItem 
+                        key={metric.id}
+                        className={selectedMetric === metric.id ? 'active' : ''}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMetricChange(metric.id);
+                        }}
+                      >
+                        {metric.label}
+                      </DropdownItem>
+                    ))}
+                  </MetricDropdown>
+                </TitleWithDropdown>
                 <MetricValue>{todayData.volume}</MetricValue>
                 <MetricTime>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</MetricTime>
               </div>
-              <ViewLink to="/metrics/gross-volume">View</ViewLink>
+              <ViewLink to={`/metrics/${selectedMetric}`}>View</ViewLink>
             </ChartHeader>
-            <ChartWrapper height="160px">
+            <ChartWrapper height="180px">
               {todayData.volumeChart && (
                 <LineChart 
                   data={todayData.volumeChart} 
-                  height={160} 
+                  height={180} 
                   showLegend={false} 
                   type="area" 
                 />
