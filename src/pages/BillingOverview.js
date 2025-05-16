@@ -190,22 +190,22 @@ const BillingOverview = () => {
           Revenue
         </Tab>
         <Tab 
-          active={activeTab === 'usage'} 
-          onClick={() => handleTabChange('usage')}
-        >
-          Usage
-        </Tab>
-        <Tab 
           active={activeTab === 'subscribers'} 
           onClick={() => handleTabChange('subscribers')}
         >
           Subscribers
         </Tab>
         <Tab 
-          active={activeTab === 'trials'} 
-          onClick={() => handleTabChange('trials')}
+          active={activeTab === 'invoices'} 
+          onClick={() => handleTabChange('invoices')}
         >
-          Trials
+          Invoices
+        </Tab>
+        <Tab 
+          active={activeTab === 'usage'} 
+          onClick={() => handleTabChange('usage')}
+        >
+          Usage
         </Tab>
         <Tab 
           active={activeTab === 'churn'} 
@@ -214,16 +214,10 @@ const BillingOverview = () => {
           Churn
         </Tab>
         <Tab 
-          active={activeTab === 'collections'} 
-          onClick={() => handleTabChange('collections')}
+          active={activeTab === 'trials'} 
+          onClick={() => handleTabChange('trials')}
         >
-          Collections
-        </Tab>
-        <Tab 
-          active={activeTab === 'insights'} 
-          onClick={() => handleTabChange('insights')}
-        >
-          Insights
+          Trials
         </Tab>
       </TabsContainer>
       
