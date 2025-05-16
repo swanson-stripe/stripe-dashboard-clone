@@ -675,6 +675,7 @@ const BillingOverview = () => {
                     height={160} 
                     showLegend={false} 
                     type="line" 
+                    unit={metric.id === 'mrr-growth-rate' ? 'percentage' : 'currency'}
                   />
                   {tooltipState.visible && tooltipState.metricId === metric.id && (
                     <Tooltip 

@@ -406,6 +406,90 @@ const Dashboard = () => {
     { id: 'net-volume', label: 'Net volume' }
   ];
   
+  // Base metrics data with their types
+  const baseMetrics = [
+    {
+      id: 'gross-volume',
+      title: 'Gross volume',
+      baseCurrencyValue: 192457.32,
+      baseNumberValue: 0,
+      trendValue: 5.3,
+      trend: 'up',
+      isCurrency: true,
+      unit: 'currency'
+    },
+    {
+      id: 'new-customers',
+      title: 'New customers',
+      baseCurrencyValue: 0,
+      baseNumberValue: 147,
+      trendValue: 3.8,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'number'
+    },
+    {
+      id: 'successful-payments',
+      title: 'Successful payments',
+      baseCurrencyValue: 0,
+      baseNumberValue: 3421,
+      trendValue: 9.2,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'number'
+    },
+    {
+      id: 'conversion-rate',
+      title: 'Conversion rate',
+      baseCurrencyValue: 0,
+      baseNumberValue: 4.7,
+      trendValue: 0.8,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'percentage'
+    },
+    {
+      id: 'average-order',
+      title: 'Average order',
+      baseCurrencyValue: 128.95,
+      baseNumberValue: 0,
+      trendValue: 2.1,
+      trend: 'up',
+      isCurrency: true,
+      unit: 'currency'
+    },
+    {
+      id: 'revenue-per-customer',
+      title: 'Revenue per customer',
+      baseCurrencyValue: 245.62,
+      baseNumberValue: 0,
+      trendValue: 1.5,
+      trend: 'up',
+      isCurrency: true,
+      unit: 'currency'
+    },
+    {
+      id: 'refund-rate',
+      title: 'Refund rate',
+      baseCurrencyValue: 0,
+      baseNumberValue: 2.1,
+      trendValue: 0.3,
+      trend: 'down',
+      isCurrency: false,
+      unit: 'percentage'
+    },
+    {
+      id: 'net-volume',
+      title: 'Net volume',
+      baseCurrencyValue: 187245.89,
+      baseNumberValue: 0,
+      trendValue: 4.9,
+      trend: 'up',
+      isCurrency: true,
+      unit: 'currency'
+    }
+  ];
+  
   // Handle dropdown item click
   const handleMetricChange = (metricId) => {
     setSelectedMetric(metricId);
@@ -676,91 +760,6 @@ const Dashboard = () => {
     return new Intl.NumberFormat('en-US').format(value);
   };
   
-  // Base metrics data
-  const baseMetrics = [
-    {
-      id: 'payments',
-      title: 'Payments',
-      baseCurrencyValue: 32543.60,
-      baseNumberValue: 456,
-      trend: 'up',
-      trendValue: 12.5,
-      isCurrency: true,
-    },
-    {
-      id: 'gross-volume',
-      title: 'Gross volume',
-      baseCurrencyValue: 25650.45,
-      baseNumberValue: 0,
-      trend: 'up',
-      trendValue: 8.2,
-      isCurrency: true,
-    },
-    {
-      id: 'net-volume',
-      title: 'Net volume from sales',
-      baseCurrencyValue: 20650.45,
-      baseNumberValue: 0,
-      trend: 'up',
-      trendValue: 4.7,
-      isCurrency: true,
-    },
-    {
-      id: 'successful-payments',
-      title: 'Successful payments',
-      baseCurrencyValue: 0,
-      baseNumberValue: 456,
-      trend: 'up',
-      trendValue: 6.3,
-      isCurrency: false,
-    },
-    {
-      id: 'failed-payments',
-      title: 'Failed payments',
-      baseCurrencyValue: 0,
-      baseNumberValue: 24,
-      trend: 'down',
-      trendValue: 2.1,
-      isCurrency: false,
-    },
-    {
-      id: 'new-customers',
-      title: 'New customers',
-      baseCurrencyValue: 0,
-      baseNumberValue: 156,
-      trend: 'up',
-      trendValue: 9.4,
-      isCurrency: false,
-    },
-    {
-      id: 'active-subscribers',
-      title: 'Active subscribers',
-      baseCurrencyValue: 0,
-      baseNumberValue: 1245,
-      trend: 'up',
-      trendValue: 3.7,
-      isCurrency: false,
-    },
-    {
-      id: 'arpu',
-      title: 'Average revenue per user',
-      baseCurrencyValue: 86.32,
-      baseNumberValue: 0,
-      trend: 'up',
-      trendValue: 5.2,
-      isCurrency: true,
-    },
-    {
-      id: 'mrr',
-      title: 'MRR',
-      baseCurrencyValue: 54876,
-      baseNumberValue: 0,
-      trend: 'up',
-      trendValue: 7.8,
-      isCurrency: true,
-    },
-  ];
-  
   // Handle date range changes
   const handleDateChange = (period) => {
     setActivePeriod(period);
@@ -942,6 +941,7 @@ const Dashboard = () => {
                   height={180} 
                   showLegend={false} 
                   type="area" 
+                  unit={selectedMetric === 'new-customers' || selectedMetric === 'successful-payments' ? 'number' : 'currency'}
                 />
               )}
             </ChartWrapper>
@@ -1085,6 +1085,7 @@ const Dashboard = () => {
                   height={80} 
                   showLegend={false} 
                   type="line" 
+                  unit={metric.unit || 'currency'}
                 />
                 {tooltipState.visible && tooltipState.metricId === metric.id && (
                   <Tooltip 

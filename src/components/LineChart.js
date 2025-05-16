@@ -2,13 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 import styled from 'styled-components';
 
-const ChartWrapper = styled.div`
+const ChartContainer = styled.div`
   width: 100%;
   height: 100%;
   position: relative;
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
 `;
 
-const LineChart = ({ data, height = 400, showLegend = true, type = 'line' }) => {
+const LineChart = ({ data, height = 400, showLegend = true, type = 'line', unit = 'currency' }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 
@@ -32,6 +36,28 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line' }) => 
     } else if (type === 'donut') {
       chartType = 'doughnut';
     }
+
+    // Format ticks based on unit type
+    const formatTick = (value) => {
+      if (unit === 'currency') {
+        if (value >= 1000000) {
+          return '$' + (value / 1000000).toFixed(1) + 'M';
+        } else if (value >= 1000) {
+          return '$' + (value / 1000).toFixed(1) + 'k';
+        }
+        return '$' + value;
+      } else if (unit === 'percentage') {
+        return value.toFixed(1) + '%';
+      } else if (unit === 'number') {
+        if (value >= 1000000) {
+          return (value / 1000000).toFixed(1) + 'M';
+        } else if (value >= 1000) {
+          return (value / 1000).toFixed(1) + 'k';
+        }
+        return value;
+      }
+      return value;
+    };
     
     // Basic configuration options
     const options = {
@@ -81,7 +107,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line' }) => 
           }
         },
         y: {
-          beginAtZero: true,
+          beginAtZero: unit !== 'percentage',
           grid: {
             color: 'rgba(0, 0, 0, 0.05)'
           },
@@ -91,10 +117,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line' }) => 
               size: 11
             },
             callback: function(value) {
-              if (value >= 1000) {
-                return '$' + value / 1000 + 'k';
-              }
-              return '$' + value;
+              return formatTick(value);
             }
           }
         }
@@ -120,7 +143,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line' }) => 
           }
         },
         y: {
-          beginAtZero: true,
+          beginAtZero: unit !== 'percentage',
           grid: {
             color: 'rgba(0, 0, 0, 0.05)'
           },
@@ -130,10 +153,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line' }) => 
               size: 11
             },
             callback: function(value) {
-              if (value >= 1000) {
-                return '$' + value / 1000 + 'k';
-              }
-              return '$' + value;
+              return formatTick(value);
             }
           }
         }
@@ -161,12 +181,12 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line' }) => 
         chartInstance.current.destroy();
       }
     };
-  }, [data, height, showLegend, type]);
+  }, [data, height, showLegend, type, unit]);
 
   return (
-    <ChartWrapper>
-      <canvas ref={chartRef} height={height} />
-    </ChartWrapper>
+    <ChartContainer>
+      <canvas ref={chartRef} />
+    </ChartContainer>
   );
 };
 
