@@ -275,7 +275,6 @@ const MetricTitle = styled.h3`
 const MetricValueRow = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 4px;
 `;
 
@@ -283,6 +282,8 @@ const MetricValue = styled.div`
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
 `;
 
 const MetricChartContainer = styled.div`
@@ -300,10 +301,7 @@ const MetricTrend = styled.div`
   color: ${props => props.trend === 'up' ? TREND_POSITIVE : TREND_NEGATIVE};
   white-space: nowrap;
   font-weight: 500;
-  
-  svg {
-    margin-right: 4px;
-  }
+  margin-left: 8px;
 `;
 
 const Tooltip = styled.div`
@@ -1063,12 +1061,14 @@ const Dashboard = () => {
               <MetricHeader>
                 <MetricTitle>{metric.title}</MetricTitle>
                 <MetricValueRow>
-                  <MetricValue>{metric.value}</MetricValue>
-                  {metric.trendValue > 0 && (
-                    <MetricTrend trend={metric.trend}>
-                      {metric.trend === 'up' ? '+' : '-'}{metric.trendValue}%
-                    </MetricTrend>
-                  )}
+                  <MetricValue>
+                    {metric.value}
+                    {metric.trendValue > 0 && (
+                      <MetricTrend trend={metric.trend}>
+                        {metric.trend === 'up' ? '+' : '-'}{metric.trendValue}%
+                      </MetricTrend>
+                    )}
+                  </MetricValue>
                 </MetricValueRow>
               </MetricHeader>
               
