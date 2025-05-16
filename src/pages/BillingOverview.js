@@ -148,7 +148,7 @@ const ComparisonSelect = styled.select`
 
 const MetricsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   margin-bottom: 32px;
 `;
@@ -285,10 +285,17 @@ const ReportCard = styled.div`
   margin-bottom: 24px;
   padding-bottom: 24px;
   border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   
   &:last-child {
     border-bottom: none;
   }
+`;
+
+const ReportInfo = styled.div`
+  flex: 1;
 `;
 
 const ReportTitle = styled.h3`
@@ -314,6 +321,7 @@ const DownloadButton = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
   
   &:hover {
     background-color: ${STRIPE_PURPLE_LIGHT};
@@ -688,8 +696,10 @@ const BillingOverview = () => {
             <SectionTitle>Report downloads</SectionTitle>
             
             <ReportCard>
-              <ReportTitle>MRR per subscriber per month</ReportTitle>
-              <ReportDescription>Includes the MRR for each subscriber at the end of the month.</ReportDescription>
+              <ReportInfo>
+                <ReportTitle>MRR per subscriber per month</ReportTitle>
+                <ReportDescription>Includes the MRR for each subscriber at the end of the month.</ReportDescription>
+              </ReportInfo>
               <DownloadButton>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -701,8 +711,10 @@ const BillingOverview = () => {
             </ReportCard>
             
             <ReportCard>
-              <ReportTitle>Subscription metrics per month</ReportTitle>
-              <ReportDescription>Includes your MRR roll-forward, subscriber roll-forward, retention, and customer value for each month.</ReportDescription>
+              <ReportInfo>
+                <ReportTitle>Subscription metrics per month</ReportTitle>
+                <ReportDescription>Includes your MRR roll-forward, subscriber roll-forward, retention, and customer value for each month.</ReportDescription>
+              </ReportInfo>
               <DownloadButton>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -714,8 +726,10 @@ const BillingOverview = () => {
             </ReportCard>
             
             <ReportCard>
-              <ReportTitle>Customer MRR changes</ReportTitle>
-              <ReportDescription>Includes a log of every MRR change for each customer, including new subscribers, upgrades, downgrades, reactivations, and churn.</ReportDescription>
+              <ReportInfo>
+                <ReportTitle>Customer MRR changes</ReportTitle>
+                <ReportDescription>Includes a log of every MRR change for each customer, including new subscribers, upgrades, downgrades, reactivations, and churn.</ReportDescription>
+              </ReportInfo>
               <DownloadButton>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
