@@ -869,6 +869,16 @@ const MetricEditor = () => {
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [chartData, setChartData] = useState(null);
   
+  // Format currency helper function
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+  
   // Add state for schema selection
   const [schemaSelection, setSchemaSelection] = useState({
     subscription_item_change_events: {
@@ -1612,7 +1622,21 @@ const MetricEditor = () => {
   const handleSave = (e) => {
     e.preventDefault();
     // Here would be API call to save the metric
-    navigate(`/metrics/${metricId}`);
+    
+    // Prepare the metric data to pass to the detail page
+    const metric = {
+      id: metricId,
+      title: formData.title,
+      value: formData.format === 'currency' ? 
+        formatCurrency(parseFloat(metricPresets[metricId]?.metricValue || metricPresets.default.metricValue.replace(/[$,]/g, ''))) : 
+        metricPresets[metricId]?.metricValue || metricPresets.default.metricValue,
+      trend: metricPresets[metricId]?.trendValue > 0 ? 'up' : 'down',
+      trendValue: Math.abs(metricPresets[metricId]?.trendValue || 0),
+      isCurrency: formData.format === 'currency',
+      chartData: chartData
+    };
+    
+    navigate(`/metrics/${metricId}`, { state: metric });
   };
 
   // Generate SQL statement based on selected fields
