@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import LineChart from '../components/LineChart';
 
 // Constants for consistent styling
-const STRIPE_PURPLE = '#635bff';
+const STRIPE_PURPLE = '#6772e5';
 const STRIPE_PURPLE_LIGHT = 'rgba(99, 91, 255, 0.1)';
-const GRAY = '#9ca3af';
+const GRAY = '#aab7c4';
 const TREND_POSITIVE = '#217005';
 const TREND_NEGATIVE = '#B13600';
 
@@ -148,133 +148,77 @@ const ComparisonSelect = styled.select`
 
 const MetricsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+  
+  ${({ type }) => type === 'small' && `
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  `}
 `;
 
 const MetricCard = styled.div`
   background: white;
   border-radius: 8px;
-  padding: 20px;
-  box-shadow: none;
+  padding: 16px;
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: box-shadow 0.2s ease;
+  transition: all 0.2s ease-in-out;
   
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    
-    .explore-action {
-      opacity: 1;
-    }
-  }
-`;
-
-const ExploreAction = styled.div`
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  font-size: 14px;
-  color: ${STRIPE_PURPLE};
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  
-  svg {
-    width: 16px;
-    height: 16px;
   }
 `;
 
 const MetricHeader = styled.div`
-  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 `;
 
-const MetricTitle = styled.div`
-  font-size: 15px;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
+const MetricTitle = styled.h3`
+  font-size: 14px;
   font-weight: 500;
+  color: #425466;
+  margin: 0;
+`;
+
+const MetricPeriod = styled.span`
+  font-size: 12px;
+  color: #697386;
 `;
 
 const MetricValueRow = styled.div`
   display: flex;
   align-items: center;
+  margin-bottom: 10px;
 `;
 
 const MetricValue = styled.div`
   font-size: 24px;
   font-weight: 600;
+  color: #1a1f36;
   display: flex;
   align-items: center;
 `;
 
-const MetricTrend = styled.div`
-  display: flex;
-  align-items: center;
+const MetricTrend = styled.span`
   font-size: 14px;
-  color: ${props => props.trend === 'up' ? TREND_POSITIVE : TREND_NEGATIVE};
-  white-space: nowrap;
-  font-weight: 500;
   margin-left: 8px;
+  color: ${({ trend }) => trend === 'up' ? '#36B37E' : '#FF5630'};
+  font-weight: 500;
 `;
 
-const MetricChartContainer = styled.div`
-  position: relative;
-  height: 160px;
+const ChartContainer = styled.div`
+  height: 130px;
   width: 100%;
 `;
 
-const Tooltip = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  opacity: 0;
-  background-color: white;
-  color: #333;
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 10;
-  transform: translate(-50%, -100%);
-  transition: opacity 0.2s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid #eee;
-  
-  &.visible {
-    opacity: 1;
-  }
-  
-  &:after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: white transparent transparent transparent;
-  }
-  
-  strong {
-    color: ${STRIPE_PURPLE};
-    font-weight: 600;
-  }
-  
-  .current-value {
-    color: ${TREND_POSITIVE};
-    font-weight: 500;
-  }
-  
-  .previous-value {
-    color: ${GRAY};
-  }
+const TabTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1a1f36;
 `;
 
 const ReportSection = styled.div`
@@ -339,6 +283,91 @@ const SectionTitle = styled.h2`
   margin-bottom: 24px;
 `;
 
+// Add report definitions before the component definition
+const summaryReports = [
+  { id: 'mrr-report', title: 'MRR Report' },
+  { id: 'revenue-summary', title: 'Revenue Summary' },
+  { id: 'annual-projections', title: 'Annual Projections' }
+];
+
+const revenueReports = [
+  { id: 'mrr-breakdown', title: 'MRR Breakdown' },
+  { id: 'revenue-by-plan', title: 'Revenue by Plan' },
+  { id: 'revenue-growth', title: 'Revenue Growth Analysis' }
+];
+
+const subscriberReports = [
+  { id: 'subscriber-acquisition', title: 'Subscriber Acquisition Report' },
+  { id: 'customer-lifetime-value', title: 'Customer Lifetime Value' },
+  { id: 'subscriber-segments', title: 'Subscriber Segments' }
+];
+
+const invoiceReports = [
+  { id: 'invoice-payments-summary', title: 'Invoice Payments Summary' },
+  { id: 'past-due-invoices', title: 'Past Due Invoices' },
+  { id: 'payment-methods', title: 'Payment Methods Analysis' }
+];
+
+const usageReports = [
+  { id: 'usage-breakdown', title: 'Usage Breakdown by Product' },
+  { id: 'usage-trends', title: 'Usage Trends' }
+];
+
+const churnReports = [
+  { id: 'churn-reasons', title: 'Churn Reasons Analysis' },
+  { id: 'churn-prevention', title: 'Churn Prevention Opportunities' },
+  { id: 'win-back-campaigns', title: 'Win-back Campaign Results' }
+];
+
+const trialReports = [
+  { id: 'trial-conversion-funnel', title: 'Trial Conversion Funnel' },
+  { id: 'trial-usage-patterns', title: 'Trial Usage Patterns' }
+];
+
+const ReportsSection = styled.div`
+  margin-top: 30px;
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+`;
+
+const ReportsSectionTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1a1f36;
+`;
+
+const ReportButtonsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+`;
+
+const ReportButton = styled.button`
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #f7fafc;
+  border: 1px solid #e3e8ee;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #425466;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #f0f4f8;
+    border-color: #d6dce7;
+  }
+`;
+
+const DownloadIcon = styled.span`
+  display: inline-flex;
+  margin-right: 8px;
+  color: #6772e5;
+`;
+
 const BillingOverview = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('revenue');
@@ -387,6 +416,216 @@ const BillingOverview = () => {
       trendValue: 350.0,
       trend: 'up',
       isCurrency: false,
+    }
+  ];
+
+  // Base metrics for subscribers tab
+  const baseSubscribersMetrics = [
+    {
+      id: 'active-subscribers',
+      title: 'Active subscribers',
+      baseCurrencyValue: 0,
+      baseNumberValue: 2483,
+      trendValue: 4.2,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'number'
+    },
+    {
+      id: 'active-subscribers-growth',
+      title: 'Active subscribers growth',
+      baseCurrencyValue: 0,
+      baseNumberValue: 8.6,
+      trendValue: 1.3,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'percentage'
+    },
+    {
+      id: 'new-subscribers',
+      title: 'New subscribers',
+      baseCurrencyValue: 0,
+      baseNumberValue: 214,
+      trendValue: 6.8,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'number'
+    },
+    {
+      id: 'churned-subscribers',
+      title: 'Churned subscribers',
+      baseCurrencyValue: 0,
+      baseNumberValue: 48,
+      trendValue: 1.2,
+      trend: 'down',
+      isCurrency: false,
+      unit: 'number'
+    },
+    {
+      id: 'arpu',
+      title: 'Average revenue per user',
+      baseCurrencyValue: 118.32,
+      baseNumberValue: 0,
+      trendValue: 2.4,
+      trend: 'up',
+      isCurrency: true,
+      unit: 'currency'
+    },
+    {
+      id: 'subscriber-ltv',
+      title: 'Subscriber lifetime value',
+      baseCurrencyValue: 2463.75,
+      baseNumberValue: 0,
+      trendValue: 3.7,
+      trend: 'up',
+      isCurrency: true,
+      unit: 'currency'
+    }
+  ];
+
+  // Base metrics for invoices tab
+  const baseInvoicesMetrics = [
+    {
+      id: 'invoice-revenue',
+      title: 'Invoice revenue',
+      baseCurrencyValue: 247865.43,
+      baseNumberValue: 0,
+      trendValue: 5.8,
+      trend: 'up',
+      isCurrency: true,
+      unit: 'currency'
+    },
+    {
+      id: 'past-due-invoice-volume',
+      title: 'Past due invoice volume',
+      baseCurrencyValue: 18432.21,
+      baseNumberValue: 0,
+      trendValue: 2.1,
+      trend: 'down',
+      isCurrency: true,
+      unit: 'currency'
+    },
+    {
+      id: 'avg-invoice-payment-length',
+      title: 'Average invoice payment length',
+      baseCurrencyValue: 0,
+      baseNumberValue: 4.2,
+      trendValue: 0.3,
+      trend: 'down',
+      isCurrency: false,
+      unit: 'number'
+    }
+  ];
+
+  // Base metrics for usage tab
+  const baseUsageMetrics = [
+    {
+      id: 'usage-revenue',
+      title: 'Usage revenue',
+      baseCurrencyValue: 85742.65,
+      baseNumberValue: 0,
+      trendValue: 12.3,
+      trend: 'up',
+      isCurrency: true,
+      unit: 'currency'
+    },
+    {
+      id: 'usage-count',
+      title: 'Usage count',
+      baseCurrencyValue: 0,
+      baseNumberValue: 1243572,
+      trendValue: 8.7,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'number'
+    }
+  ];
+
+  // Base metrics for churn tab
+  const baseChurnMetrics = [
+    {
+      id: 'subscriber-churn-rate',
+      title: 'Subscriber churn rate',
+      baseCurrencyValue: 0,
+      baseNumberValue: 2.4,
+      trendValue: 0.3,
+      trend: 'down',
+      isCurrency: false,
+      unit: 'percentage'
+    },
+    {
+      id: 'churned-revenue',
+      title: 'Churned revenue',
+      baseCurrencyValue: 14253.87,
+      baseNumberValue: 0,
+      trendValue: 1.6,
+      trend: 'down',
+      isCurrency: true,
+      unit: 'currency'
+    },
+    {
+      id: 'gross-mrr-churn-rate',
+      title: 'Gross MRR churn rate',
+      baseCurrencyValue: 0,
+      baseNumberValue: 2.8,
+      trendValue: 0.2,
+      trend: 'down',
+      isCurrency: false,
+      unit: 'percentage'
+    },
+    {
+      id: 'net-mrr-churn-rate',
+      title: 'Net MRR churn rate',
+      baseCurrencyValue: 0,
+      baseNumberValue: 0.7,
+      trendValue: 0.4,
+      trend: 'down',
+      isCurrency: false,
+      unit: 'percentage'
+    }
+  ];
+
+  // Base metrics for trials tab
+  const baseTrialsMetrics = [
+    {
+      id: 'new-trials',
+      title: 'New trials',
+      baseCurrencyValue: 0,
+      baseNumberValue: 183,
+      trendValue: 8.5,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'number'
+    },
+    {
+      id: 'trial-conversion-rate',
+      title: 'Trial conversion rate',
+      baseCurrencyValue: 0,
+      baseNumberValue: 42.6,
+      trendValue: 3.2,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'percentage'
+    },
+    {
+      id: 'active-trials',
+      title: 'Active trials',
+      baseCurrencyValue: 0,
+      baseNumberValue: 376,
+      trendValue: 5.4,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'number'
+    },
+    {
+      id: 'converted-trials',
+      title: 'Converted trials',
+      baseCurrencyValue: 0,
+      baseNumberValue: 78,
+      trendValue: 4.8,
+      trend: 'up',
+      isCurrency: false,
+      unit: 'number'
     }
   ];
 
@@ -468,68 +707,57 @@ const BillingOverview = () => {
       }
     }
 
-    // Generate trend data based on metric
-    if (metric.id === 'mrr') {
-      // MRR data - general uptrend with some growth
-      const baseValue = metric.baseCurrencyValue / 100;
-      let value = baseValue;
-      
-      currentData = new Array(pointCount).fill(0).map((_, i) => {
-        value = value * (0.998 + Math.random() * 0.004);
-        if (i === pointCount - 1) {
-          value = baseValue; // Ensure last value matches the display value
-        }
-        return value;
-      });
-      
-      if (includePrevious) {
-        // Previous period data - slightly lower
-        previousData = currentData.map(val => val * 0.97);
-      }
-    } else if (metric.id === 'mrr-growth') {
-      // MRR growth - fluctuating values
-      const volatility = 0.06;
+    // Generate trend data based on metric type
+    const volatility = 0.08; // Standard volatility
+    
+    if (metric.isCurrency) {
+      // Handle currency metrics - general trend with some volatility
       const baseValue = metric.baseCurrencyValue;
       
+      // Generate current data with appropriate trend
       currentData = new Array(pointCount).fill(0).map((_, i) => {
-        const randomFactor = 1 + (Math.random() * volatility * 2 - volatility);
-        const value = baseValue * randomFactor;
-        return value;
+        const progress = i / (pointCount - 1); // 0 to 1 based on position in timeline
+        const trendFactor = metric.trend === 'up' ? 1 + (progress * 0.05) : 1 - (progress * 0.03);
+        const randomFactor = 1 + ((Math.random() * volatility * 2) - volatility);
+        return baseValue * trendFactor * randomFactor;
       });
       
       if (includePrevious) {
-        // Previous period data - more stable
-        previousData = currentData.map(val => val * 1.05);
+        // Previous period data - slightly different trend
+        const prevTrendMultiplier = metric.trend === 'up' ? 0.92 : 1.05;
+        previousData = currentData.map(val => val * prevTrendMultiplier);
       }
-    } else if (metric.id === 'net-volume') {
-      // Net volume - fluctuating around zero, sometimes negative
-      currentData = new Array(pointCount).fill(0).map(() => {
-        return (Math.random() * 1000 - 500);
-      });
-      
-      if (includePrevious) {
-        // Previous period data
-        previousData = currentData.map(val => val * 0.8);
-      }
-    } else if (metric.id === 'mrr-growth-rate') {
-      // MRR growth rate - percentage data
-      const baseValue = 0.001;
+    } else if (metric.id.includes('rate') || metric.unit === 'percentage') {
+      // Handle percentage/rate metrics - smaller numbers, less volatility
+      const baseValue = metric.baseNumberValue / 100; // Convert to decimal for calculations
       
       currentData = new Array(pointCount).fill(0).map((_, i) => {
-        const sinFactor = Math.sin(i / (pointCount / Math.PI * 2));
-        return baseValue + (sinFactor * 0.002);
+        const progress = i / (pointCount - 1);
+        const trendFactor = metric.trend === 'up' ? 1 + (progress * 0.03) : 1 - (progress * 0.02);
+        const randomFactor = 1 + ((Math.random() * (volatility/2) * 2) - (volatility/2));
+        return baseValue * trendFactor * randomFactor;
       });
       
       if (includePrevious) {
-        // Previous period data
-        previousData = currentData.map(val => val * 0.3);
+        const prevTrendMultiplier = metric.trend === 'up' ? 0.94 : 1.03;
+        previousData = currentData.map(val => val * prevTrendMultiplier);
       }
     } else {
-      // Generic data for other metrics
-      currentData = new Array(pointCount).fill(0).map(() => Math.random() * 1000);
+      // Handle count/number metrics
+      const baseValue = metric.baseNumberValue;
+      
+      currentData = new Array(pointCount).fill(0).map((_, i) => {
+        const progress = i / (pointCount - 1);
+        const trendFactor = metric.trend === 'up' ? 1 + (progress * 0.04) : 1 - (progress * 0.025);
+        const randomFactor = 1 + ((Math.random() * volatility * 2) - volatility);
+        
+        // Round to whole numbers for count metrics
+        return Math.round(baseValue * trendFactor * randomFactor);
+      });
       
       if (includePrevious) {
-        previousData = currentData.map(val => val * 0.85);
+        const prevTrendMultiplier = metric.trend === 'up' ? 0.93 : 1.04;
+        previousData = currentData.map(val => Math.round(val * prevTrendMultiplier));
       }
     }
     
@@ -562,11 +790,10 @@ const BillingOverview = () => {
   };
 
   // Handle metric card click
-  const handleMetricClick = (metricId) => {
-    const currentMetric = metricData.find(metric => metric.id === metricId);
-    navigate(`/metrics/${metricId}`, { 
-      state: currentMetric 
-    });
+  const handleMetricClick = (metric) => {
+    console.log(`Clicked on metric: ${metric.title}`);
+    // In a real implementation, this would navigate to a detail page
+    // toast.info(`Navigating to ${metric.title} details page`);
   };
 
   // Handle tooltip display
@@ -632,125 +859,372 @@ const BillingOverview = () => {
     }
   }, [activePeriod, interval, comparison]);
 
+  // Function to render report download section
+  const renderReports = (reports) => {
+    return (
+      <ReportsSection>
+        <ReportsSectionTitle>Report downloads</ReportsSectionTitle>
+        <ReportButtonsContainer>
+          {reports.map(report => (
+            <ReportButton key={report.id} onClick={() => handleReportDownload(report)}>
+              <DownloadIcon>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 1.33301V10.6663M8 10.6663L12 6.66634M8 10.6663L4 6.66634" stroke="currentColor" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M1.33398 14.6667H14.6673" stroke="currentColor" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </DownloadIcon>
+              {report.title}
+            </ReportButton>
+          ))}
+        </ReportButtonsContainer>
+      </ReportsSection>
+    );
+  };
+
+  // Function to handle report download
+  const handleReportDownload = (report) => {
+    console.log(`Downloading report: ${report.title}`);
+    // In a real implementation, this would trigger an API call or generate a report
+    // toast.success(`Started download: ${report.title}`);
+  };
+
   // Render content based on active tab
   const renderTabContent = () => {
-    if (activeTab === 'revenue') {
+    // Helper function to render metrics grid with given metrics data
+    const renderMetricsGrid = (metrics, gridType = 'default') => {
       return (
-        <>
-          {/* Revenue Metrics */}
-          <MetricsGrid>
-            {metricData.map(metric => (
-              <MetricCard 
-                key={metric.id}
-                onClick={() => handleMetricClick(metric.id)}
-              >
-                <ExploreAction className="explore-action">
-                  Explore
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </ExploreAction>
-                
+        <MetricsGrid type={gridType}>
+          {metrics.map(metric => {
+            // Generate chart data for the current metric
+            const chartData = generateMetricChartData(metric, activePeriod, interval);
+            
+            const unitType = metric.isCurrency ? 'currency' : 
+                            metric.unit === 'percentage' ? 'percentage' : 
+                            metric.unit === 'days' ? 'days' : 'number';
+                            
+            const valueDisplay = metric.isCurrency 
+              ? `$${formatNumber(metric.baseCurrencyValue)}` 
+              : metric.unit === 'percentage'
+                ? `${formatNumber(metric.baseNumberValue)}%`
+                : metric.unit === 'days'
+                  ? `${formatNumber(metric.baseNumberValue)} ${metric.baseNumberValue === 1 ? 'day' : 'days'}`
+                  : formatNumber(metric.baseNumberValue);
+                  
+            const trendDisplay = metric.unit === 'days'
+              ? `${metric.trendValue} ${Math.abs(metric.trendValue) === 1 ? 'day' : 'days'} ${metric.trend === 'up' ? 'up' : 'down'}`
+              : `${metric.trend === 'up' ? '+' : '-'}${Math.abs(metric.trendValue)}%`;
+
+            return (
+              <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
                 <MetricHeader>
                   <MetricTitle>{metric.title}</MetricTitle>
-                  <MetricValueRow>
-                    <MetricValue>
-                      {metric.value}
-                      {metric.trendValue > 0 && (
-                        <MetricTrend trend={metric.trend}>
-                          {metric.trend === 'up' ? '+' : '-'}{metric.trendValue}%
-                        </MetricTrend>
-                      )}
-                    </MetricValue>
-                  </MetricValueRow>
+                  <MetricPeriod>{activePeriod.replace(/([A-Z])/g, ' $1').toLowerCase()}</MetricPeriod>
                 </MetricHeader>
-                
-                <MetricChartContainer 
-                  onMouseMove={(e) => showTooltip(e, metric.id, metric.chartData)}
-                  onMouseLeave={hideTooltip}
-                >
+                <MetricValueRow>
+                  <MetricValue>
+                    {valueDisplay}
+                    <MetricTrend trend={metric.trend}>
+                      {trendDisplay}
+                    </MetricTrend>
+                  </MetricValue>
+                </MetricValueRow>
+                <ChartContainer>
                   <LineChart 
-                    data={metric.chartData} 
-                    height={160} 
+                    data={chartData} 
+                    height={130} 
                     showLegend={false} 
-                    type="line" 
-                    unit={metric.id === 'mrr-growth-rate' ? 'percentage' : 'currency'}
+                    showTooltip={true}
+                    showAxes={false}
+                    unitType={unitType}
                   />
-                  {tooltipState.visible && tooltipState.metricId === metric.id && (
-                    <Tooltip 
-                      className={tooltipState.visible ? 'visible' : ''}
-                      style={{ 
-                        left: `${tooltipState.x}px`,
-                        top: `${tooltipState.y}px` 
-                      }}
-                      dangerouslySetInnerHTML={{ __html: tooltipState.content }}
-                    />
-                  )}
-                </MetricChartContainer>
+                </ChartContainer>
               </MetricCard>
-            ))}
-          </MetricsGrid>
-          
-          {/* Report Downloads */}
-          <ReportSection>
-            <SectionTitle>Report downloads</SectionTitle>
-            
-            <ReportCard>
-              <ReportInfo>
-                <ReportTitle>MRR per subscriber per month</ReportTitle>
-                <ReportDescription>Includes the MRR for each subscriber at the end of the month.</ReportDescription>
-              </ReportInfo>
-              <DownloadButton>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Download
-              </DownloadButton>
-            </ReportCard>
-            
-            <ReportCard>
-              <ReportInfo>
-                <ReportTitle>Subscription metrics per month</ReportTitle>
-                <ReportDescription>Includes your MRR roll-forward, subscriber roll-forward, retention, and customer value for each month.</ReportDescription>
-              </ReportInfo>
-              <DownloadButton>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Download
-              </DownloadButton>
-            </ReportCard>
-            
-            <ReportCard>
-              <ReportInfo>
-                <ReportTitle>Customer MRR changes</ReportTitle>
-                <ReportDescription>Includes a log of every MRR change for each customer, including new subscribers, upgrades, downgrades, reactivations, and churn.</ReportDescription>
-              </ReportInfo>
-              <DownloadButton>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Download
-              </DownloadButton>
-            </ReportCard>
-          </ReportSection>
-        </>
+            );
+          })}
+        </MetricsGrid>
       );
-    }
+    };
     
-    // For other tabs, return placeholder content
-    return (
-      <div style={{ textAlign: 'center', padding: '40px 0' }}>
-        <p>Select a different tab to view content.</p>
-      </div>
-    );
+    // Helper function to render reports
+    const renderReports = (title, reports) => {
+      return (
+        <ReportSection>
+          <SectionTitle>{title}</SectionTitle>
+          
+          {renderReports(reports)}
+        </ReportSection>
+      );
+    };
+
+    // Render different content based on the active tab
+    switch (activeTab) {
+      case 'revenue':
+        return (
+          <>
+            <TabTitle>Revenue</TabTitle>
+            {renderMetricsGrid(metricData)}
+            
+            {renderReports("Report downloads", [
+              {
+                title: "MRR per subscriber per month",
+                description: "Includes the MRR for each subscriber at the end of the month."
+              },
+              {
+                title: "Subscription metrics per month",
+                description: "Includes your MRR roll-forward, subscriber roll-forward, retention, and customer value for each month."
+              },
+              {
+                title: "Customer MRR changes",
+                description: "Includes a log of every MRR change for each customer, including new subscribers, upgrades, downgrades, reactivations, and churn."
+              }
+            ])}
+          </>
+        );
+
+      case 'subscribers':
+        // Calculate metrics for subscribers tab using the helper functions
+        const subscribersMetrics = baseSubscribersMetrics.map(metric => {
+          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          const displayValue = metric.isCurrency 
+            ? formatCurrency(metric.baseCurrencyValue) 
+            : formatPercentage(metric.baseNumberValue);
+
+          return {
+            ...metric,
+            value: displayValue,
+            chartData: chartData
+          };
+        });
+
+        return (
+          <>
+            <TabTitle>Subscribers</TabTitle>
+            {renderMetricsGrid(subscribersMetrics)}
+            
+            {renderReports("Subscriber reports", [
+              {
+                title: "Subscriber acquisition report",
+                description: "Detailed breakdown of where your subscribers are coming from and their lifetime value."
+              },
+              {
+                title: "Subscriber activity log",
+                description: "Complete history of subscriber activities including sign-ups, plan changes, and cancellations."
+              },
+              {
+                title: "Subscriber segmentation analysis",
+                description: "Analysis of subscriber cohorts based on plan type, geography, and acquisition source."
+              }
+            ])}
+          </>
+        );
+
+      case 'invoices':
+        // Calculate metrics for invoices tab
+        const invoicesMetrics = baseInvoicesMetrics.map(metric => {
+          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          const displayValue = metric.isCurrency 
+            ? formatCurrency(metric.baseCurrencyValue) 
+            : formatNumber(metric.baseNumberValue);
+
+          return {
+            ...metric,
+            value: displayValue,
+            chartData: chartData
+          };
+        });
+
+        return (
+          <>
+            <TabTitle>Invoices</TabTitle>
+            {renderMetricsGrid(invoicesMetrics)}
+            
+            {renderReports("Invoice reports", [
+              {
+                title: "Invoice payments summary",
+                description: "Detailed summary of all invoice payments, including payment methods and timing."
+              },
+              {
+                title: "Past due invoices report",
+                description: "List of all past due invoices with aging analysis and collection attempts."
+              },
+              {
+                title: "Invoice adjustments log",
+                description: "Record of all credits, refunds, and adjustments applied to invoices."
+              }
+            ])}
+          </>
+        );
+
+      case 'usage':
+        // Calculate metrics for usage tab
+        const usageMetrics = baseUsageMetrics.map(metric => {
+          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          const displayValue = metric.isCurrency 
+            ? formatCurrency(metric.baseCurrencyValue) 
+            : formatNumber(metric.baseNumberValue);
+
+          return {
+            ...metric,
+            value: displayValue,
+            chartData: chartData
+          };
+        });
+
+        return (
+          <>
+            <TabTitle>Usage</TabTitle>
+            {renderMetricsGrid(usageMetrics)}
+            
+            {renderReports("Usage reports", [
+              {
+                title: "Usage breakdown by product",
+                description: "Detailed breakdown of usage across all products and features."
+              },
+              {
+                title: "Top users report",
+                description: "Report of your highest usage customers and their consumption patterns."
+              },
+              {
+                title: "Usage trends analysis",
+                description: "Analysis of usage patterns over time, with seasonal trends and growth indicators."
+              }
+            ])}
+          </>
+        );
+
+      case 'churn':
+        // Calculate metrics for churn tab
+        const churnMetrics = baseChurnMetrics.map(metric => {
+          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          let displayValue;
+          
+          if (metric.isCurrency) {
+            displayValue = formatCurrency(metric.baseCurrencyValue);
+          } else if (metric.id.includes('rate')) {
+            displayValue = formatPercentage(metric.baseNumberValue);
+          } else {
+            displayValue = formatNumber(metric.baseNumberValue);
+          }
+
+          return {
+            ...metric,
+            value: displayValue,
+            chartData: chartData
+          };
+        });
+
+        return (
+          <>
+            <TabTitle>Churn</TabTitle>
+            {renderMetricsGrid(churnMetrics)}
+            
+            {renderReports("Churn reports", [
+              {
+                title: "Churn reasons analysis",
+                description: "Breakdown of reasons customers are canceling their subscriptions."
+              },
+              {
+                title: "Churn prediction report",
+                description: "Predictive analysis of accounts at risk of churning in the next 30 days."
+              },
+              {
+                title: "Win-back opportunities",
+                description: "List of churned customers with the highest probability of reactivation."
+              }
+            ])}
+          </>
+        );
+
+      case 'trials':
+        // Calculate metrics for trials tab
+        const trialsMetrics = baseTrialsMetrics.map(metric => {
+          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          let displayValue;
+          
+          if (metric.id.includes('rate')) {
+            displayValue = formatPercentage(metric.baseNumberValue);
+          } else {
+            displayValue = formatNumber(metric.baseNumberValue);
+          }
+
+          return {
+            ...metric,
+            value: displayValue,
+            chartData: chartData
+          };
+        });
+
+        return (
+          <>
+            <TabTitle>Trials</TabTitle>
+            {renderMetricsGrid(trialsMetrics)}
+            
+            {renderReports("Trial reports", [
+              {
+                title: "Trial conversion funnel",
+                description: "Step-by-step analysis of the trial to paid conversion process."
+              },
+              {
+                title: "Trial engagement metrics",
+                description: "Analysis of trial user engagement with key product features."
+              },
+              {
+                title: "Trial source attribution",
+                description: "Breakdown of trial starts by marketing source with conversion rates."
+              }
+            ])}
+          </>
+        );
+        
+      case 'summary':
+        return (
+          <>
+            <TabTitle>Summary</TabTitle>
+            {renderMetricsGrid([
+              {
+                id: 'mrr',
+                title: 'Monthly Recurring Revenue (MRR)',
+                baseCurrencyValue: 295175.42,
+                trendValue: 8.3,
+                trend: 'up',
+                isCurrency: true
+              },
+              {
+                id: 'arr',
+                title: 'Annual Recurring Revenue (ARR)',
+                baseCurrencyValue: 3542105.04,
+                trendValue: 8.3,
+                trend: 'up',
+                isCurrency: true
+              },
+              {
+                id: 'gross_volume',
+                title: 'Gross Volume',
+                baseCurrencyValue: 534297.81,
+                trendValue: 12.4,
+                trend: 'up',
+                isCurrency: true
+              },
+              {
+                id: 'net_revenue',
+                title: 'Net Revenue',
+                baseCurrencyValue: 455153.14,
+                trendValue: 9.2,
+                trend: 'up',
+                isCurrency: true
+              }
+            ])}
+            {renderReports(summaryReports)}
+          </>
+        );
+        
+      default:
+        return (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <p>Select a tab to view content.</p>
+          </div>
+        );
+    }
   };
 
   return (
