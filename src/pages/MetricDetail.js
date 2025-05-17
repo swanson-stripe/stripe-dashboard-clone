@@ -631,6 +631,7 @@ const MetricDetail = () => {
   useEffect(() => {
     const newChartData = generateChartData();
     setChartData(newChartData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePeriod, activeInterval, activeComparison]);
   
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
