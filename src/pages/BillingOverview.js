@@ -159,9 +159,15 @@ const MetricCard = styled.div`
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: visible;
   
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    
+    .explore-action {
+      opacity: 1;
+    }
   }
 `;
 
@@ -201,7 +207,7 @@ const MetricValue = styled.div`
 const MetricTrend = styled.span`
   font-size: 14px;
   margin-left: 8px;
-  color: ${({ trend }) => trend === 'up' ? '#36B37E' : '#FF5630'};
+  color: ${({ trend }) => trend === 'up' ? '#217005' : '#B13600'};
   font-weight: 500;
 `;
 
@@ -277,6 +283,72 @@ const SectionTitle = styled.h2`
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 24px;
+`;
+
+const ExploreAction = styled.div`
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 14px;
+  color: ${STRIPE_PURPLE};
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const Tooltip = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-color: white;
+  color: #333;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 100;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee;
+  
+  &.visible {
+    opacity: 1;
+  }
+  
+  &:after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: white transparent transparent transparent;
+  }
+  
+  strong {
+    color: ${STRIPE_PURPLE};
+    font-weight: 600;
+  }
+  
+  .current-value {
+    color: #36B37E;
+    font-weight: 500;
+  }
+  
+  .previous-value {
+    color: ${GRAY};
+  }
 `;
 
 // Add report definitions before the component definition
@@ -780,9 +852,9 @@ const BillingOverview = () => {
 
   // Handle metric card click
   const handleMetricClick = (metric) => {
-    console.log(`Clicked on metric: ${metric.title}`);
-    // In a real implementation, this would navigate to a detail page
-    // toast.info(`Navigating to ${metric.title} details page`);
+    navigate(`/metrics/${metric.id}`, { 
+      state: { metric }
+    });
   };
 
   // Handle tooltip display
@@ -793,15 +865,47 @@ const BillingOverview = () => {
     const dataIndex = Math.floor(xRatio * chartData.labels.length);
     
     if (dataIndex >= 0 && dataIndex < chartData.labels.length) {
-      const metric = metricData.find(m => m.id === metricId);
+      const label = chartData.labels[dataIndex];
       const currentValue = chartData.currentData[dataIndex];
-      const previousValue = chartData.previousData[dataIndex];
+      const previousValue = chartData.previousData ? chartData.previousData[dataIndex] : null;
       
-      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong><br/>`;
-      tooltipContent += `<span class="current-value">Current: ${metric.isCurrency ? formatCurrency(currentValue) : formatPercentage(currentValue * 100)}</span><br/>`;
+      // Determine unit type based on the data type
+      let unitType = 'number';
       
-      if (comparison !== 'no-comparison') {
-        tooltipContent += `<span class="previous-value">Previous: ${metric.isCurrency ? formatCurrency(previousValue) : formatPercentage(previousValue * 100)}</span>`;
+      if (typeof currentValue === 'number') {
+        // Check if it's a currency or percentage value based on size
+        if (currentValue > 100) {
+          unitType = 'currency';
+        } else if (currentValue < 1) {
+          unitType = 'percentage';
+        }
+      }
+      
+      let tooltipContent = `<strong>${label}</strong><br/>`;
+      
+      // Handle all unit types: currency, percentage, days, or regular numbers
+      if (unitType === 'currency') {
+        tooltipContent += `<span class="current-value">Current: ${formatCurrency(currentValue)}</span>`;
+      } else if (unitType === 'percentage') {
+        tooltipContent += `<span class="current-value">Current: ${formatPercentage(currentValue * 100)}</span>`;
+      } else if (unitType === 'days') {
+        tooltipContent += `<span class="current-value">Current: ${currentValue} ${currentValue === 1 ? 'day' : 'days'}</span>`;
+      } else {
+        tooltipContent += `<span class="current-value">Current: ${formatNumber(currentValue)}</span>`;
+      }
+      
+      // Add previous period data if available
+      if (previousValue !== null && comparison !== 'no-comparison') {
+        tooltipContent += '<br/>';
+        if (unitType === 'currency') {
+          tooltipContent += `<span class="previous-value">Previous: ${formatCurrency(previousValue)}</span>`;
+        } else if (unitType === 'percentage') {
+          tooltipContent += `<span class="previous-value">Previous: ${formatPercentage(previousValue * 100)}</span>`;
+        } else if (unitType === 'days') {
+          tooltipContent += `<span class="previous-value">Previous: ${previousValue} ${previousValue === 1 ? 'day' : 'days'}</span>`;
+        } else {
+          tooltipContent += `<span class="previous-value">Previous: ${formatNumber(previousValue)}</span>`;
+        }
       }
       
       setTooltipState({
@@ -898,17 +1002,25 @@ const BillingOverview = () => {
             const valueDisplay = metric.isCurrency 
               ? `$${formatNumber(metric.baseCurrencyValue)}` 
               : metric.unit === 'percentage'
-                ? `${formatNumber(metric.baseNumberValue)}%`
+                ? `${metric.baseNumberValue.toFixed(1)}%`
                 : metric.unit === 'days'
                   ? `${formatNumber(metric.baseNumberValue)} ${metric.baseNumberValue === 1 ? 'day' : 'days'}`
                   : formatNumber(metric.baseNumberValue);
                   
             const trendDisplay = metric.unit === 'days'
               ? `${metric.trendValue} ${Math.abs(metric.trendValue) === 1 ? 'day' : 'days'} ${metric.trend === 'up' ? 'up' : 'down'}`
-              : `${metric.trend === 'up' ? '+' : '-'}${Math.abs(metric.trendValue)}%`;
+              : `${metric.trend === 'up' ? '+' : '-'}${Math.abs(metric.trendValue).toFixed(1)}%`;
 
             return (
               <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
+                <ExploreAction className="explore-action">
+                  Explore
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </ExploreAction>
+                
                 <MetricHeader>
                   <MetricTitle>{metric.title}</MetricTitle>
                 </MetricHeader>
@@ -920,7 +1032,10 @@ const BillingOverview = () => {
                     </MetricTrend>
                   </MetricValue>
                 </MetricValueRow>
-                <ChartContainer>
+                <ChartContainer
+                  onMouseMove={(e) => showTooltip(e, metric.id, chartData)}
+                  onMouseLeave={hideTooltip}
+                >
                   <LineChart 
                     data={chartData} 
                     height={130} 
@@ -931,6 +1046,16 @@ const BillingOverview = () => {
                     horizontalLabels={true}
                     reducedLabels={true}
                   />
+                  {tooltipState.visible && tooltipState.metricId === metric.id && (
+                    <Tooltip 
+                      className={tooltipState.visible ? 'visible' : ''}
+                      style={{ 
+                        left: `${tooltipState.x}px`,
+                        top: `${tooltipState.y}px` 
+                      }}
+                      dangerouslySetInnerHTML={{ __html: tooltipState.content }}
+                    />
+                  )}
                 </ChartContainer>
               </MetricCard>
             );
