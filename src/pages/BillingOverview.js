@@ -986,12 +986,23 @@ const BillingOverview = () => {
 
   // Handle metric card click
   const handleMetricClick = (metric) => {
-    navigate(`/metrics/${metric.id}`, { 
+    const metricIdMap = {
+      'MRR': 'mrr',
+      'Active subscribers': 'active-subscribers',
+      'MRR growth': 'mrr-growth',
+      'Revenue per subscriber': 'revenue-per-subscriber',
+      'Subscriber churn rate': 'subscriber-churn-rate'
+    };
+    
+    const metricId = metricIdMap[metric.title] || metric.title.toLowerCase().replace(/\s+/g, '-');
+    
+    // Navigate to the metric detail page with full metric data
+    navigate(`/metrics/${metricId}`, { 
       state: { 
-        metric,
+        metric: metric, 
         sourcePage: 'Billing',
         sourceTab: activeTab 
-      }
+      } 
     });
   };
 

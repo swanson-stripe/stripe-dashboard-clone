@@ -790,11 +790,25 @@ const Dashboard = () => {
   };
   
   // Handle metric card click
-  const handleMetricClick = (metricId) => {
-    // Find the current metric data to pass to the detail page
-    const currentMetric = metricData.find(metric => metric.id === metricId);
+  const handleMetricClick = (metric) => {
+    const metricIdMap = {
+      'Gross volume': 'gross-volume',
+      'New customers': 'new-customers',
+      'Successful payments': 'successful-payments',
+      'Payment volume': 'payment-volume',
+      'Average order value': 'average-order-value',
+      'Conversion rate': 'conversion-rate'
+    };
+    
+    const metricId = metricIdMap[metric.title] || metric.title.toLowerCase().replace(/\s+/g, '-');
+    
+    // Navigate to the metric detail page with full metric data
     navigate(`/metrics/${metricId}`, { 
-      state: currentMetric 
+      state: { 
+        metric: metric, 
+        sourcePage: 'Home',
+        sourceTab: '' 
+      } 
     });
   };
 
@@ -1031,7 +1045,7 @@ const Dashboard = () => {
           {metricData.map(metric => (
             <MetricCard 
               key={metric.id}
-              onClick={() => handleMetricClick(metric.id)}
+              onClick={() => handleMetricClick(metric)}
             >
               <ExploreAction className="explore-action">
                 Explore

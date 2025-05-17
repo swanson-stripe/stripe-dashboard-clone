@@ -34,6 +34,23 @@ const BreadcrumbSeparator = styled.span`
   margin: 0 8px;
 `;
 
+const Breadcrumbs = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  /* Add separators between items */
+  & > *:not(:last-child)::after {
+    content: '/';
+    margin-left: 8px;
+    color: var(--text-secondary);
+  }
+`;
+
+const BreadcrumbCurrent = styled.span`
+  color: var(--text-secondary);
+`;
+
 const MetricDetailContainer = styled.div`
   background: white;
   border-radius: 8px;
@@ -184,28 +201,104 @@ const MetricDetail = () => {
   const [activeInterval, setActiveInterval] = useState('daily');
   const [activeComparison, setActiveComparison] = useState('previous_period');
   
-  // Get metric data from location state or use default values
-  const metric = location.state?.metric || {
-    id: metricId,
-    title: 'Metric Details',
-    value: '-',
-    trend: 'up',
-    trendValue: 0,
-  };
+  // Log the location state for debugging
+  console.log("Location state in MetricDetail:", location.state);
+  
+  // Get metric data from location state with improved fallback values
+  const metric = React.useMemo(() => {
+    // Use the location state if available
+    if (location.state?.metric) {
+      return location.state.metric;
+    }
+
+    // Fallback values based on metricId
+    const defaultMetrics = {
+      'mrr': {
+        id: 'mrr',
+        title: 'MRR',
+        baseCurrencyValue: 295016.81,
+        baseNumberValue: 0,
+        trendValue: 5.2,
+        trend: 'up',
+        isCurrency: true,
+        unit: 'currency'
+      },
+      'active-subscribers': {
+        id: 'active-subscribers',
+        title: 'Active subscribers',
+        baseCurrencyValue: 0,
+        baseNumberValue: 2483,
+        trendValue: 4.2,
+        trend: 'up',
+        isCurrency: false,
+        unit: 'number'
+      },
+      'mrr-growth': {
+        id: 'mrr-growth',
+        title: 'MRR growth',
+        baseCurrencyValue: 12847.43,
+        baseNumberValue: 0,
+        trendValue: 3.8,
+        trend: 'up',
+        isCurrency: true,
+        unit: 'currency'
+      },
+      'gross-volume': {
+        id: 'gross-volume',
+        title: 'Gross volume',
+        baseCurrencyValue: 192457.32,
+        baseNumberValue: 0,
+        trendValue: 5.3,
+        trend: 'up',
+        isCurrency: true,
+        unit: 'currency'
+      },
+      'net-volume': {
+        id: 'net-volume',
+        title: 'Net volume',
+        baseCurrencyValue: 187245.89,
+        baseNumberValue: 0,
+        trendValue: 4.9,
+        trend: 'up',
+        isCurrency: true,
+        unit: 'currency'
+      },
+      'subscriber-churn-rate': {
+        id: 'subscriber-churn-rate',
+        title: 'Subscriber churn rate',
+        baseCurrencyValue: 0,
+        baseNumberValue: 2.4,
+        trendValue: 0.3,
+        trend: 'down',
+        isCurrency: false,
+        unit: 'percentage'
+      },
+      'default': {
+        id: metricId,
+        title: metricId ? metricId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Metric Details',
+        baseCurrencyValue: 0,
+        baseNumberValue: 100,
+        trendValue: 2.0,
+        trend: 'up',
+        isCurrency: false,
+        unit: 'number'
+      }
+    };
+
+    return defaultMetrics[metricId] || defaultMetrics.default;
+  }, [metricId, location.state]);
   
   // Determine the source page for breadcrumbs
   const sourcePage = location.state?.sourcePage || 'Home';
   const sourceTab = location.state?.sourceTab || '';
   
   // Create the correct return path including the tab if it's from Billing
-  const getSourcePagePath = () => {
+  const sourcePagePath = React.useMemo(() => {
     if (sourcePage === 'Billing') {
-      return sourceTab ? `/billing/overview?tab=${sourceTab}` : '/billing/overview';
+      return sourceTab ? `/billing/${sourceTab}` : '/billing/overview';
     }
     return '/';
-  };
-  
-  const sourcePagePath = getSourcePagePath();
+  }, [sourcePage, sourceTab]);
   
   // Format currency values
   const formatCurrency = (value) => {
@@ -227,19 +320,24 @@ const MetricDetail = () => {
     return value.toFixed(0);
   };
   
-  // Format the metric value based on its type
+  // Format the metric value based on its type - with enhanced null checking
   const getFormattedValue = () => {
     if (!metric) return '-';
     
-    if (metric.isCurrency) {
-      return formatCurrency(metric.baseCurrencyValue || 0);
-    } else if (metric.unit === 'percentage') {
-      return `${(metric.baseNumberValue || 0).toFixed(1)}%`;
-    } else if (metric.unit === 'days') {
-      const value = metric.baseNumberValue || 0;
+    if (metric.isCurrency && metric.baseCurrencyValue !== undefined) {
+      return formatCurrency(metric.baseCurrencyValue);
+    } else if (metric.unit === 'percentage' && metric.baseNumberValue !== undefined) {
+      return `${(metric.baseNumberValue).toFixed(1)}%`;
+    } else if (metric.unit === 'days' && metric.baseNumberValue !== undefined) {
+      const value = metric.baseNumberValue;
       return `${value} ${value === 1 ? 'day' : 'days'}`;
+    } else if (metric.baseNumberValue !== undefined) {
+      return formatNumber(metric.baseNumberValue);
+    } else if (metric.value) {
+      // If metric.value is directly provided (as in some components)
+      return metric.value;
     } else {
-      return formatNumber(metric.baseNumberValue || 0);
+      return '-';
     }
   };
   
@@ -281,7 +379,7 @@ const MetricDetail = () => {
   const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
   const currentTransactions = transactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
   
-  // Sample chart data based on metric type
+  // Sample chart data based on metric type - improved error handling
   const generateChartData = () => {
     const labels = [];
     const today = new Date();
@@ -297,18 +395,24 @@ const MetricDetail = () => {
     let data = [];
     const isUptrend = metric.trend === 'up';
     
-    if (metric.isCurrency) {
-      // For currency metrics like MRR, gross volume, etc.
-      const baseValue = metric.baseCurrencyValue || 10000;
-      data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.07, isUptrend);
-    } else if (metric.unit === 'percentage') {
-      // For percentage metrics like conversion rate
-      const baseValue = metric.baseNumberValue || 5;
-      data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.05, isUptrend, false);
-    } else {
-      // For count metrics like active subscribers
-      const baseValue = metric.baseNumberValue || 100;
-      data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.06, isUptrend, false);
+    try {
+      if (metric.isCurrency) {
+        // For currency metrics like MRR, gross volume, etc.
+        const baseValue = metric.baseCurrencyValue || 10000;
+        data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.07, isUptrend);
+      } else if (metric.unit === 'percentage') {
+        // For percentage metrics like conversion rate
+        const baseValue = metric.baseNumberValue || 5;
+        data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.05, isUptrend, false);
+      } else {
+        // For count metrics like active subscribers
+        const baseValue = metric.baseNumberValue || 100;
+        data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.06, isUptrend, false);
+      }
+    } catch (error) {
+      console.error("Error generating chart data:", error);
+      // Default data in case of error
+      data = Array(14).fill(0).map(() => Math.floor(Math.random() * 100));
     }
     
     return {
@@ -387,13 +491,11 @@ const MetricDetail = () => {
       transition={{ duration: 0.3 }}
     >
       <BreadcrumbNav>
-        <BreadcrumbLink to={sourcePagePath}>
-          {sourcePage}
-        </BreadcrumbLink>
-        <BreadcrumbSeparator>
-          /
-        </BreadcrumbSeparator>
-        <span>{metric.title}</span>
+        <Breadcrumbs>
+          <BreadcrumbLink to="/">Dashboard</BreadcrumbLink>
+          <BreadcrumbLink to={sourcePagePath}>{sourcePage}</BreadcrumbLink>
+          <BreadcrumbCurrent>{metric.title}</BreadcrumbCurrent>
+        </Breadcrumbs>
       </BreadcrumbNav>
       
       <MetricDetailContainer>
