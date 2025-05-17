@@ -3,6 +3,7 @@ import { Link, useParams, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
+import ReportingControls from '../components/ReportingControls';
 
 const Container = styled(motion.div)`
   width: 100%;
@@ -168,11 +169,20 @@ const PageButton = styled.button`
   }
 `;
 
+const ControlsContainer = styled.div`
+  margin-bottom: 24px;
+`;
+
 const MetricDetail = () => {
   const { metricId } = useParams();
   const location = useLocation();
   const [currentPage, setCurrentPage] = useState(1);
   const transactionsPerPage = 25;
+  
+  // Add state for reporting controls
+  const [activePeriod, setActivePeriod] = useState('last_3_months');
+  const [activeInterval, setActiveInterval] = useState('daily');
+  const [activeComparison, setActiveComparison] = useState('previous_period');
   
   // Get metric data from location state or use default values
   const metric = location.state?.metric || {
@@ -348,6 +358,27 @@ const MetricDetail = () => {
   
   const totalPages = Math.ceil(transactions.length / transactionsPerPage);
   
+  // Handle period change
+  const handlePeriodChange = (period) => {
+    setActivePeriod(period);
+    // Update chart data based on new period
+    // This is a placeholder - implement actual data update logic
+  };
+  
+  // Handle interval change
+  const handleIntervalChange = (interval) => {
+    setActiveInterval(interval);
+    // Update chart data based on new interval
+    // This is a placeholder - implement actual data update logic
+  };
+  
+  // Handle comparison change
+  const handleComparisonChange = (comparison) => {
+    setActiveComparison(comparison);
+    // Update chart data based on new comparison
+    // This is a placeholder - implement actual data update logic
+  };
+  
   return (
     <Container
       initial={{ opacity: 0 }}
@@ -396,6 +427,17 @@ const MetricDetail = () => {
           ) : null}
           {metric.trend === 'up' ? '+' : ''}{metric.trendValue}% compared to previous period
         </MetricTrend>
+        
+        <ControlsContainer>
+          <ReportingControls 
+            initialPeriod={activePeriod}
+            initialInterval={activeInterval}
+            initialComparison={activeComparison}
+            onPeriodChange={handlePeriodChange}
+            onIntervalChange={handleIntervalChange}
+            onComparisonChange={handleComparisonChange}
+          />
+        </ControlsContainer>
         
         <ChartContainer>
           <LineChart data={chartData} height={280} showLegend={false} />

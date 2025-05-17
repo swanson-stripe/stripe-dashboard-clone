@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
+import ReportingControls from '../components/ReportingControls';
 
 // Constants for consistent styling
 const STRIPE_PURPLE = '#635bff';
@@ -366,9 +367,9 @@ const Dashboard = () => {
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 
     endDate: new Date() 
   });
-  const [activePeriod, setActivePeriod] = useState('last7days');
-  const [comparison, setComparison] = useState('previous-period');
-  const [interval, setInterval] = useState('daily');
+  const [activePeriod, setActivePeriod] = useState('last_3_months');
+  const [activeInterval, setActiveInterval] = useState('daily');
+  const [activeComparison, setActiveComparison] = useState('previous_period');
   const [metricData, setMetricData] = useState([]);
   const [tooltipState, setTooltipState] = useState({
     visible: false,
@@ -699,7 +700,7 @@ const Dashboard = () => {
     }];
     
     // Add comparison dataset if needed
-    if (includePrevious && comparison !== 'no-comparison') {
+    if (includePrevious && activeComparison !== 'no-comparison') {
       datasets.push({
         data: previousDataPoints,
         borderColor: GRAY,
@@ -812,7 +813,7 @@ const Dashboard = () => {
       let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong><br/>`;
       tooltipContent += `<span class="current-value">Current: ${metric.isCurrency ? formatCurrency(currentValue) : formatNumber(currentValue)}</span><br/>`;
       
-      if (comparison !== 'no-comparison') {
+      if (activeComparison !== 'no-comparison') {
         tooltipContent += `<span class="previous-value">Previous: ${metric.isCurrency ? formatCurrency(previousValue) : formatNumber(previousValue)}</span>`;
       }
       
@@ -855,8 +856,8 @@ const Dashboard = () => {
       // Generate updated metrics with chart data
       const updatedMetrics = baseMetrics.map(metric => {
         const valueMultiplier = periodMultiplier * (
-          (interval === 'weekly') ? 1.1 : 
-          (interval === 'monthly') ? 1.2 : 1
+          (activeInterval === 'weekly') ? 1.1 : 
+          (activeInterval === 'monthly') ? 1.2 : 1
         );
         
         // Calculate adjusted values based on period and interval
@@ -871,13 +872,13 @@ const Dashboard = () => {
         
         // Adjust trend value based on comparison
         let trendVal = metric.trendValue;
-        if (comparison === 'previous-year') {
+        if (activeComparison === 'previous-year') {
           trendVal = trendVal * 1.5;
-        } else if (comparison === 'no-comparison') {
+        } else if (activeComparison === 'no-comparison') {
           trendVal = 0;
         }
         
-        const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+        const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
         
         return {
           ...metric,
@@ -892,7 +893,45 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error updating metrics data:", error);
     }
-  }, [activePeriod, interval, comparison, navigate]);
+  }, [activePeriod, activeInterval, activeComparison, navigate]);
+
+  // Handle period change from reporting controls
+  const handlePeriodChange = (period) => {
+    setActivePeriod(period);
+    // Update metrics for new period
+    const updatedMetrics = baseMetrics.map(metric => {
+      const chartData = generateMetricChartData(metric, period, activeInterval);
+      return { ...metric, chartData };
+    });
+    setMetricData(updatedMetrics);
+  };
+  
+  // Handle interval change from reporting controls
+  const handleIntervalChange = (interval) => {
+    setActiveInterval(interval);
+    // Update metrics for new interval
+    const updatedMetrics = baseMetrics.map(metric => {
+      const chartData = generateMetricChartData(metric, activePeriod, interval);
+      return { ...metric, chartData };
+    });
+    setMetricData(updatedMetrics);
+  };
+  
+  // Handle comparison change from reporting controls
+  const handleComparisonChange = (comparison) => {
+    setActiveComparison(comparison);
+    // Update metrics with new comparison setting
+    const updatedMetrics = baseMetrics.map(metric => {
+      const chartData = generateMetricChartData(
+        metric, 
+        activePeriod, 
+        activeInterval, 
+        comparison !== 'none'
+      );
+      return { ...metric, chartData };
+    });
+    setMetricData(updatedMetrics);
+  };
 
   return (
     <DashboardContainer>
@@ -977,75 +1016,15 @@ const Dashboard = () => {
       
       <OverviewSection>
         <OverviewHeader>
-          <SectionTitle>Overview</SectionTitle>
-          
-          <ControlsRow>
-            <ControlGroup>
-              <ControlLabel>Date range</ControlLabel>
-              <ButtonGroup>
-                <ControlButton 
-                  active={activePeriod === 'last7days'} 
-                  onClick={() => handleDateChange('last7days')}
-                >
-                  Last 7 days
-                </ControlButton>
-                <ControlButton 
-                  active={activePeriod === 'last30days'} 
-                  onClick={() => handleDateChange('last30days')}
-                >
-                  Last 30 days
-                </ControlButton>
-                <ControlButton 
-                  active={activePeriod === 'last90days'} 
-                  onClick={() => handleDateChange('last90days')}
-                >
-                  Last 90 days
-                </ControlButton>
-                <ControlButton 
-                  active={activePeriod === 'thisYear'} 
-                  onClick={() => handleDateChange('thisYear')}
-                >
-                  This year
-                </ControlButton>
-              </ButtonGroup>
-            </ControlGroup>
-            
-            <ControlGroup>
-              <ControlLabel>Interval</ControlLabel>
-              <ButtonGroup>
-                <ControlButton 
-                  active={interval === 'daily'} 
-                  onClick={() => setInterval('daily')}
-                >
-                  Daily
-                </ControlButton>
-                <ControlButton 
-                  active={interval === 'weekly'} 
-                  onClick={() => setInterval('weekly')}
-                >
-                  Weekly
-                </ControlButton>
-                <ControlButton 
-                  active={interval === 'monthly'} 
-                  onClick={() => setInterval('monthly')}
-                >
-                  Monthly
-                </ControlButton>
-              </ButtonGroup>
-            </ControlGroup>
-            
-            <ControlGroup>
-              <ControlLabel>Comparison</ControlLabel>
-              <ComparisonSelect 
-                value={comparison}
-                onChange={(e) => setComparison(e.target.value)}
-              >
-                <option value="previous-period">vs. previous period</option>
-                <option value="previous-year">vs. previous year</option>
-                <option value="no-comparison">No comparison</option>
-              </ComparisonSelect>
-            </ControlGroup>
-          </ControlsRow>
+          <SectionTitle>Business overview</SectionTitle>
+          <ReportingControls 
+            initialPeriod={activePeriod}
+            initialInterval={activeInterval}
+            initialComparison={activeComparison}
+            onPeriodChange={handlePeriodChange}
+            onIntervalChange={handleIntervalChange}
+            onComparisonChange={handleComparisonChange}
+          />
         </OverviewHeader>
         
         <MetricsGrid>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import LineChart from '../components/LineChart';
+import ReportingControls from '../components/ReportingControls';
 
 // Constants for consistent styling
 const STRIPE_PURPLE = '#635bff';
@@ -492,9 +493,9 @@ const BillingOverview = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('revenue');
-  const [activePeriod, setActivePeriod] = useState('last30days');
-  const [interval, setInterval] = useState('daily');
-  const [comparison, setComparison] = useState('previous-period');
+  const [activePeriod, setActivePeriod] = useState('last_3_months');
+  const [activeInterval, setActiveInterval] = useState('daily');
+  const [activeComparison, setActiveComparison] = useState('previous_period');
   const [tooltipState, setTooltipState] = useState({
     visible: false,
     x: 0,
@@ -773,9 +774,64 @@ const BillingOverview = () => {
     setActiveTab(tab);
   };
 
-  // Handle date range changes
-  const handleDateChange = (period) => {
+  // Handle period change from reporting controls
+  const handlePeriodChange = (period) => {
     setActivePeriod(period);
+    // Update metrics for the new period
+    updateMetricsForPeriodChange(period);
+  };
+  
+  // Handle interval change from reporting controls
+  const handleIntervalChange = (interval) => {
+    setActiveInterval(interval);
+    // Update metrics for the new interval
+    updateMetricsForIntervalChange(interval);
+  };
+  
+  // Handle comparison change from reporting controls
+  const handleComparisonChange = (comparison) => {
+    setActiveComparison(comparison);
+    // Update metrics for the new comparison
+    updateMetricsForComparisonChange(comparison);
+  };
+  
+  // Update metrics when period changes
+  const updateMetricsForPeriodChange = (period) => {
+    // Implementation depends on how metrics are generated in your app
+    // This is a placeholder for the actual implementation
+    const updatedMetrics = baseRevenueMetrics.map(metric => {
+      // Update metric data for new period
+      // ...
+      return metric;
+    });
+    // Update metrics state if necessary
+    // setMetrics(updatedMetrics);
+  };
+  
+  // Update metrics when interval changes
+  const updateMetricsForIntervalChange = (interval) => {
+    // Implementation depends on how metrics are generated in your app
+    // This is a placeholder for the actual implementation
+    const updatedMetrics = baseRevenueMetrics.map(metric => {
+      // Update metric data for new interval
+      // ...
+      return metric;
+    });
+    // Update metrics state if necessary
+    // setMetrics(updatedMetrics);
+  };
+  
+  // Update metrics when comparison changes
+  const updateMetricsForComparisonChange = (comparison) => {
+    // Implementation depends on how metrics are generated in your app
+    // This is a placeholder for the actual implementation
+    const updatedMetrics = baseRevenueMetrics.map(metric => {
+      // Update metric data for new comparison
+      // ...
+      return metric;
+    });
+    // Update metrics state if necessary
+    // setMetrics(updatedMetrics);
   };
 
   // Format currency values
@@ -971,7 +1027,7 @@ const BillingOverview = () => {
         tooltipContent += `<span class="current-value">Current: ${formatNumber(currentValue)}</span>`;
       }
       
-      if (previousValue !== null && comparison !== 'no-comparison') {
+      if (previousValue !== null && activeComparison !== 'no-comparison') {
         tooltipContent += '<br/>';
         if (metric.isCurrency) {
           tooltipContent += `<span class="previous-value">Previous: ${formatCurrency(previousValue)}</span>`;
@@ -1005,7 +1061,7 @@ const BillingOverview = () => {
       // Generate updated metrics with chart data
       const updatedMetrics = baseRevenueMetrics.map(metric => {
         // Generate chart data for the metric
-        const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+        const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
         
         // Format the display value
         const displayValue = metric.isCurrency
@@ -1024,7 +1080,7 @@ const BillingOverview = () => {
     } catch (error) {
       console.error("Error updating metrics data:", error);
     }
-  }, [activePeriod, interval, comparison]);
+  }, [activePeriod, activeInterval, activeComparison]);
 
   // Helper function to render reports - restored previous treatment
   const renderReportSection = (title, reports) => {
@@ -1103,8 +1159,8 @@ const BillingOverview = () => {
               <MetricChart 
                 metric={metric}
                 activePeriod={activePeriod}
-                interval={interval}
-                comparison={comparison}
+                interval={activeInterval}
+                comparison={activeComparison}
                 tooltipState={tooltipState}
                 showTooltip={showTooltip}
                 hideTooltip={hideTooltip}
@@ -1149,7 +1205,7 @@ const BillingOverview = () => {
       case 'subscribers':
         // Calculate metrics for subscribers tab using the helper functions
         const subscribersMetrics = baseSubscribersMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
           const displayValue = metric.isCurrency 
             ? formatCurrency(metric.baseCurrencyValue) 
             : formatPercentage(metric.baseNumberValue);
@@ -1170,7 +1226,7 @@ const BillingOverview = () => {
       case 'invoices':
         // Calculate metrics for invoices tab
         const invoicesMetrics = baseInvoicesMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
           const displayValue = metric.isCurrency 
             ? formatCurrency(metric.baseCurrencyValue) 
             : formatNumber(metric.baseNumberValue);
@@ -1191,7 +1247,7 @@ const BillingOverview = () => {
       case 'usage':
         // Calculate metrics for usage tab
         const usageMetrics = baseUsageMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
           const displayValue = metric.isCurrency 
             ? formatCurrency(metric.baseCurrencyValue) 
             : formatNumber(metric.baseNumberValue);
@@ -1212,7 +1268,7 @@ const BillingOverview = () => {
       case 'churn':
         // Calculate metrics for churn tab
         const churnMetrics = baseChurnMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
           let displayValue;
           
           if (metric.isCurrency) {
@@ -1239,7 +1295,7 @@ const BillingOverview = () => {
       case 'trials':
         // Calculate metrics for trials tab
         const trialsMetrics = baseTrialsMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
           let displayValue;
           
           if (metric.id.includes('rate')) {
@@ -1343,73 +1399,14 @@ const BillingOverview = () => {
       </TabsContainer>
       
       <ControlsContainer>
-        <ControlsRow>
-          <ControlGroup>
-            <ControlLabel>Date range</ControlLabel>
-            <ButtonGroup>
-              <ControlButton 
-                active={activePeriod === 'last7days'} 
-                onClick={() => handleDateChange('last7days')}
-              >
-                Last 7 days
-              </ControlButton>
-              <ControlButton 
-                active={activePeriod === 'last30days'} 
-                onClick={() => handleDateChange('last30days')}
-              >
-                Last 30 days
-              </ControlButton>
-              <ControlButton 
-                active={activePeriod === 'last90days'} 
-                onClick={() => handleDateChange('last90days')}
-              >
-                Last 90 days
-              </ControlButton>
-              <ControlButton 
-                active={activePeriod === 'thisYear'} 
-                onClick={() => handleDateChange('thisYear')}
-              >
-                This year
-              </ControlButton>
-            </ButtonGroup>
-          </ControlGroup>
-          
-          <ControlGroup>
-            <ControlLabel>Interval</ControlLabel>
-            <ButtonGroup>
-              <ControlButton 
-                active={interval === 'daily'} 
-                onClick={() => setInterval('daily')}
-              >
-                Daily
-              </ControlButton>
-              <ControlButton 
-                active={interval === 'weekly'} 
-                onClick={() => setInterval('weekly')}
-              >
-                Weekly
-              </ControlButton>
-              <ControlButton 
-                active={interval === 'monthly'} 
-                onClick={() => setInterval('monthly')}
-              >
-                Monthly
-              </ControlButton>
-            </ButtonGroup>
-          </ControlGroup>
-          
-          <ControlGroup>
-            <ControlLabel>Comparison</ControlLabel>
-            <ComparisonSelect 
-              value={comparison}
-              onChange={(e) => setComparison(e.target.value)}
-            >
-              <option value="previous-period">vs. previous period</option>
-              <option value="previous-year">vs. previous year</option>
-              <option value="no-comparison">No comparison</option>
-            </ComparisonSelect>
-          </ControlGroup>
-        </ControlsRow>
+        <ReportingControls 
+          initialPeriod={activePeriod}
+          initialInterval={activeInterval}
+          initialComparison={activeComparison}
+          onPeriodChange={handlePeriodChange}
+          onIntervalChange={handleIntervalChange}
+          onComparisonChange={handleComparisonChange}
+        />
       </ControlsContainer>
       
       {renderTabContent()}
