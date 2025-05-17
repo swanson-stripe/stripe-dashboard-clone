@@ -261,19 +261,78 @@ const MetricDetail = () => {
   const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
   const currentTransactions = transactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
   
-  // Sample chart data
-  const chartData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [
-      {
-        data: [1250, 1730, 1400, 1800, 1600, 2100, 2400, 2200, 2500, 2300, 2600, 2800, 2900, 3000],
-        borderColor: '#635bff',
-        backgroundColor: 'rgba(99, 91, 255, 0.1)',
-        fill: true,
-        borderWidth: 2,
-      },
-    ],
+  // Sample chart data based on metric type
+  const generateChartData = () => {
+    const labels = [];
+    const today = new Date();
+    
+    // Create 14 labels for the past two weeks
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    }
+    
+    // Generate data based on metric type
+    let data = [];
+    const isUptrend = metric.trend === 'up';
+    
+    if (metric.isCurrency) {
+      // For currency metrics like MRR, gross volume, etc.
+      const baseValue = metric.baseCurrencyValue || 10000;
+      data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.07, isUptrend);
+    } else if (metric.unit === 'percentage') {
+      // For percentage metrics like conversion rate
+      const baseValue = metric.baseNumberValue || 5;
+      data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.05, isUptrend, false);
+    } else {
+      // For count metrics like active subscribers
+      const baseValue = metric.baseNumberValue || 100;
+      data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.06, isUptrend, false);
+    }
+    
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          borderColor: '#635bff',
+          backgroundColor: 'rgba(99, 91, 255, 0.1)',
+          fill: true,
+          borderWidth: 2,
+          tension: 0.4,
+          pointRadius: 0
+        },
+      ],
+    };
   };
+  
+  // Generate realistic trend data
+  const generateRealisticTrend = (count, min, max, volatility, isUptrend, isCurrency = true) => {
+    const result = [];
+    let current = min + (Math.random() * (max - min) / 2); // Start somewhere in the lower half of the range
+    
+    for (let i = 0; i < count; i++) {
+      // Add some randomness
+      const changePercent = (Math.random() * volatility * 2) - volatility; // -volatility to +volatility
+      
+      // Add trend direction - uptrend metrics slowly increase, downtrend slowly decrease
+      const trendFactor = isUptrend ? 1.01 : 0.99;
+      
+      current = current * (1 + changePercent) * trendFactor;
+      
+      // Keep within bounds
+      current = Math.max(min, Math.min(max, current));
+      
+      // Round currency values to 2 decimals, whole number for counts
+      result.push(isCurrency ? parseFloat(current.toFixed(2)) : Math.round(current));
+    }
+    
+    return result;
+  };
+  
+  // Use our dynamic chart data generator
+  const chartData = generateChartData();
   
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   

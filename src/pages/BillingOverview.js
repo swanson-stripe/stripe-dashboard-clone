@@ -514,34 +514,42 @@ const BillingOverview = () => {
     {
       id: 'mrr',
       title: 'MRR',
-      baseCurrencyValue: 29501672.81,
-      trendValue: 0.1,
+      baseCurrencyValue: 295016.81,
+      baseNumberValue: 0,
+      trendValue: 5.2,
       trend: 'up',
       isCurrency: true,
+      unit: 'currency'
     },
     {
       id: 'mrr-growth',
       title: 'MRR growth',
-      baseCurrencyValue: 25816.82,
-      trendValue: 4.8,
-      trend: 'down',
+      baseCurrencyValue: 12847.43,
+      baseNumberValue: 0,
+      trendValue: 3.8,
+      trend: 'up',
       isCurrency: true,
+      unit: 'currency'
     },
     {
       id: 'net-volume',
       title: 'Net volume',
-      baseCurrencyValue: 0.00,
-      trendValue: 100.0,
+      baseCurrencyValue: 187245.89,
+      baseNumberValue: 0,
+      trendValue: 4.9,
       trend: 'up',
       isCurrency: true,
+      unit: 'currency'
     },
     {
       id: 'mrr-growth-rate',
       title: 'MRR growth rate',
-      baseNumberValue: 0.1,
-      trendValue: 350.0,
+      baseCurrencyValue: 0,
+      baseNumberValue: 4.5,
+      trendValue: 1.2,
       trend: 'up',
       isCurrency: false,
+      unit: 'percentage'
     }
   ];
 
@@ -639,7 +647,7 @@ const BillingOverview = () => {
       trendValue: 0.3,
       trend: 'down',
       isCurrency: false,
-      unit: 'number'
+      unit: 'days'
     }
   ];
 
@@ -650,7 +658,7 @@ const BillingOverview = () => {
       title: 'Usage revenue',
       baseCurrencyValue: 85742.65,
       baseNumberValue: 0,
-      trendValue: 12.3,
+      trendValue: 8.3,
       trend: 'up',
       isCurrency: true,
       unit: 'currency'
@@ -660,7 +668,7 @@ const BillingOverview = () => {
       title: 'Usage count',
       baseCurrencyValue: 0,
       baseNumberValue: 1243572,
-      trendValue: 8.7,
+      trendValue: 12.7,
       trend: 'up',
       isCurrency: false,
       unit: 'number'
