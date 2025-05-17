@@ -331,13 +331,6 @@ const ReportsSection = styled.div`
   padding: 20px;
 `;
 
-const ReportsSectionTitle = styled.h3`
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: #1a1f36;
-`;
-
 const ReportButtonsContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -859,14 +852,15 @@ const BillingOverview = () => {
     }
   }, [activePeriod, interval, comparison]);
 
-  // Function to render report download section
-  const renderReports = (reports) => {
+  // Helper function to render reports - fixed to avoid recursive calls
+  const renderReportSection = (title, reports) => {
     return (
-      <ReportsSection>
-        <ReportsSectionTitle>Report downloads</ReportsSectionTitle>
+      <ReportSection>
+        <SectionTitle>{title}</SectionTitle>
+        
         <ReportButtonsContainer>
           {reports.map(report => (
-            <ReportButton key={report.id} onClick={() => handleReportDownload(report)}>
+            <ReportButton key={report.id || report.title} onClick={() => handleReportDownload(report)}>
               <DownloadIcon>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M8 1.33301V10.6663M8 10.6663L12 6.66634M8 10.6663L4 6.66634" stroke="currentColor" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
@@ -877,7 +871,7 @@ const BillingOverview = () => {
             </ReportButton>
           ))}
         </ReportButtonsContainer>
-      </ReportsSection>
+      </ReportSection>
     );
   };
 
@@ -945,17 +939,6 @@ const BillingOverview = () => {
       );
     };
     
-    // Helper function to render reports
-    const renderReports = (title, reports) => {
-      return (
-        <ReportSection>
-          <SectionTitle>{title}</SectionTitle>
-          
-          {renderReports(reports)}
-        </ReportSection>
-      );
-    };
-
     // Render different content based on the active tab
     switch (activeTab) {
       case 'revenue':
@@ -964,16 +947,19 @@ const BillingOverview = () => {
             <TabTitle>Revenue</TabTitle>
             {renderMetricsGrid(metricData)}
             
-            {renderReports("Report downloads", [
+            {renderReportSection("Report downloads", [
               {
+                id: 'mrr-per-subscriber',
                 title: "MRR per subscriber per month",
                 description: "Includes the MRR for each subscriber at the end of the month."
               },
               {
+                id: 'subscription-metrics',
                 title: "Subscription metrics per month",
                 description: "Includes your MRR roll-forward, subscriber roll-forward, retention, and customer value for each month."
               },
               {
+                id: 'customer-mrr-changes',
                 title: "Customer MRR changes",
                 description: "Includes a log of every MRR change for each customer, including new subscribers, upgrades, downgrades, reactivations, and churn."
               }
@@ -1001,16 +987,19 @@ const BillingOverview = () => {
             <TabTitle>Subscribers</TabTitle>
             {renderMetricsGrid(subscribersMetrics)}
             
-            {renderReports("Subscriber reports", [
+            {renderReportSection("Subscriber reports", [
               {
+                id: 'subscriber-acquisition',
                 title: "Subscriber acquisition report",
                 description: "Detailed breakdown of where your subscribers are coming from and their lifetime value."
               },
               {
+                id: 'subscriber-activity',
                 title: "Subscriber activity log",
                 description: "Complete history of subscriber activities including sign-ups, plan changes, and cancellations."
               },
               {
+                id: 'subscriber-segmentation',
                 title: "Subscriber segmentation analysis",
                 description: "Analysis of subscriber cohorts based on plan type, geography, and acquisition source."
               }
@@ -1038,16 +1027,19 @@ const BillingOverview = () => {
             <TabTitle>Invoices</TabTitle>
             {renderMetricsGrid(invoicesMetrics)}
             
-            {renderReports("Invoice reports", [
+            {renderReportSection("Invoice reports", [
               {
+                id: 'invoice-payments',
                 title: "Invoice payments summary",
                 description: "Detailed summary of all invoice payments, including payment methods and timing."
               },
               {
+                id: 'past-due-invoices',
                 title: "Past due invoices report",
                 description: "List of all past due invoices with aging analysis and collection attempts."
               },
               {
+                id: 'invoice-adjustments',
                 title: "Invoice adjustments log",
                 description: "Record of all credits, refunds, and adjustments applied to invoices."
               }
@@ -1075,16 +1067,19 @@ const BillingOverview = () => {
             <TabTitle>Usage</TabTitle>
             {renderMetricsGrid(usageMetrics)}
             
-            {renderReports("Usage reports", [
+            {renderReportSection("Usage reports", [
               {
+                id: 'usage-breakdown',
                 title: "Usage breakdown by product",
                 description: "Detailed breakdown of usage across all products and features."
               },
               {
+                id: 'top-users',
                 title: "Top users report",
                 description: "Report of your highest usage customers and their consumption patterns."
               },
               {
+                id: 'usage-trends',
                 title: "Usage trends analysis",
                 description: "Analysis of usage patterns over time, with seasonal trends and growth indicators."
               }
@@ -1118,16 +1113,19 @@ const BillingOverview = () => {
             <TabTitle>Churn</TabTitle>
             {renderMetricsGrid(churnMetrics)}
             
-            {renderReports("Churn reports", [
+            {renderReportSection("Churn reports", [
               {
+                id: 'churn-reasons',
                 title: "Churn reasons analysis",
                 description: "Breakdown of reasons customers are canceling their subscriptions."
               },
               {
+                id: 'churn-prediction',
                 title: "Churn prediction report",
                 description: "Predictive analysis of accounts at risk of churning in the next 30 days."
               },
               {
+                id: 'win-back',
                 title: "Win-back opportunities",
                 description: "List of churned customers with the highest probability of reactivation."
               }
@@ -1159,16 +1157,19 @@ const BillingOverview = () => {
             <TabTitle>Trials</TabTitle>
             {renderMetricsGrid(trialsMetrics)}
             
-            {renderReports("Trial reports", [
+            {renderReportSection("Trial reports", [
               {
+                id: 'trial-conversion',
                 title: "Trial conversion funnel",
                 description: "Step-by-step analysis of the trial to paid conversion process."
               },
               {
+                id: 'trial-engagement',
                 title: "Trial engagement metrics",
                 description: "Analysis of trial user engagement with key product features."
               },
               {
+                id: 'trial-source',
                 title: "Trial source attribution",
                 description: "Breakdown of trial starts by marketing source with conversion rates."
               }
@@ -1214,7 +1215,7 @@ const BillingOverview = () => {
                 isCurrency: true
               }
             ])}
-            {renderReports(summaryReports)}
+            {renderReportSection("Summary Reports", summaryReports)}
           </>
         );
         
