@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useParams, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
@@ -193,6 +193,8 @@ const ControlsContainer = styled.div`
 const MetricDetail = () => {
   const { metricId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { state } = useLocation();
   const [currentPage, setCurrentPage] = useState(1);
   const transactionsPerPage = 25;
   
@@ -200,6 +202,7 @@ const MetricDetail = () => {
   const [activePeriod, setActivePeriod] = useState('last_3_months');
   const [activeInterval, setActiveInterval] = useState('daily');
   const [activeComparison, setActiveComparison] = useState('previous_period');
+  const [chartData, setChartData] = useState(null);
   
   // Log the location state for debugging
   console.log("Location state in MetricDetail:", location.state);
@@ -379,55 +382,224 @@ const MetricDetail = () => {
   const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
   const currentTransactions = transactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
   
-  // Sample chart data based on metric type - improved error handling
+  // Generate chart data based on metric type
   const generateChartData = () => {
-    const labels = [];
-    const today = new Date();
-    
-    // Create 14 labels for the past two weeks
-    for (let i = 13; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-    }
-    
-    // Generate data based on metric type
-    let data = [];
     const isUptrend = metric.trend === 'up';
+    let data = [];
+    let labels = [];
     
     try {
+      // Generate labels based on period and interval
+      switch(activePeriod) {
+        case 'last7days':
+          if (activeInterval === 'daily') {
+            labels = Array(7).fill().map((_, i) => {
+              const date = new Date();
+              date.setDate(date.getDate() - (6 - i));
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+          } else {
+            // For hourly interval in 7 day view
+            labels = Array(7).fill().map((_, i) => {
+              const date = new Date();
+              date.setDate(date.getDate() - (6 - i));
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+          }
+          break;
+        case 'last30days':
+          if (activeInterval === 'daily') {
+            // Show every 3rd day for readability
+            labels = Array(10).fill().map((_, i) => {
+              const date = new Date();
+              date.setDate(date.getDate() - (30 - i * 3));
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+          } else if (activeInterval === 'weekly') {
+            // Show weekly labels
+            labels = Array(5).fill().map((_, i) => {
+              const date = new Date();
+              date.setDate(date.getDate() - (30 - i * 7));
+              return `Week ${i + 1}`;
+            });
+          }
+          break;
+        case 'last90days':
+          if (activeInterval === 'weekly') {
+            labels = Array(13).fill().map((_, i) => {
+              return `Week ${i + 1}`;
+            });
+          } else if (activeInterval === 'monthly') {
+            labels = Array(3).fill().map((_, i) => {
+              const date = new Date();
+              date.setMonth(date.getMonth() - (2 - i));
+              return date.toLocaleDateString('en-US', { month: 'long' });
+            });
+          } else {
+            // For daily interval in 90 day view, show every 10th day
+            labels = Array(10).fill().map((_, i) => {
+              const date = new Date();
+              date.setDate(date.getDate() - (90 - i * 10));
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+          }
+          break;
+        case 'thisYear':
+          if (activeInterval === 'monthly') {
+            const currentMonth = new Date().getMonth();
+            labels = Array(currentMonth + 1).fill().map((_, i) => {
+              const date = new Date();
+              date.setMonth(i);
+              return date.toLocaleDateString('en-US', { month: 'long' });
+            });
+          } else {
+            // For weekly interval in year view
+            const weeksInYear = Math.min(
+              Math.ceil((new Date().getTime() - new Date(new Date().getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)),
+              52
+            );
+            labels = Array(Math.min(12, weeksInYear)).fill().map((_, i) => {
+              return `Week ${i + 1}`;
+            });
+          }
+          break;
+        default:
+          labels = Array(7).fill().map((_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i));
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          });
+      }
+      
+      // Generate appropriate number of data points based on labels
+      const dataPointCount = labels.length;
+      
+      // Set appropriate base values and volatility based on period
+      let baseValue, volatility;
+      
       if (metric.isCurrency) {
         // For currency metrics like MRR, gross volume, etc.
-        const baseValue = metric.baseCurrencyValue || 10000;
-        data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.07, isUptrend);
+        baseValue = metric.baseCurrencyValue || 10000;
+        
+        // Different time periods have different base values and volatility
+        switch(activePeriod) {
+          case 'last7days':
+            volatility = 0.05; // Less volatility for shorter timeframe
+            break;
+          case 'last30days':
+            baseValue *= 4; // Higher total for longer timeframe
+            volatility = 0.07;
+            break;
+          case 'last90days':
+            baseValue *= 12; // Even higher for 90 days
+            volatility = 0.09;
+            break;
+          case 'thisYear':
+            baseValue *= 48; // Yearly data has highest values
+            volatility = 0.12;
+            break;
+          default:
+            volatility = 0.07;
+        }
+        
+        data = generateRealisticTrend(dataPointCount, baseValue * 0.8, baseValue * 1.2, volatility, isUptrend);
       } else if (metric.unit === 'percentage') {
         // For percentage metrics like conversion rate
-        const baseValue = metric.baseNumberValue || 5;
-        data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.05, isUptrend, false);
+        baseValue = metric.baseNumberValue || 5;
+        
+        // Percentage metrics don't scale as much with time periods
+        switch(activePeriod) {
+          case 'last7days':
+            volatility = 0.03;
+            break;
+          case 'last30days':
+            volatility = 0.05;
+            break;
+          case 'last90days':
+            volatility = 0.08;
+            break;
+          case 'thisYear':
+            volatility = 0.1;
+            break;
+          default:
+            volatility = 0.05;
+        }
+        
+        data = generateRealisticTrend(dataPointCount, baseValue * 0.8, baseValue * 1.2, volatility, isUptrend, false);
       } else {
         // For count metrics like active subscribers
-        const baseValue = metric.baseNumberValue || 100;
-        data = generateRealisticTrend(14, baseValue * 0.8, baseValue * 1.2, 0.06, isUptrend, false);
+        baseValue = metric.baseNumberValue || 100;
+        
+        // Count metrics scale with time periods
+        switch(activePeriod) {
+          case 'last7days':
+            volatility = 0.04;
+            break;
+          case 'last30days':
+            baseValue *= 3;
+            volatility = 0.06;
+            break;
+          case 'last90days':
+            baseValue *= 8;
+            volatility = 0.09;
+            break;
+          case 'thisYear':
+            baseValue *= 30;
+            volatility = 0.12;
+            break;
+          default:
+            volatility = 0.06;
+        }
+        
+        data = generateRealisticTrend(dataPointCount, baseValue * 0.8, baseValue * 1.2, volatility, isUptrend, false);
       }
     } catch (error) {
       console.error("Error generating chart data:", error);
       // Default data in case of error
-      data = Array(14).fill(0).map(() => Math.floor(Math.random() * 100));
+      labels = Array(7).fill().map((_, i) => `Day ${i + 1}`);
+      data = Array(7).fill(0).map(() => Math.floor(Math.random() * 100));
+    }
+    
+    // Calculate comparison data if needed
+    let comparisonData = null;
+    if (activeComparison !== 'no-comparison') {
+      comparisonData = data.map(value => value * (Math.random() * 0.4 + 0.6)); // 60-100% of current value
+    }
+    
+    // Create dataset configuration
+    const datasets = [{
+      data,
+      borderColor: '#635bff',
+      backgroundColor: 'rgba(99, 91, 255, 0.1)',
+      fill: true,
+      borderWidth: 2,
+      tension: 0.4,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      pointBackgroundColor: '#635bff',
+      label: 'Current Period'
+    }];
+    
+    // Add comparison dataset if needed
+    if (comparisonData && activeComparison !== 'no-comparison') {
+      datasets.push({
+        data: comparisonData,
+        borderColor: '#adb5bd',
+        backgroundColor: 'transparent',
+        fill: false,
+        borderWidth: 1.5,
+        borderDash: [4, 4],
+        tension: 0.4,
+        pointRadius: 0,
+        label: 'Previous Period'
+      });
     }
     
     return {
       labels,
-      datasets: [
-        {
-          data,
-          borderColor: '#635bff',
-          backgroundColor: 'rgba(99, 91, 255, 0.1)',
-          fill: true,
-          borderWidth: 2,
-          tension: 0.4,
-          pointRadius: 0
-        },
-      ],
+      datasets,
+      currentData: data,
+      previousData: comparisonData || []
     };
   };
   
@@ -456,7 +628,10 @@ const MetricDetail = () => {
   };
   
   // Use our dynamic chart data generator
-  const chartData = generateChartData();
+  useEffect(() => {
+    const newChartData = generateChartData();
+    setChartData(newChartData);
+  }, [activePeriod, activeInterval, activeComparison]);
   
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   
@@ -465,22 +640,19 @@ const MetricDetail = () => {
   // Handle period change
   const handlePeriodChange = (period) => {
     setActivePeriod(period);
-    // Update chart data based on new period
-    // This is a placeholder - implement actual data update logic
+    // Chart data will update when component rerenders
   };
   
   // Handle interval change
   const handleIntervalChange = (interval) => {
     setActiveInterval(interval);
-    // Update chart data based on new interval
-    // This is a placeholder - implement actual data update logic
+    // Chart data will update when component rerenders  
   };
   
   // Handle comparison change
   const handleComparisonChange = (comparison) => {
     setActiveComparison(comparison);
-    // Update chart data based on new comparison
-    // This is a placeholder - implement actual data update logic
+    // Chart data will update when component rerenders
   };
   
   return (
@@ -531,7 +703,7 @@ const MetricDetail = () => {
         </ControlsContainer>
         
         <ChartContainer>
-          <LineChart data={chartData} height={280} showLegend={false} />
+          <LineChart data={chartData || generateChartData()} height={280} showLegend={false} />
         </ChartContainer>
         
         <TransactionsSection>
