@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import Chart from 'chart.js/auto';
 import styled from 'styled-components';
 
@@ -12,9 +12,12 @@ const ChartContainer = styled.div`
   }
 `;
 
-const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, unitType = 'number', horizontalLabels = false, reducedLabels = false }) => {
+const LineChart = memo(({ data, height = 400, showLegend = true, showAxes = true, unitType = 'number', horizontalLabels = false, reducedLabels = false, type }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
+
+  // Handle unit from type or unitType prop for backward compatibility
+  const unit = type === 'area' ? 'currency' : unitType;
 
   useEffect(() => {
     // Destroy existing chart if it exists
@@ -25,15 +28,14 @@ const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, uni
     // Get the context of the canvas element
     const ctx = chartRef.current.getContext('2d');
     
-    // Set chart type based on prop
+    // Set chart type and fill based on type prop
     let chartType = 'line';
     let fill = false;
     
-    // Handle special cases
-    if (unitType === 'area') {
+    if (type === 'area') {
       chartType = 'line';
       fill = true;
-    } else if (unitType === 'donut') {
+    } else if (type === 'donut') {
       chartType = 'doughnut';
     }
 
@@ -60,12 +62,12 @@ const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, uni
       return value.toFixed(1) + '%';
     };
     
-    // Basic configuration options
+    // Basic configuration options with reduced animation duration
     const options = {
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: 1000,
+        duration: 300, // Reduced animation time to prevent flickering
       },
       interaction: {
         mode: 'index',
@@ -84,27 +86,7 @@ const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, uni
           },
         },
         tooltip: {
-          enabled: true,
-          backgroundColor: 'white',
-          titleColor: '#333',
-          bodyColor: '#666',
-          borderColor: '#ddd',
-          borderWidth: 1,
-          padding: 12,
-          boxPadding: 6,
-          usePointStyle: true,
-          callbacks: {
-            label: function(context) {
-              let value = context.raw;
-              if (unitType === 'currency') {
-                return ' ' + formatCurrency(value);
-              } else if (unitType === 'percentage') {
-                return ' ' + formatPercentage(value * 100);
-              } else {
-                return ' ' + formatNumber(value);
-              }
-            }
-          }
+          enabled: false, // Disable default tooltips since we implement custom ones
         },
       },
       scales: {
@@ -149,11 +131,11 @@ const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, uni
             },
             color: '#999',
             callback: function(value) {
-              if (unitType === 'currency') {
+              if (unit === 'currency') {
                 return formatCurrency(value);
-              } else if (unitType === 'percentage') {
+              } else if (unit === 'percentage') {
                 return formatPercentage(value * 100);
-              } else if (unitType === 'days') {
+              } else if (unit === 'days') {
                 return value + (value === 1 ? ' day' : ' days');
               } else {
                 return formatNumber(value);
@@ -179,7 +161,7 @@ const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, uni
           }
         },
         y: {
-          beginAtZero: unitType !== 'percentage',
+          beginAtZero: unit !== 'percentage',
           grid: {
             color: 'rgba(0, 0, 0, 0.05)'
           },
@@ -199,6 +181,7 @@ const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, uni
       if (fill) {
         data.datasets.forEach(dataset => {
           dataset.fill = true;
+          dataset.backgroundColor = dataset.borderColor ? `${dataset.borderColor}15` : 'rgba(75, 192, 192, 0.2)';
         });
       }
     } else if (chartType === 'bar') {
@@ -215,7 +198,7 @@ const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, uni
           }
         },
         y: {
-          beginAtZero: unitType !== 'percentage',
+          beginAtZero: unit !== 'percentage',
           grid: {
             color: 'rgba(0, 0, 0, 0.05)'
           },
@@ -247,19 +230,30 @@ const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, uni
       options: options
     });
     
-    // Cleanup function
+    // Cleanup function to destroy chart on unmount
     return () => {
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
     };
-  }, [data, height, showLegend, showAxes, unitType, horizontalLabels, reducedLabels]);
+  }, [data, height, showLegend, unit, type, showAxes, horizontalLabels, reducedLabels]);
 
   return (
-    <ChartContainer>
-      <canvas ref={chartRef} />
+    <ChartContainer style={{ height: `${height}px` }}>
+      <canvas ref={chartRef}></canvas>
     </ChartContainer>
   );
-};
+}, (prevProps, nextProps) => {
+  // Implement custom comparison for memoization
+  // Only re-render if essential props changed
+  return (
+    JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data) &&
+    prevProps.height === nextProps.height &&
+    prevProps.showLegend === nextProps.showLegend &&
+    prevProps.unitType === nextProps.unitType &&
+    prevProps.type === nextProps.type &&
+    prevProps.showAxes === nextProps.showAxes
+  );
+});
 
 export default LineChart; 

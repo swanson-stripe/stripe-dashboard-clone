@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -865,44 +865,35 @@ const BillingOverview = () => {
     const dataIndex = Math.floor(xRatio * chartData.labels.length);
     
     if (dataIndex >= 0 && dataIndex < chartData.labels.length) {
-      const label = chartData.labels[dataIndex];
+      const metric = metricData.find(m => m.id === metricId) || 
+                    baseRevenueMetrics.find(m => m.id === metricId) ||
+                    baseSubscribersMetrics.find(m => m.id === metricId) ||
+                    baseInvoicesMetrics.find(m => m.id === metricId) ||
+                    baseUsageMetrics.find(m => m.id === metricId) ||
+                    baseChurnMetrics.find(m => m.id === metricId) ||
+                    baseTrialsMetrics.find(m => m.id === metricId);
+                      
+      if (!metric) return;
+      
       const currentValue = chartData.currentData[dataIndex];
       const previousValue = chartData.previousData ? chartData.previousData[dataIndex] : null;
       
-      // Determine unit type based on the data type
-      let unitType = 'number';
+      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong><br/>`;
       
-      if (typeof currentValue === 'number') {
-        // Check if it's a currency or percentage value based on size
-        if (currentValue > 100) {
-          unitType = 'currency';
-        } else if (currentValue < 1) {
-          unitType = 'percentage';
-        }
-      }
-      
-      let tooltipContent = `<strong>${label}</strong><br/>`;
-      
-      // Handle all unit types: currency, percentage, days, or regular numbers
-      if (unitType === 'currency') {
+      if (metric.isCurrency) {
         tooltipContent += `<span class="current-value">Current: ${formatCurrency(currentValue)}</span>`;
-      } else if (unitType === 'percentage') {
+      } else if (metric.unit === 'percentage') {
         tooltipContent += `<span class="current-value">Current: ${formatPercentage(currentValue * 100)}</span>`;
-      } else if (unitType === 'days') {
-        tooltipContent += `<span class="current-value">Current: ${currentValue} ${currentValue === 1 ? 'day' : 'days'}</span>`;
       } else {
         tooltipContent += `<span class="current-value">Current: ${formatNumber(currentValue)}</span>`;
       }
       
-      // Add previous period data if available
       if (previousValue !== null && comparison !== 'no-comparison') {
         tooltipContent += '<br/>';
-        if (unitType === 'currency') {
+        if (metric.isCurrency) {
           tooltipContent += `<span class="previous-value">Previous: ${formatCurrency(previousValue)}</span>`;
-        } else if (unitType === 'percentage') {
+        } else if (metric.unit === 'percentage') {
           tooltipContent += `<span class="previous-value">Previous: ${formatPercentage(previousValue * 100)}</span>`;
-        } else if (unitType === 'days') {
-          tooltipContent += `<span class="previous-value">Previous: ${previousValue} ${previousValue === 1 ? 'day' : 'days'}</span>`;
         } else {
           tooltipContent += `<span class="previous-value">Previous: ${formatNumber(previousValue)}</span>`;
         }
@@ -992,8 +983,8 @@ const BillingOverview = () => {
       return (
         <MetricsGrid type={gridType}>
           {metrics.map(metric => {
-            // Generate chart data for the current metric
-            const chartData = generateMetricChartData(metric, activePeriod, interval);
+            // Use a key for memoization that includes all dependencies
+            const memoKey = `${metric.id}-${activePeriod}-${interval}-${comparison}`;
             
             const unitType = metric.isCurrency ? 'currency' : 
                             metric.unit === 'percentage' ? 'percentage' : 
@@ -1010,6 +1001,9 @@ const BillingOverview = () => {
             const trendDisplay = metric.unit === 'days'
               ? `${metric.trendValue} ${Math.abs(metric.trendValue) === 1 ? 'day' : 'days'} ${metric.trend === 'up' ? 'up' : 'down'}`
               : `${metric.trend === 'up' ? '+' : '-'}${Math.abs(metric.trendValue).toFixed(1)}%`;
+
+            // Get chart data
+            const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
 
             return (
               <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
@@ -1035,16 +1029,14 @@ const BillingOverview = () => {
                 <ChartContainer
                   onMouseMove={(e) => showTooltip(e, metric.id, chartData)}
                   onMouseLeave={hideTooltip}
+                  data-memo-key={memoKey}
                 >
                   <LineChart 
                     data={chartData} 
                     height={130} 
-                    showLegend={false} 
-                    showTooltip={true}
-                    showAxes={false}
-                    unitType={unitType}
-                    horizontalLabels={true}
-                    reducedLabels={true}
+                    showLegend={false}
+                    type="line"
+                    unit={unitType}
                   />
                   {tooltipState.visible && tooltipState.metricId === metric.id && (
                     <Tooltip 

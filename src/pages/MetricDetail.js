@@ -175,12 +175,48 @@ const MetricDetail = () => {
   const transactionsPerPage = 25;
   
   // Get metric data from location state or use default values
-  const metric = location.state || {
+  const metric = location.state?.metric || {
     id: metricId,
-    title: 'New customers',
-    value: '1,540',
+    title: 'Metric Details',
+    value: '-',
     trend: 'up',
-    trendValue: 1.1,
+    trendValue: 0,
+  };
+  
+  // Format currency values
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: value < 100 ? 2 : 0,
+      maximumFractionDigits: value < 100 ? 2 : 0
+    }).format(value);
+  };
+  
+  // Format number values
+  const formatNumber = (value) => {
+    if (value >= 1000000) {
+      return (value / 1000000).toFixed(1) + 'M';
+    } else if (value >= 1000) {
+      return (value / 1000).toFixed(1) + 'K';
+    }
+    return value.toFixed(0);
+  };
+  
+  // Format the metric value based on its type
+  const getFormattedValue = () => {
+    if (!metric) return '-';
+    
+    if (metric.isCurrency) {
+      return formatCurrency(metric.baseCurrencyValue || 0);
+    } else if (metric.unit === 'percentage') {
+      return `${(metric.baseNumberValue || 0).toFixed(1)}%`;
+    } else if (metric.unit === 'days') {
+      const value = metric.baseNumberValue || 0;
+      return `${value} ${value === 1 ? 'day' : 'days'}`;
+    } else {
+      return formatNumber(metric.baseNumberValue || 0);
+    }
   };
   
   // Generate realistic transaction data
@@ -269,7 +305,7 @@ const MetricDetail = () => {
         </MetricDetailHeader>
         
         <MetricDetailValue layoutId={`metric-value-${metric.id}`}>
-          {metric.value}
+          {getFormattedValue()}
         </MetricDetailValue>
         
         <MetricTrend 
