@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import LineChart from '../components/LineChart';
 
 // Constants for consistent styling
@@ -490,6 +490,7 @@ const MetricChart = React.memo(({
 
 const BillingOverview = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('revenue');
   const [activePeriod, setActivePeriod] = useState('last30days');
   const [interval, setInterval] = useState('daily');
@@ -502,6 +503,16 @@ const BillingOverview = () => {
     metricId: ''
   });
   const [metricData, setMetricData] = useState([]);
+
+  // Check for tab parameter in URL on component mount
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    
+    if (tabParam && ['summary', 'revenue', 'subscribers', 'invoices', 'usage', 'churn', 'trials'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
 
   // Base metrics for revenue tab
   const baseRevenueMetrics = [
@@ -922,7 +933,8 @@ const BillingOverview = () => {
     navigate(`/metrics/${metric.id}`, { 
       state: { 
         metric,
-        sourcePage: 'Billing' 
+        sourcePage: 'Billing',
+        sourceTab: activeTab 
       }
     });
   };

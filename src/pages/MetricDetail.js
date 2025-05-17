@@ -185,7 +185,17 @@ const MetricDetail = () => {
   
   // Determine the source page for breadcrumbs
   const sourcePage = location.state?.sourcePage || 'Home';
-  const sourcePagePath = sourcePage === 'Billing' ? '/billing' : '/';
+  const sourceTab = location.state?.sourceTab || '';
+  
+  // Create the correct return path including the tab if it's from Billing
+  const getSourcePagePath = () => {
+    if (sourcePage === 'Billing') {
+      return sourceTab ? `/billing?tab=${sourceTab}` : '/billing';
+    }
+    return '/';
+  };
+  
+  const sourcePagePath = getSourcePagePath();
   
   // Format currency values
   const formatCurrency = (value) => {
