@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -214,6 +214,7 @@ const MetricTrend = styled.span`
 const ChartContainer = styled.div`
   height: 130px;
   width: 100%;
+  position: relative;
 `;
 
 const TabTitle = styled.h2`
@@ -428,6 +429,71 @@ const DownloadIcon = styled.span`
   margin-right: 8px;
   color: #6772e5;
 `;
+
+const TooltipOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+`;
+
+// Create a memoized component for the metrics chart to prevent rerenders
+const MetricChart = React.memo(({ 
+  metric, 
+  activePeriod, 
+  interval, 
+  comparison, 
+  tooltipState, 
+  showTooltip, 
+  hideTooltip,
+  generateMetricChartData
+}) => {
+  // Calculate chart data here instead of inside the callback
+  const chartData = React.useMemo(() => {
+    return generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
+  }, [metric, activePeriod, interval, comparison, generateMetricChartData]);
+  
+  const unitType = metric.isCurrency ? 'currency' : 
+                  metric.unit === 'percentage' ? 'percentage' : 
+                  metric.unit === 'days' ? 'days' : 'number';
+  
+  const memoKey = `${metric.id}-${activePeriod}-${interval}-${comparison}`;
+  
+  return (
+    <ChartContainer>
+      {/* The chart itself - doesn't change on hover */}
+      <LineChart 
+        data={chartData} 
+        height={130} 
+        showLegend={false}
+        type="line"
+        unit={unitType}
+        key={memoKey}
+      />
+      
+      {/* Separate tooltip overlay layer */}
+      <TooltipOverlay
+        onMouseMove={(e) => showTooltip(e, metric.id, chartData)}
+        onMouseLeave={hideTooltip}
+        data-memo-key={memoKey}
+      />
+      
+      {tooltipState.visible && tooltipState.metricId === metric.id && (
+        <Tooltip 
+          className={tooltipState.visible ? 'visible' : ''}
+          style={{ 
+            left: `${tooltipState.x}px`,
+            top: `${tooltipState.y}px` 
+          }}
+          dangerouslySetInnerHTML={{ __html: tooltipState.content }}
+        />
+      )}
+    </ChartContainer>
+  );
+});
 
 const BillingOverview = () => {
   const navigate = useNavigate();
@@ -976,86 +1042,64 @@ const BillingOverview = () => {
     // toast.success(`Started download: ${report.title}`);
   };
 
+  // Update the renderMetricsGrid function to use the new MetricChart component
+  const renderMetricsGrid = (metrics, gridType = 'default') => {
+    return (
+      <MetricsGrid type={gridType}>
+        {metrics.map(metric => {
+          const valueDisplay = metric.isCurrency 
+            ? `$${formatNumber(metric.baseCurrencyValue)}` 
+            : metric.unit === 'percentage'
+              ? `${metric.baseNumberValue.toFixed(1)}%`
+              : metric.unit === 'days'
+                ? `${formatNumber(metric.baseNumberValue)} ${metric.baseNumberValue === 1 ? 'day' : 'days'}`
+                : formatNumber(metric.baseNumberValue);
+                
+          const trendDisplay = metric.unit === 'days'
+            ? `${metric.trendValue} ${Math.abs(metric.trendValue) === 1 ? 'day' : 'days'} ${metric.trend === 'up' ? 'up' : 'down'}`
+            : `${metric.trend === 'up' ? '+' : '-'}${Math.abs(metric.trendValue).toFixed(1)}%`;
+
+          return (
+            <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
+              <ExploreAction className="explore-action">
+                Explore
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </ExploreAction>
+              
+              <MetricHeader>
+                <MetricTitle>{metric.title}</MetricTitle>
+              </MetricHeader>
+              <MetricValueRow>
+                <MetricValue>
+                  {valueDisplay}
+                  <MetricTrend trend={metric.trend}>
+                    {trendDisplay}
+                  </MetricTrend>
+                </MetricValue>
+              </MetricValueRow>
+              
+              <MetricChart 
+                metric={metric}
+                activePeriod={activePeriod}
+                interval={interval}
+                comparison={comparison}
+                tooltipState={tooltipState}
+                showTooltip={showTooltip}
+                hideTooltip={hideTooltip}
+                generateMetricChartData={generateMetricChartData}
+              />
+            </MetricCard>
+          );
+        })}
+      </MetricsGrid>
+    );
+  };
+
   // Render content based on active tab
   const renderTabContent = () => {
-    // Helper function to render metrics grid with given metrics data
-    const renderMetricsGrid = (metrics, gridType = 'default') => {
-      return (
-        <MetricsGrid type={gridType}>
-          {metrics.map(metric => {
-            // Use a key for memoization that includes all dependencies
-            const memoKey = `${metric.id}-${activePeriod}-${interval}-${comparison}`;
-            
-            const unitType = metric.isCurrency ? 'currency' : 
-                            metric.unit === 'percentage' ? 'percentage' : 
-                            metric.unit === 'days' ? 'days' : 'number';
-                            
-            const valueDisplay = metric.isCurrency 
-              ? `$${formatNumber(metric.baseCurrencyValue)}` 
-              : metric.unit === 'percentage'
-                ? `${metric.baseNumberValue.toFixed(1)}%`
-                : metric.unit === 'days'
-                  ? `${formatNumber(metric.baseNumberValue)} ${metric.baseNumberValue === 1 ? 'day' : 'days'}`
-                  : formatNumber(metric.baseNumberValue);
-                  
-            const trendDisplay = metric.unit === 'days'
-              ? `${metric.trendValue} ${Math.abs(metric.trendValue) === 1 ? 'day' : 'days'} ${metric.trend === 'up' ? 'up' : 'down'}`
-              : `${metric.trend === 'up' ? '+' : '-'}${Math.abs(metric.trendValue).toFixed(1)}%`;
-
-            // Get chart data
-            const chartData = generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
-
-            return (
-              <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
-                <ExploreAction className="explore-action">
-                  Explore
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </ExploreAction>
-                
-                <MetricHeader>
-                  <MetricTitle>{metric.title}</MetricTitle>
-                </MetricHeader>
-                <MetricValueRow>
-                  <MetricValue>
-                    {valueDisplay}
-                    <MetricTrend trend={metric.trend}>
-                      {trendDisplay}
-                    </MetricTrend>
-                  </MetricValue>
-                </MetricValueRow>
-                <ChartContainer
-                  onMouseMove={(e) => showTooltip(e, metric.id, chartData)}
-                  onMouseLeave={hideTooltip}
-                  data-memo-key={memoKey}
-                >
-                  <LineChart 
-                    data={chartData} 
-                    height={130} 
-                    showLegend={false}
-                    type="line"
-                    unit={unitType}
-                  />
-                  {tooltipState.visible && tooltipState.metricId === metric.id && (
-                    <Tooltip 
-                      className={tooltipState.visible ? 'visible' : ''}
-                      style={{ 
-                        left: `${tooltipState.x}px`,
-                        top: `${tooltipState.y}px` 
-                      }}
-                      dangerouslySetInnerHTML={{ __html: tooltipState.content }}
-                    />
-                  )}
-                </ChartContainer>
-              </MetricCard>
-            );
-          })}
-        </MetricsGrid>
-      );
-    };
-    
     // Render different content based on the active tab
     switch (activeTab) {
       case 'revenue':
