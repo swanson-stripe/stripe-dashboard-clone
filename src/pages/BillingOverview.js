@@ -944,7 +944,6 @@ const BillingOverview = () => {
       case 'revenue':
         return (
           <>
-            <TabTitle>Revenue</TabTitle>
             {renderMetricsGrid(metricData)}
             
             {renderReportSection("Report downloads", [
@@ -984,26 +983,7 @@ const BillingOverview = () => {
 
         return (
           <>
-            <TabTitle>Subscribers</TabTitle>
             {renderMetricsGrid(subscribersMetrics)}
-            
-            {renderReportSection("Subscriber reports", [
-              {
-                id: 'subscriber-acquisition',
-                title: "Subscriber acquisition report",
-                description: "Detailed breakdown of where your subscribers are coming from and their lifetime value."
-              },
-              {
-                id: 'subscriber-activity',
-                title: "Subscriber activity log",
-                description: "Complete history of subscriber activities including sign-ups, plan changes, and cancellations."
-              },
-              {
-                id: 'subscriber-segmentation',
-                title: "Subscriber segmentation analysis",
-                description: "Analysis of subscriber cohorts based on plan type, geography, and acquisition source."
-              }
-            ])}
           </>
         );
 
@@ -1024,26 +1004,7 @@ const BillingOverview = () => {
 
         return (
           <>
-            <TabTitle>Invoices</TabTitle>
             {renderMetricsGrid(invoicesMetrics)}
-            
-            {renderReportSection("Invoice reports", [
-              {
-                id: 'invoice-payments',
-                title: "Invoice payments summary",
-                description: "Detailed summary of all invoice payments, including payment methods and timing."
-              },
-              {
-                id: 'past-due-invoices',
-                title: "Past due invoices report",
-                description: "List of all past due invoices with aging analysis and collection attempts."
-              },
-              {
-                id: 'invoice-adjustments',
-                title: "Invoice adjustments log",
-                description: "Record of all credits, refunds, and adjustments applied to invoices."
-              }
-            ])}
           </>
         );
 
@@ -1064,26 +1025,7 @@ const BillingOverview = () => {
 
         return (
           <>
-            <TabTitle>Usage</TabTitle>
             {renderMetricsGrid(usageMetrics)}
-            
-            {renderReportSection("Usage reports", [
-              {
-                id: 'usage-breakdown',
-                title: "Usage breakdown by product",
-                description: "Detailed breakdown of usage across all products and features."
-              },
-              {
-                id: 'top-users',
-                title: "Top users report",
-                description: "Report of your highest usage customers and their consumption patterns."
-              },
-              {
-                id: 'usage-trends',
-                title: "Usage trends analysis",
-                description: "Analysis of usage patterns over time, with seasonal trends and growth indicators."
-              }
-            ])}
           </>
         );
 
@@ -1110,26 +1052,7 @@ const BillingOverview = () => {
 
         return (
           <>
-            <TabTitle>Churn</TabTitle>
             {renderMetricsGrid(churnMetrics)}
-            
-            {renderReportSection("Churn reports", [
-              {
-                id: 'churn-reasons',
-                title: "Churn reasons analysis",
-                description: "Breakdown of reasons customers are canceling their subscriptions."
-              },
-              {
-                id: 'churn-prediction',
-                title: "Churn prediction report",
-                description: "Predictive analysis of accounts at risk of churning in the next 30 days."
-              },
-              {
-                id: 'win-back',
-                title: "Win-back opportunities",
-                description: "List of churned customers with the highest probability of reactivation."
-              }
-            ])}
           </>
         );
 
@@ -1154,37 +1077,16 @@ const BillingOverview = () => {
 
         return (
           <>
-            <TabTitle>Trials</TabTitle>
             {renderMetricsGrid(trialsMetrics)}
-            
-            {renderReportSection("Trial reports", [
-              {
-                id: 'trial-conversion',
-                title: "Trial conversion funnel",
-                description: "Step-by-step analysis of the trial to paid conversion process."
-              },
-              {
-                id: 'trial-engagement',
-                title: "Trial engagement metrics",
-                description: "Analysis of trial user engagement with key product features."
-              },
-              {
-                id: 'trial-source',
-                title: "Trial source attribution",
-                description: "Breakdown of trial starts by marketing source with conversion rates."
-              }
-            ])}
           </>
         );
         
       case 'summary':
         return (
           <>
-            <TabTitle>Summary</TabTitle>
             <div style={{ textAlign: 'center', padding: '40px 0', marginBottom: '40px' }}>
               <p>Overview of your key billing metrics will appear here.</p>
             </div>
-            {renderReportSection("Summary Reports", summaryReports)}
           </>
         );
         
