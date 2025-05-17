@@ -12,7 +12,7 @@ const ChartContainer = styled.div`
   }
 `;
 
-const LineChart = ({ data, height = 400, showLegend = true, type = 'line', unit = 'currency' }) => {
+const LineChart = ({ data, height = 400, showLegend = true, showAxes = true, unitType = 'number', horizontalLabels = false, reducedLabels = false }) => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 
@@ -26,68 +26,140 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line', unit 
     const ctx = chartRef.current.getContext('2d');
     
     // Set chart type based on prop
-    let chartType = type;
+    let chartType = 'line';
     let fill = false;
     
     // Handle special cases
-    if (type === 'area') {
+    if (unitType === 'area') {
       chartType = 'line';
       fill = true;
-    } else if (type === 'donut') {
+    } else if (unitType === 'donut') {
       chartType = 'doughnut';
     }
 
     // Format ticks based on unit type
-    const formatTick = (value) => {
-      if (unit === 'currency') {
-        if (value >= 1000000) {
-          return '$' + (value / 1000000).toFixed(1) + 'M';
-        } else if (value >= 1000) {
-          return '$' + (value / 1000).toFixed(1) + 'k';
-        }
-        return '$' + value;
-      } else if (unit === 'percentage') {
-        return value.toFixed(1) + '%';
-      } else if (unit === 'number') {
-        if (value >= 1000000) {
-          return (value / 1000000).toFixed(1) + 'M';
-        } else if (value >= 1000) {
-          return (value / 1000).toFixed(1) + 'k';
-        }
-        return value;
+    const formatNumber = (value) => {
+      if (value >= 1000000) {
+        return (value / 1000000).toFixed(1) + 'M';
+      } else if (value >= 1000) {
+        return (value / 1000).toFixed(1) + 'K';
       }
-      return value;
+      return value.toFixed(0);
+    };
+
+    const formatCurrency = (value) => {
+      if (value >= 1000000) {
+        return '$' + (value / 1000000).toFixed(1) + 'M';
+      } else if (value >= 1000) {
+        return '$' + (value / 1000).toFixed(1) + 'K';
+      }
+      return '$' + value.toFixed(0);
+    };
+
+    const formatPercentage = (value) => {
+      return value.toFixed(1) + '%';
     };
     
     // Basic configuration options
     const options = {
       responsive: true,
       maintainAspectRatio: false,
+      animation: {
+        duration: 1000,
+      },
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
       plugins: {
         legend: {
           display: showLegend,
           position: 'top',
           labels: {
-            font: {
-              family: "'Inter', sans-serif",
-              size: 12
-            },
             usePointStyle: true,
-            padding: 20
-          }
+            boxWidth: 6,
+            font: {
+              size: 12,
+            },
+          },
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          padding: 10,
-          titleFont: {
-            family: "'Inter', sans-serif",
-            size: 13
+          enabled: true,
+          backgroundColor: 'white',
+          titleColor: '#333',
+          bodyColor: '#666',
+          borderColor: '#ddd',
+          borderWidth: 1,
+          padding: 12,
+          boxPadding: 6,
+          usePointStyle: true,
+          callbacks: {
+            label: function(context) {
+              let value = context.raw;
+              if (unitType === 'currency') {
+                return ' ' + formatCurrency(value);
+              } else if (unitType === 'percentage') {
+                return ' ' + formatPercentage(value * 100);
+              } else {
+                return ' ' + formatNumber(value);
+              }
+            }
+          }
+        },
+      },
+      scales: {
+        x: {
+          display: showAxes,
+          grid: {
+            display: showAxes,
+            color: '#eee',
           },
-          bodyFont: {
-            family: "'Inter', sans-serif",
-            size: 14
+          ticks: {
+            font: {
+              size: 11,
+            },
+            color: '#999',
+            rotation: horizontalLabels ? 0 : -45,
+            callback: reducedLabels ? function(value, index, ticks) {
+              if (ticks.length <= 2) return data.labels[index];
+              
+              if (ticks.length > 10) {
+                if (index === 0 || index === ticks.length - 1 || index % Math.floor(ticks.length / 3) === 0) {
+                  return data.labels[index];
+                }
+                return '';
+              }
+              
+              if (index === 0 || index === ticks.length - 1 || index % 2 === 0) {
+                return data.labels[index];
+              }
+              return '';
+            } : undefined
+          }
+        },
+        y: {
+          display: showAxes,
+          grid: {
+            display: showAxes,
+            color: '#eee',
           },
-          displayColors: false
+          ticks: {
+            font: {
+              size: 11,
+            },
+            color: '#999',
+            callback: function(value) {
+              if (unitType === 'currency') {
+                return formatCurrency(value);
+              } else if (unitType === 'percentage') {
+                return formatPercentage(value * 100);
+              } else if (unitType === 'days') {
+                return value + (value === 1 ? ' day' : ' days');
+              } else {
+                return formatNumber(value);
+              }
+            }
+          }
         }
       }
     };
@@ -107,7 +179,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line', unit 
           }
         },
         y: {
-          beginAtZero: unit !== 'percentage',
+          beginAtZero: unitType !== 'percentage',
           grid: {
             color: 'rgba(0, 0, 0, 0.05)'
           },
@@ -117,7 +189,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line', unit 
               size: 11
             },
             callback: function(value) {
-              return formatTick(value);
+              return formatCurrency(value);
             }
           }
         }
@@ -143,7 +215,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line', unit 
           }
         },
         y: {
-          beginAtZero: unit !== 'percentage',
+          beginAtZero: unitType !== 'percentage',
           grid: {
             color: 'rgba(0, 0, 0, 0.05)'
           },
@@ -153,7 +225,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line', unit 
               size: 11
             },
             callback: function(value) {
-              return formatTick(value);
+              return formatCurrency(value);
             }
           }
         }
@@ -181,7 +253,7 @@ const LineChart = ({ data, height = 400, showLegend = true, type = 'line', unit 
         chartInstance.current.destroy();
       }
     };
-  }, [data, height, showLegend, type, unit]);
+  }, [data, height, showLegend, showAxes, unitType, horizontalLabels, reducedLabels]);
 
   return (
     <ChartContainer>

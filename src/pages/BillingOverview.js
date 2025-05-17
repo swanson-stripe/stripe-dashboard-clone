@@ -148,13 +148,9 @@ const ComparisonSelect = styled.select`
 
 const MetricsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
   margin-bottom: 30px;
-  
-  ${({ type }) => type === 'small' && `
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  `}
 `;
 
 const MetricCard = styled.div`
@@ -852,25 +848,28 @@ const BillingOverview = () => {
     }
   }, [activePeriod, interval, comparison]);
 
-  // Helper function to render reports - fixed to avoid recursive calls
+  // Helper function to render reports - restored previous treatment
   const renderReportSection = (title, reports) => {
     return (
       <ReportSection>
         <SectionTitle>{title}</SectionTitle>
         
-        <ReportButtonsContainer>
-          {reports.map(report => (
-            <ReportButton key={report.id || report.title} onClick={() => handleReportDownload(report)}>
-              <DownloadIcon>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 1.33301V10.6663M8 10.6663L12 6.66634M8 10.6663L4 6.66634" stroke="currentColor" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M1.33398 14.6667H14.6673" stroke="currentColor" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </DownloadIcon>
-              {report.title}
-            </ReportButton>
-          ))}
-        </ReportButtonsContainer>
+        {reports.map(report => (
+          <ReportCard key={report.id || report.title}>
+            <ReportInfo>
+              <ReportTitle>{report.title}</ReportTitle>
+              <ReportDescription>{report.description}</ReportDescription>
+            </ReportInfo>
+            <DownloadButton onClick={() => handleReportDownload(report)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Download
+            </DownloadButton>
+          </ReportCard>
+        ))}
       </ReportSection>
     );
   };
@@ -912,7 +911,6 @@ const BillingOverview = () => {
               <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
                 <MetricHeader>
                   <MetricTitle>{metric.title}</MetricTitle>
-                  <MetricPeriod>{activePeriod.replace(/([A-Z])/g, ' $1').toLowerCase()}</MetricPeriod>
                 </MetricHeader>
                 <MetricValueRow>
                   <MetricValue>
@@ -930,6 +928,8 @@ const BillingOverview = () => {
                     showTooltip={true}
                     showAxes={false}
                     unitType={unitType}
+                    horizontalLabels={true}
+                    reducedLabels={true}
                   />
                 </ChartContainer>
               </MetricCard>
@@ -1181,40 +1181,9 @@ const BillingOverview = () => {
         return (
           <>
             <TabTitle>Summary</TabTitle>
-            {renderMetricsGrid([
-              {
-                id: 'mrr',
-                title: 'Monthly Recurring Revenue (MRR)',
-                baseCurrencyValue: 295175.42,
-                trendValue: 8.3,
-                trend: 'up',
-                isCurrency: true
-              },
-              {
-                id: 'arr',
-                title: 'Annual Recurring Revenue (ARR)',
-                baseCurrencyValue: 3542105.04,
-                trendValue: 8.3,
-                trend: 'up',
-                isCurrency: true
-              },
-              {
-                id: 'gross_volume',
-                title: 'Gross Volume',
-                baseCurrencyValue: 534297.81,
-                trendValue: 12.4,
-                trend: 'up',
-                isCurrency: true
-              },
-              {
-                id: 'net_revenue',
-                title: 'Net Revenue',
-                baseCurrencyValue: 455153.14,
-                trendValue: 9.2,
-                trend: 'up',
-                isCurrency: true
-              }
-            ])}
+            <div style={{ textAlign: 'center', padding: '40px 0', marginBottom: '40px' }}>
+              <p>Overview of your key billing metrics will appear here.</p>
+            </div>
             {renderReportSection("Summary Reports", summaryReports)}
           </>
         );
