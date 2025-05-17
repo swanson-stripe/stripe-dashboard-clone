@@ -1043,8 +1043,39 @@ const MetricEditor = () => {
     return metricPresets.default;
   };
   
-  // Initialize form data based on preset
+  // Initialize form data based on preset or location state
   const [formData, setFormData] = useState(() => {
+    // Get metric details from location state, if available
+    if (location.state?.metric) {
+      const metric = location.state.metric;
+      return {
+        title: metric.title || 'New metric',
+        description: metric.description || 'Description of your new metric',
+        unit: metric.isCurrency ? 'currency' : (metric.unit === 'percentage' ? 'percentage' : 'number'),
+        aggregation: 'sum',
+        color: '#635bff',
+        format: metric.isCurrency ? 'currency' : (metric.unit === 'percentage' ? 'percentage' : 'number'),
+        metricValue: metric.isCurrency ? formatCurrency(metric.baseCurrencyValue) : 
+                     metric.unit === 'percentage' ? `${metric.baseNumberValue}%` : 
+                     String(metric.baseNumberValue),
+        trendValue: metric.trendValue || 0,
+        chartType: 'line',
+        timeRange: '14d',
+        dataSource: 'stripe_payments',
+        xAxis: 'event_timestamp',
+        yAxis: 'amount',
+        dataFilter: 'all',
+        chartLayout: 'default',
+        chartOptions: {
+          showPoints: false,
+          fillArea: true,
+          smoothCurve: true,
+          stackValues: false
+        }
+      };
+    }
+
+    // Fall back to preset if no location state
     const preset = getPreset();
     return {
       title: preset.title,

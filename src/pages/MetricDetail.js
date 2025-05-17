@@ -305,8 +305,8 @@ const MetricDetail = () => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: value < 100 ? 2 : 0,
-      maximumFractionDigits: value < 100 ? 2 : 0
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(value);
   };
   
@@ -492,7 +492,6 @@ const MetricDetail = () => {
     >
       <BreadcrumbNav>
         <Breadcrumbs>
-          <BreadcrumbLink to="/">Dashboard</BreadcrumbLink>
           <BreadcrumbLink to={sourcePagePath}>{sourcePage}</BreadcrumbLink>
           <BreadcrumbCurrent>{metric.title}</BreadcrumbCurrent>
         </Breadcrumbs>
@@ -518,16 +517,7 @@ const MetricDetail = () => {
           className={metric.trend === 'up' ? 'positive' : metric.trend === 'down' ? 'negative' : ''}
           layoutId={`metric-trend-${metric.id}`}
         >
-          {metric.trend === 'up' ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          ) : metric.trend === 'down' ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          ) : null}
-          {metric.trend === 'up' ? '+' : ''}{metric.trendValue}% compared to previous period
+          {metric.trendValue}% compared to previous period
         </MetricTrend>
         
         <ControlsContainer>
