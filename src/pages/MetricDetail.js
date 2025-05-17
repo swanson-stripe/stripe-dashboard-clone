@@ -190,7 +190,7 @@ const MetricDetail = () => {
   // Create the correct return path including the tab if it's from Billing
   const getSourcePagePath = () => {
     if (sourcePage === 'Billing') {
-      return sourceTab ? `/billing?tab=${sourceTab}` : '/billing';
+      return sourceTab ? `/billing/overview?tab=${sourceTab}` : '/billing/overview';
     }
     return '/';
   };
