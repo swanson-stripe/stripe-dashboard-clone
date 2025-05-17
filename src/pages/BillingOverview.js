@@ -304,9 +304,20 @@ const ExploreAction = styled.div`
   }
 `;
 
-const Tooltip = styled.div`
+const TooltipOverlay = styled.div`
   position: absolute;
   top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: auto;
+  cursor: crosshair;
+`;
+
+const Tooltip = styled.div`
+  position: absolute;
+  top: -10px;
   left: 0;
   pointer-events: none;
   opacity: 0;
@@ -428,16 +439,6 @@ const DownloadIcon = styled.span`
   display: inline-flex;
   margin-right: 8px;
   color: #6772e5;
-`;
-
-const TooltipOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-  pointer-events: none;
 `;
 
 // Create a memoized component for the metrics chart to prevent rerenders
@@ -968,7 +969,7 @@ const BillingOverview = () => {
       setTooltipState({
         visible: true,
         x: xPosition,
-        y: 0,
+        y: 25,
         content: tooltipContent,
         metricId
       });
