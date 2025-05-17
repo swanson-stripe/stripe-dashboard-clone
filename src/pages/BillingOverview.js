@@ -441,7 +441,42 @@ const DownloadIcon = styled.span`
   color: #6772e5;
 `;
 
-// Create a memoized component for the metrics chart to prevent rerenders
+// Create a separate TooltipContainer component to isolate tooltip-related rerenders
+const TooltipContainer = React.memo(({ 
+  metric,
+  chartData,
+  activePeriod, 
+  interval,
+  comparison,
+  tooltipState,
+  showTooltip,
+  hideTooltip
+}) => {
+  const memoKey = `${metric.id}-${activePeriod}-${interval}-${comparison}`;
+  
+  return (
+    <>
+      <TooltipOverlay
+        onMouseMove={(e) => showTooltip(e, metric.id, chartData)}
+        onMouseLeave={hideTooltip}
+        data-memo-key={memoKey}
+      />
+      
+      {tooltipState.visible && tooltipState.metricId === metric.id && (
+        <Tooltip 
+          className={tooltipState.visible ? 'visible' : ''}
+          style={{ 
+            left: `${tooltipState.x}px`,
+            top: `${tooltipState.y}px` 
+          }}
+          dangerouslySetInnerHTML={{ __html: tooltipState.content }}
+        />
+      )}
+    </>
+  );
+});
+
+// Update the MetricChart component to separate the chart rendering from tooltip handling
 const MetricChart = React.memo(({ 
   metric, 
   activePeriod, 
@@ -463,9 +498,12 @@ const MetricChart = React.memo(({
   
   const memoKey = `${metric.id}-${activePeriod}-${interval}-${comparison}`;
   
+  // Use a ref to prevent style-related rerenders
+  const containerRef = React.useRef(null);
+  
   return (
-    <ChartContainer>
-      {/* The chart itself - doesn't change on hover */}
+    <ChartContainer ref={containerRef}>
+      {/* The chart itself - completely isolated from hover interactions */}
       <LineChart 
         data={chartData} 
         height={130} 
@@ -475,24 +513,29 @@ const MetricChart = React.memo(({
         key={memoKey}
       />
       
-      {/* Separate tooltip overlay layer */}
-      <TooltipOverlay
-        onMouseMove={(e) => showTooltip(e, metric.id, chartData)}
-        onMouseLeave={hideTooltip}
-        data-memo-key={memoKey}
+      {/* Separate component for tooltip handling */}
+      <TooltipContainer
+        metric={metric}
+        chartData={chartData}
+        activePeriod={activePeriod}
+        interval={interval}
+        comparison={comparison}
+        tooltipState={tooltipState}
+        showTooltip={showTooltip}
+        hideTooltip={hideTooltip}
       />
-      
-      {tooltipState.visible && tooltipState.metricId === metric.id && (
-        <Tooltip 
-          className={tooltipState.visible ? 'visible' : ''}
-          style={{ 
-            left: `${tooltipState.x}px`,
-            top: `${tooltipState.y}px` 
-          }}
-          dangerouslySetInnerHTML={{ __html: tooltipState.content }}
-        />
-      )}
     </ChartContainer>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function for the memo
+  // Only rerender if these specific props changed
+  return (
+    prevProps.metric.id === nextProps.metric.id &&
+    prevProps.activePeriod === nextProps.activePeriod &&
+    prevProps.interval === nextProps.interval &&
+    prevProps.comparison === nextProps.comparison &&
+    prevProps.tooltipState.metricId === nextProps.tooltipState.metricId &&
+    prevProps.tooltipState.visible === nextProps.tooltipState.visible
   );
 });
 
