@@ -183,6 +183,10 @@ const MetricDetail = () => {
     trendValue: 0,
   };
   
+  // Determine the source page for breadcrumbs
+  const sourcePage = location.state?.sourcePage || 'Home';
+  const sourcePagePath = sourcePage === 'Billing' ? '/billing' : '/';
+  
   // Format currency values
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
@@ -283,8 +287,8 @@ const MetricDetail = () => {
       transition={{ duration: 0.3 }}
     >
       <BreadcrumbNav>
-        <BreadcrumbLink to="/">
-          Home
+        <BreadcrumbLink to={sourcePagePath}>
+          {sourcePage}
         </BreadcrumbLink>
         <BreadcrumbSeparator>
           /

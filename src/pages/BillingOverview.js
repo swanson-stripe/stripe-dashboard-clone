@@ -918,7 +918,10 @@ const BillingOverview = () => {
   // Handle metric card click
   const handleMetricClick = (metric) => {
     navigate(`/metrics/${metric.id}`, { 
-      state: { metric }
+      state: { 
+        metric,
+        sourcePage: 'Billing' 
+      }
     });
   };
 
@@ -1071,15 +1074,17 @@ const BillingOverview = () => {
               
               <MetricHeader>
                 <MetricTitle>{metric.title}</MetricTitle>
+                <MetricValueRow>
+                  <MetricValue>
+                    {valueDisplay}
+                    {metric.trendValue > 0 && (
+                      <MetricTrend trend={metric.trend}>
+                        {metric.trend === 'up' ? '+' : '-'}{metric.trendValue.toFixed(1)}%
+                      </MetricTrend>
+                    )}
+                  </MetricValue>
+                </MetricValueRow>
               </MetricHeader>
-              <MetricValueRow>
-                <MetricValue>
-                  {valueDisplay}
-                  <MetricTrend trend={metric.trend}>
-                    {trendDisplay}
-                  </MetricTrend>
-                </MetricValue>
-              </MetricValueRow>
               
               <MetricChart 
                 metric={metric}
