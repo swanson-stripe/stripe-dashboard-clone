@@ -10,35 +10,34 @@ const ControlsWrapper = styled.div`
 
 const ChipLabel = styled.span`
   color: #424770;
-  font-weight: 400;
+  font-weight: 600;
+  font-size: 12px;
   margin-right: 8px;
 `;
 
 const ChipValue = styled.span`
   color: #6772e5;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 12px;
 `;
 
 const Chip = styled.div`
   display: flex;
   align-items: center;
-  height: 40px;
-  padding: 0 16px;
+  height: 28px;
+  padding: 0 12px;
   background-color: white;
-  border-radius: 20px;
+  border-radius: 14px;
   border: 1px solid #e3e8ee;
   cursor: pointer;
   position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   
   &:hover {
     border-color: #d7dfe8;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   &:focus-within {
     border-color: #6772e5;
-    box-shadow: 0 0 0 2px rgba(103, 114, 229, 0.2);
   }
 
   ${props => props.isFilterChip && `
@@ -50,7 +49,7 @@ const Chip = styled.div`
 const IconWrapper = styled.span`
   display: flex;
   align-items: center;
-  margin-left: 8px;
+  margin-left: 6px;
 `;
 
 const Popover = styled.div`
@@ -68,7 +67,7 @@ const Popover = styled.div`
 
 const PopoverItem = styled.div`
   padding: 8px 16px;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
   
   &:hover {
@@ -78,15 +77,8 @@ const PopoverItem = styled.div`
   &.active {
     background-color: #f7f9fc;
     color: #6772e5;
-    font-weight: 500;
+    font-weight: 600;
   }
-`;
-
-const CloseIcon = styled.span`
-  display: flex;
-  align-items: center;
-  margin-left: 8px;
-  cursor: pointer;
 `;
 
 // Period options
@@ -185,14 +177,6 @@ const ReportingControls = ({
     setComparisonPopoverOpen(false);
     if (onComparisonChange) onComparisonChange(option.value);
   };
-
-  // Handle removing comparison
-  const handleRemoveComparison = (e) => {
-    e.stopPropagation();
-    const noneOption = comparisonOptions.find(option => option.value === 'none');
-    setComparison(noneOption);
-    if (onComparisonChange) onComparisonChange('none');
-  };
   
   return (
     <ControlsWrapper>
@@ -201,7 +185,7 @@ const ReportingControls = ({
         <ChipLabel>Period</ChipLabel>
         <ChipValue>{period.label}</ChipValue>
         <IconWrapper>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 9L12 15L18 9" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </IconWrapper>
@@ -222,7 +206,7 @@ const ReportingControls = ({
       <Chip ref={intervalRef} onClick={() => setIntervalPopoverOpen(!intervalPopoverOpen)}>
         <ChipValue>{interval.label}</ChipValue>
         <IconWrapper>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 9L12 15L18 9" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </IconWrapper>
@@ -243,15 +227,8 @@ const ReportingControls = ({
       <Chip ref={comparisonRef} onClick={() => setComparisonPopoverOpen(!comparisonPopoverOpen)}>
         <ChipLabel>Compare</ChipLabel>
         <ChipValue>{comparison.label}</ChipValue>
-        {comparison.value !== 'none' && (
-          <CloseIcon onClick={handleRemoveComparison}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </CloseIcon>
-        )}
         <IconWrapper>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 9L12 15L18 9" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </IconWrapper>
@@ -271,8 +248,9 @@ const ReportingControls = ({
       {/* Filter Chip */}
       <Chip isFilterChip={true}>
         <IconWrapper style={{ marginRight: '8px' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 6L10 13V21L14 19V13L21 6V4H3V6Z" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="#6772e5" strokeWidth="2" />
+            <path d="M12 8V16M8 12H16" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </IconWrapper>
         <ChipValue>Filter</ChipValue>
