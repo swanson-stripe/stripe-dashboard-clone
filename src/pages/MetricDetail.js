@@ -493,7 +493,6 @@ const MetricDetail = () => {
       <BreadcrumbNav>
         <Breadcrumbs>
           <BreadcrumbLink to={sourcePagePath}>{sourcePage}</BreadcrumbLink>
-          <BreadcrumbCurrent>{metric.title}</BreadcrumbCurrent>
         </Breadcrumbs>
       </BreadcrumbNav>
       

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, useLocation, useMatch } from 'react-router-dom';
 import { AnimatePresence, LayoutGroup } from 'framer-motion';
 import Dashboard from './pages/Dashboard';
@@ -24,12 +24,52 @@ const ContentWrapper = styled.div`
   margin: 0 auto;
 `;
 
+// Component to handle document title updates
+const DocumentTitle = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Get page name based on current path
+    let pageTitle = "Stripe Dashboard";
+    
+    // Extract page name from path
+    const path = location.pathname;
+    
+    if (path === "/") {
+      pageTitle = "Home - Stripe Dashboard";
+    } else if (path.startsWith("/metrics/") && path.includes("/edit")) {
+      pageTitle = "Edit Metric - Stripe Dashboard";
+    } else if (path.startsWith("/metrics/")) {
+      pageTitle = "Metric Details - Stripe Dashboard";
+    } else if (path.startsWith("/billing/overview")) {
+      pageTitle = "Billing - Stripe Dashboard";
+    } else if (path.startsWith("/billing/")) {
+      // Extract the section name after /billing/
+      const section = path.split("/")[2];
+      pageTitle = `${section.charAt(0).toUpperCase() + section.slice(1)} - Stripe Dashboard`;
+    } else {
+      // For other pages, extract the last segment of the path
+      const segments = path.split("/").filter(segment => segment);
+      if (segments.length > 0) {
+        const lastSegment = segments[segments.length - 1];
+        pageTitle = `${lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1)} - Stripe Dashboard`;
+      }
+    }
+    
+    // Update document title
+    document.title = pageTitle;
+  }, [location]);
+  
+  return null; // This component doesn't render anything
+};
+
 function App() {
   const location = useLocation();
   const isEditorRoute = useMatch('/metrics/:metricId/edit');
 
   return (
     <div className="app">
+      <DocumentTitle />
       {!isEditorRoute && <Sidebar />}
       <div className={`main-content ${isEditorRoute ? 'fullscreen' : ''}`}>
         {!isEditorRoute && <Header />}
