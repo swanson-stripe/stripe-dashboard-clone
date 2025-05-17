@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import LineChart from '../components/LineChart';
 
 // Constants for consistent styling
-const STRIPE_PURPLE = '#6772e5';
+const STRIPE_PURPLE = '#635bff';
 const STRIPE_PURPLE_LIGHT = 'rgba(99, 91, 255, 0.1)';
 const GRAY = '#aab7c4';
 const TREND_POSITIVE = '#217005';
@@ -156,14 +156,17 @@ const MetricsGrid = styled.div`
 const MetricCard = styled.div`
   background: white;
   border-radius: 8px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  padding: 20px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
   position: relative;
-  overflow: visible;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
   
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
     
     .explore-action {
       opacity: 1;
@@ -173,55 +176,95 @@ const MetricCard = styled.div`
 
 const MetricHeader = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  flex-direction: column;
+  margin-bottom: 8px;
 `;
 
 const MetricTitle = styled.h3`
   font-size: 14px;
   font-weight: 500;
-  color: #425466;
-  margin: 0;
-`;
-
-const MetricPeriod = styled.span`
-  font-size: 12px;
-  color: #697386;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
 `;
 
 const MetricValueRow = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 `;
 
 const MetricValue = styled.div`
   font-size: 24px;
   font-weight: 600;
-  color: #1a1f36;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
 `;
 
-const MetricTrend = styled.span`
+const MetricTrend = styled.div`
+  display: flex;
+  align-items: center;
   font-size: 14px;
-  margin-left: 8px;
-  color: ${({ trend }) => trend === 'up' ? '#217005' : '#B13600'};
+  color: ${props => props.trend === 'up' ? TREND_POSITIVE : TREND_NEGATIVE};
+  white-space: nowrap;
   font-weight: 500;
-`;
-
-const ChartContainer = styled.div`
-  height: 130px;
-  width: 100%;
-  position: relative;
+  margin-left: 8px;
 `;
 
 const MetricChartContainer = styled.div`
-  height: 130px;
-  width: 100%;
+  flex-grow: 1;
+  min-height: 80px;
+  margin-top: auto;
+  margin-bottom: 8px;
   position: relative;
-  pointer-events: all;
+`;
+
+const Tooltip = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-color: white;
+  color: #333;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee;
+  
+  &.visible {
+    opacity: 1;
+  }
+  
+  &:after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: white transparent transparent transparent;
+  }
+  
+  strong {
+    color: ${STRIPE_PURPLE};
+    font-weight: 600;
+  }
+  
+  .current-value {
+    color: ${TREND_POSITIVE};
+    font-weight: 500;
+  }
+  
+  .previous-value {
+    color: ${GRAY};
+  }
 `;
 
 const TabTitle = styled.h2`
@@ -295,67 +338,18 @@ const SectionTitle = styled.h2`
 
 const ExploreAction = styled.div`
   position: absolute;
-  top: 12px;
-  right: 12px;
-  font-size: 14px;
-  color: ${STRIPE_PURPLE};
+  top: 20px;
+  right: 20px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  color: ${STRIPE_PURPLE};
+  font-size: 13px;
+  font-weight: 500;
   opacity: 0;
   transition: opacity 0.2s ease;
   
   svg {
-    width: 16px;
-    height: 16px;
-  }
-`;
-
-const Tooltip = styled.div`
-  position: absolute;
-  top: -10px;
-  left: 0;
-  pointer-events: none;
-  opacity: 0;
-  background-color: white;
-  color: #333;
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 100;
-  transform: translate(-50%, -100%);
-  transition: opacity 0.2s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid #eee;
-  
-  &.visible {
-    opacity: 1;
-  }
-  
-  &:after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: white transparent transparent transparent;
-  }
-  
-  strong {
-    color: ${STRIPE_PURPLE};
-    font-weight: 600;
-  }
-  
-  .current-value {
-    color: #36B37E;
-    font-weight: 500;
-  }
-  
-  .previous-value {
-    color: ${GRAY};
+    margin-left: 4px;
   }
 `;
 
@@ -979,7 +973,7 @@ const BillingOverview = () => {
       setTooltipState({
         visible: true,
         x: xPosition,
-        y: 25,
+        y: 0,
         content: tooltipContent,
         metricId
       });
@@ -1059,9 +1053,9 @@ const BillingOverview = () => {
       <MetricsGrid type={gridType}>
         {metrics.map(metric => {
           const valueDisplay = metric.isCurrency 
-            ? `$${formatNumber(metric.baseCurrencyValue)}` 
+            ? formatCurrency(metric.baseCurrencyValue)
             : metric.unit === 'percentage'
-              ? `${metric.baseNumberValue.toFixed(1)}%`
+              ? formatPercentage(metric.baseNumberValue * 100)
               : metric.unit === 'days'
                 ? `${formatNumber(metric.baseNumberValue)} ${metric.baseNumberValue === 1 ? 'day' : 'days'}`
                 : formatNumber(metric.baseNumberValue);
