@@ -630,6 +630,11 @@ const Dashboard = () => {
 
   // Handle tooltip display
   const showTooltip = (event, metricId, chartData) => {
+    // Ensure chartData and its properties exist
+    if (!chartData || !chartData.labels || !chartData.currentData) {
+      return;
+    }
+
     const chartRect = event.currentTarget.getBoundingClientRect();
     const xPosition = event.clientX - chartRect.left;
     const xRatio = xPosition / chartRect.width;
@@ -637,13 +642,19 @@ const Dashboard = () => {
     
     if (dataIndex >= 0 && dataIndex < chartData.labels.length) {
       const metric = metricData.find(m => m.id === metricId);
+      if (!metric) return;
+
       const currentValue = chartData.currentData[dataIndex];
-      const previousValue = chartData.previousData[dataIndex];
+      if (currentValue === undefined) return;
       
       let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong><br/>`;
       tooltipContent += `<span class="current-value">Current: ${metric.isCurrency ? formatCurrency(currentValue) : formatNumber(currentValue)}</span><br/>`;
       
-      if (activeComparison !== 'no-comparison') {
+      // Make sure previousData exists and has a value at dataIndex before trying to use it
+      if (activeComparison !== 'no-comparison' && 
+          chartData.previousData && 
+          chartData.previousData[dataIndex] !== undefined) {
+        const previousValue = chartData.previousData[dataIndex];
         tooltipContent += `<span class="previous-value">Previous: ${metric.isCurrency ? formatCurrency(previousValue) : formatNumber(previousValue)}</span>`;
       }
       
