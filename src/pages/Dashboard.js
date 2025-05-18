@@ -532,8 +532,11 @@ const Dashboard = () => {
         {
           label: selectedMetric.title,
           data: metricData.currentData,
-          borderColor: 'rgb(75, 192, 192)',
-          backgroundColor: 'rgba(75, 192, 192, 0.5)',
+          borderColor: STRIPE_PURPLE,
+          backgroundColor: 'transparent',
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 1.5
         }
       ]
     };
@@ -543,9 +546,12 @@ const Dashboard = () => {
       chartData.datasets.push({
         label: 'Previous period',
         data: metricData.previousData,
-        borderColor: 'rgba(201, 203, 207, 0.5)',
-        backgroundColor: 'rgba(201, 203, 207, 0.2)',
-        borderDash: [5, 5],
+        borderColor: GRAY,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 0,
+        borderWidth: 1.5,
+        borderDash: [4, 4]
       });
     }
     

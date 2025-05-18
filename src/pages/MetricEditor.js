@@ -1048,6 +1048,7 @@ const MetricEditor = () => {
     // Get metric details from location state, if available
     if (location.state?.metric) {
       const metric = location.state.metric;
+      console.log("Loading metric from location state:", metric);
       return {
         title: metric.title || 'New metric',
         description: metric.description || 'Description of your new metric',
@@ -1055,9 +1056,9 @@ const MetricEditor = () => {
         aggregation: 'sum',
         color: '#635bff',
         format: metric.isCurrency ? 'currency' : (metric.unit === 'percentage' ? 'percentage' : 'number'),
-        metricValue: metric.isCurrency ? formatCurrency(metric.baseCurrencyValue) : 
-                     metric.unit === 'percentage' ? `${metric.baseNumberValue}%` : 
-                     String(metric.baseNumberValue),
+        metricValue: metric.isCurrency ? formatCurrency(metric.baseCurrencyValue || 0) : 
+                    metric.unit === 'percentage' ? `${metric.baseNumberValue || 0}%` : 
+                    String(metric.baseNumberValue || 0),
         trendValue: metric.trendValue || 0,
         chartType: 'line',
         timeRange: '14d',
@@ -1066,6 +1067,10 @@ const MetricEditor = () => {
         yAxis: 'amount',
         dataFilter: 'all',
         chartLayout: 'default',
+        showTrend: true,
+        showAverage: true,
+        showTotal: true,
+        showLegend: true,
         chartOptions: {
           showPoints: false,
           fillArea: true,
@@ -1084,6 +1089,8 @@ const MetricEditor = () => {
       aggregation: preset.aggregation,
       color: preset.color,
       format: preset.format,
+      metricValue: preset.metricValue,
+      trendValue: preset.trendValue,
       showTrend: true,
       showAverage: true,
       showTotal: true,
@@ -1092,7 +1099,13 @@ const MetricEditor = () => {
       timeRange: preset.timeRange,
       dataSource: preset.dataSource,
       xAxis: preset.xAxis,
-      yAxis: preset.yAxis
+      yAxis: preset.yAxis,
+      chartOptions: {
+        showPoints: false,
+        fillArea: true,
+        smoothCurve: true,
+        stackValues: false
+      }
     };
   });
   
