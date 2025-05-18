@@ -199,10 +199,11 @@ const MetricDetail = () => {
   const transactionsPerPage = 25;
   
   // Add state for reporting controls
-  const [activePeriod, setActivePeriod] = useState('last_3_months');
+  const [activePeriod, setActivePeriod] = useState('last7days');
   const [activeInterval, setActiveInterval] = useState('daily');
-  const [activeComparison, setActiveComparison] = useState('previous_period');
+  const [activeComparison, setActiveComparison] = useState('previous-period');
   const [chartData, setChartData] = useState(null);
+  const [currentMetric, setCurrentMetric] = useState(null);
   
   // Log the location state for debugging
   console.log("Location state in MetricDetail:", location.state);
@@ -291,6 +292,11 @@ const MetricDetail = () => {
     return defaultMetrics[metricId] || defaultMetrics.default;
   }, [metricId, location.state]);
   
+  // Initialize currentMetric state when metric is first determined
+  useEffect(() => {
+    setCurrentMetric(metric);
+  }, [metric]);
+  
   // Determine the source page for breadcrumbs
   const sourcePage = location.state?.sourcePage || 'Home';
   const sourceTab = location.state?.sourceTab || '';
@@ -325,20 +331,21 @@ const MetricDetail = () => {
   
   // Format the metric value based on its type - with enhanced null checking
   const getFormattedValue = () => {
-    if (!metric) return '-';
+    const displayMetric = currentMetric || metric;
+    if (!displayMetric) return '-';
     
-    if (metric.isCurrency && metric.baseCurrencyValue !== undefined) {
-      return formatCurrency(metric.baseCurrencyValue);
-    } else if (metric.unit === 'percentage' && metric.baseNumberValue !== undefined) {
-      return `${(metric.baseNumberValue).toFixed(1)}%`;
-    } else if (metric.unit === 'days' && metric.baseNumberValue !== undefined) {
-      const value = metric.baseNumberValue;
+    if (displayMetric.isCurrency && displayMetric.baseCurrencyValue !== undefined) {
+      return formatCurrency(displayMetric.baseCurrencyValue);
+    } else if (displayMetric.unit === 'percentage' && displayMetric.baseNumberValue !== undefined) {
+      return `${(displayMetric.baseNumberValue).toFixed(2)}%`;
+    } else if (displayMetric.unit === 'days' && displayMetric.baseNumberValue !== undefined) {
+      const value = displayMetric.baseNumberValue;
       return `${value} ${value === 1 ? 'day' : 'days'}`;
-    } else if (metric.baseNumberValue !== undefined) {
-      return formatNumber(metric.baseNumberValue);
-    } else if (metric.value) {
+    } else if (displayMetric.baseNumberValue !== undefined) {
+      return formatNumber(displayMetric.baseNumberValue);
+    } else if (displayMetric.value) {
       // If metric.value is directly provided (as in some components)
-      return metric.value;
+      return displayMetric.value;
     } else {
       return '-';
     }
@@ -631,6 +638,38 @@ const MetricDetail = () => {
   useEffect(() => {
     const newChartData = generateChartData();
     setChartData(newChartData);
+    
+    // Update the metric value to match the last data point
+    if (newChartData.currentData && newChartData.currentData.length > 0) {
+      const latestValue = newChartData.currentData[newChartData.currentData.length - 1];
+      
+      // Calculate trend value based on comparison data
+      let calculatedTrendValue = metric.trendValue;
+      
+      // Only calculate if we have comparison data
+      if (newChartData.previousData && newChartData.previousData.length > 0) {
+        const previousValue = newChartData.previousData[newChartData.previousData.length - 1];
+        if (previousValue > 0) {
+          const percentChange = ((latestValue - previousValue) / previousValue) * 100;
+          calculatedTrendValue = parseFloat(percentChange.toFixed(2));
+        }
+      }
+      
+      // Determine trend direction based on the calculated value
+      const trendDirection = calculatedTrendValue > 0 ? 'up' : calculatedTrendValue < 0 ? 'down' : 'neutral';
+      
+      // Create a copy of the metric with the updated value
+      const updatedMetric = {
+        ...metric,
+        baseCurrencyValue: metric.isCurrency ? latestValue : metric.baseCurrencyValue,
+        baseNumberValue: !metric.isCurrency ? latestValue : metric.baseNumberValue,
+        trendValue: Math.abs(calculatedTrendValue), // Store absolute value
+        trend: trendDirection
+      };
+      
+      // Apply the update
+      setCurrentMetric(updatedMetric);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePeriod, activeInterval, activeComparison]);
   
@@ -686,10 +725,10 @@ const MetricDetail = () => {
         </MetricDetailValue>
         
         <MetricTrend 
-          className={metric.trend === 'up' ? 'positive' : metric.trend === 'down' ? 'negative' : ''}
+          className={currentMetric?.trend === 'up' ? 'positive' : currentMetric?.trend === 'down' ? 'negative' : ''}
           layoutId={`metric-trend-${metric.id}`}
         >
-          {metric.trendValue}% compared to previous period
+          {currentMetric ? currentMetric.trendValue.toFixed(2) : metric.trendValue.toFixed(2)}% compared to previous period
         </MetricTrend>
         
         <ControlsContainer>
