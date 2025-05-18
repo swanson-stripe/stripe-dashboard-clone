@@ -2,7 +2,7 @@
   "name": "stripe-dashboard-webapp",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://swanson-stripe.github.io/stripe-dashboard-clone",
+  "homepage": "/",
   "dependencies": {
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",

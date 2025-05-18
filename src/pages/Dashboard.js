@@ -443,8 +443,8 @@ const Dashboard = () => {
       id: 'conversion-rate',
       title: 'Conversion rate',
       baseCurrencyValue: 0,
-      baseNumberValue: 4.7,
-      trendValue: 0.8,
+      baseNumberValue: 2.43,
+      trendValue: 0.18,
       trend: 'up',
       isCurrency: false,
       unit: 'percentage'
@@ -473,8 +473,8 @@ const Dashboard = () => {
       id: 'refund-rate',
       title: 'Refund rate',
       baseCurrencyValue: 0,
-      baseNumberValue: 2.1,
-      trendValue: 0.3,
+      baseNumberValue: 0.87,
+      trendValue: 0.05,
       trend: 'down',
       isCurrency: false,
       unit: 'percentage'

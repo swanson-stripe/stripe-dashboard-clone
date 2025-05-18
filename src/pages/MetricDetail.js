@@ -271,8 +271,28 @@ const MetricDetail = () => {
         id: 'subscriber-churn-rate',
         title: 'Subscriber churn rate',
         baseCurrencyValue: 0,
-        baseNumberValue: 2.4,
-        trendValue: 0.3,
+        baseNumberValue: 0.92,
+        trendValue: 0.03,
+        trend: 'down',
+        isCurrency: false,
+        unit: 'percentage'
+      },
+      'conversion-rate': {
+        id: 'conversion-rate',
+        title: 'Conversion rate',
+        baseCurrencyValue: 0,
+        baseNumberValue: 2.43,
+        trendValue: 0.18,
+        trend: 'up',
+        isCurrency: false,
+        unit: 'percentage'
+      },
+      'refund-rate': {
+        id: 'refund-rate',
+        title: 'Refund rate',
+        baseCurrencyValue: 0,
+        baseNumberValue: 0.87,
+        trendValue: 0.05,
         trend: 'down',
         isCurrency: false,
         unit: 'percentage'
