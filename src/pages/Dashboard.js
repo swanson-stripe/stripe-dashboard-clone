@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
+import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData';
 
 // Constants for consistent styling
 const STRIPE_PURPLE = '#635bff';
@@ -408,88 +409,7 @@ const Dashboard = () => {
   ];
   
   // Base metrics data with their types
-  const baseMetrics = [
-    {
-      id: 'gross-volume',
-      title: 'Gross volume',
-      baseCurrencyValue: 192457.32,
-      baseNumberValue: 0,
-      trendValue: 5.3,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'new-customers',
-      title: 'New customers',
-      baseCurrencyValue: 0,
-      baseNumberValue: 147,
-      trendValue: 3.8,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'number'
-    },
-    {
-      id: 'successful-payments',
-      title: 'Successful payments',
-      baseCurrencyValue: 0,
-      baseNumberValue: 3421,
-      trendValue: 9.2,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'number'
-    },
-    {
-      id: 'conversion-rate',
-      title: 'Conversion rate',
-      baseCurrencyValue: 0,
-      baseNumberValue: 2.43,
-      trendValue: 0.18,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'percentage'
-    },
-    {
-      id: 'average-order',
-      title: 'Average order',
-      baseCurrencyValue: 128.95,
-      baseNumberValue: 0,
-      trendValue: 2.1,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'revenue-per-customer',
-      title: 'Revenue per customer',
-      baseCurrencyValue: 245.62,
-      baseNumberValue: 0,
-      trendValue: 1.5,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'refund-rate',
-      title: 'Refund rate',
-      baseCurrencyValue: 0,
-      baseNumberValue: 0.87,
-      trendValue: 0.05,
-      trend: 'down',
-      isCurrency: false,
-      unit: 'percentage'
-    },
-    {
-      id: 'net-volume',
-      title: 'Net volume',
-      baseCurrencyValue: 187245.89,
-      baseNumberValue: 0,
-      trendValue: 4.9,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    }
-  ];
+  const [baseMetrics, setBaseMetrics] = useState(Object.values(standardizedMetrics));
   
   // Handle dropdown item click
   const handleMetricChange = (metricId) => {
@@ -524,52 +444,50 @@ const Dashboard = () => {
   }, []);
   
   // Generate volume data based on metric type
-  const generateTodayVolumeDataForMetric = (metricId) => {
-    const labels = Array(24).fill('').map((_, i) => {
-      const hour = i % 12 === 0 ? 12 : i % 12;
-      const ampm = i < 12 ? 'AM' : 'PM';
-      return `${hour}:00 ${ampm}`;
+  const generateTodayVolumeDataForMetric = (selectedMetric) => {
+    // Instead of generating random data, we'll use our consistent data
+    const metricData = getMetricData(
+      selectedMetric.id.replace('-', ''), // Convert ID format to match the data keys
+      'last7days',
+      PERIODS.DAILY
+    );
+    
+    // Get the most recent day's data
+    const latestData = metricData.currentData.length > 0 ? 
+      metricData.currentData[metricData.currentData.length - 1] : 0;
+    
+    // Create hourly distribution based on typical business patterns
+    const hourlyDistribution = [
+      0.02, 0.01, 0.01, 0.01, 0.02, 0.03, // 12am-6am: very low activity
+      0.05, 0.06, 0.07, 0.08, 0.08, 0.09, // 6am-12pm: increasing activity
+      0.09, 0.08, 0.07, 0.06, 0.06, 0.05, // 12pm-6pm: peak then decreasing
+      0.04, 0.03, 0.03, 0.02, 0.02, 0.02  // 6pm-12am: low evening activity
+    ];
+    
+    const hourlyData = hourlyDistribution.map((ratio, hour) => {
+      const dateTime = new Date();
+      dateTime.setHours(hour, 0, 0, 0);
+      
+      // For hours beyond the current hour, show no data
+      const currentHour = new Date().getHours();
+      if (hour > currentHour) {
+        return { hour: `${hour}:00`, value: null };
+      }
+      
+      let value;
+      if (selectedMetric.isCurrency) {
+        value = latestData * ratio;
+      } else if (selectedMetric.unit === 'percentage') {
+        value = latestData; // For percentages, use the same daily value
+      } else {
+        // For counts, distribute through the day
+        value = Math.round(latestData * ratio);
+      }
+      
+      return { hour: `${hour}:00`, value };
     });
     
-    const now = new Date();
-    const currentHour = now.getHours();
-    const data = Array(24).fill(0);
-    
-    // Generate some data for hours that have "passed" today
-    for (let i = 0; i <= currentHour; i++) {
-      // Different factors for different metrics
-      let hourFactor;
-      
-      if (metricId === 'gross-volume' || metricId === 'net-volume') {
-        hourFactor = (i >= 9 && i <= 17) ? 0.8 : 0.3;
-        data[i] = Math.round(Math.random() * 2000 * hourFactor);
-      } else if (metricId === 'new-customers') {
-        hourFactor = (i >= 9 && i <= 17) ? 0.7 : 0.2;
-        data[i] = Math.round(Math.random() * 10 * hourFactor);
-      } else if (metricId === 'successful-payments') {
-        hourFactor = (i >= 9 && i <= 17) ? 0.75 : 0.25;
-        data[i] = Math.round(Math.random() * 40 * hourFactor);
-      } else {
-        hourFactor = (i >= 9 && i <= 17) ? 0.8 : 0.3;
-        data[i] = Math.round(Math.random() * 2000 * hourFactor);
-      }
-    }
-    
-    // Get metric title
-    const metricLabel = availableMetrics.find(m => m.id === metricId)?.label || 'Metric';
-    
-    return {
-      labels,
-      datasets: [{
-        label: metricLabel,
-        data: data,
-        borderColor: STRIPE_PURPLE,
-        backgroundColor: STRIPE_PURPLE_LIGHT,
-        tension: 0.4,
-        pointRadius: 0,
-        borderWidth: 2
-      }]
-    };
+    return hourlyData;
   };
 
   // Generate realistic volume data for Today section - independent from overview controls
@@ -602,150 +520,38 @@ const Dashboard = () => {
   }, []);
   
   // For the overview metrics, generate data based on selected time period and interval
-  const generateMetricChartData = (metric, period, interval, includePrevious = true) => {
-    let dataPoints = [];
-    let previousDataPoints = [];
-    let labels = [];
-    let pointCount = 0;
+  const generateMetricChartData = (selectedMetric, period, interval) => {
+    // Use the centralized data source instead of generating random data
+    const metricId = selectedMetric.id.replace('-', ''); // Convert ID format
+    const metricData = getMetricData(metricId, period, interval);
     
-    // Set up data points based on period and interval
-    switch (period) {
-      case 'last7days':
-        pointCount = interval === 'daily' ? 7 : 1;
-        break;
-      case 'last30days':
-        pointCount = interval === 'daily' ? 30 : interval === 'weekly' ? 4 : 1;
-        break;
-      case 'last90days':
-        pointCount = interval === 'daily' ? 90 : interval === 'weekly' ? 13 : 3;
-        break;
-      case 'thisYear':
-        pointCount = interval === 'daily' ? 365 : interval === 'weekly' ? 52 : 12;
-        break;
-      default:
-        pointCount = 7;
-    }
-    
-    // Generate labels based on interval
-    if (interval === 'daily') {
-      labels = Array(pointCount).fill('').map((_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (pointCount - 1) + i);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      });
-    } else if (interval === 'weekly') {
-      labels = Array(pointCount).fill('').map((_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (pointCount * 7) + (i * 7));
-        return `Week ${i + 1}`;
-      });
-    } else {
-      labels = Array(pointCount).fill('').map((_, i) => {
-        const date = new Date();
-        date.setMonth(date.getMonth() - (pointCount - 1) + i);
-        return date.toLocaleDateString('en-US', { month: 'short' });
-      });
-    }
-    
-    // Different data patterns for different metrics
-    switch (metric.id) {
-      case 'payments':
-        dataPoints = generateRealisticTrend(pointCount, 30000, 40000, 0.05, metric.trend === 'up');
-        previousDataPoints = generateRealisticTrend(pointCount, 26000, 35000, 0.05, metric.trend === 'up');
-        break;
-      case 'gross-volume':
-        dataPoints = generateRealisticTrend(pointCount, 20000, 30000, 0.08, metric.trend === 'up');
-        previousDataPoints = generateRealisticTrend(pointCount, 18000, 26000, 0.08, metric.trend === 'up');
-        break;
-      case 'net-volume':
-        dataPoints = generateRealisticTrend(pointCount, 15000, 25000, 0.06, metric.trend === 'up');
-        previousDataPoints = generateRealisticTrend(pointCount, 13000, 22000, 0.06, metric.trend === 'up');
-        break;
-      case 'successful-payments':
-        dataPoints = generateRealisticTrend(pointCount, 400, 500, 0.1, metric.trend === 'up', false);
-        previousDataPoints = generateRealisticTrend(pointCount, 360, 450, 0.1, metric.trend === 'up', false);
-        break;
-      case 'failed-payments':
-        dataPoints = generateRealisticTrend(pointCount, 20, 35, 0.15, metric.trend === 'up', false);
-        previousDataPoints = generateRealisticTrend(pointCount, 22, 40, 0.15, metric.trend === 'up', false);
-        break;
-      case 'new-customers':
-        dataPoints = generateRealisticTrend(pointCount, 120, 180, 0.2, metric.trend === 'up', false);
-        previousDataPoints = generateRealisticTrend(pointCount, 100, 160, 0.2, metric.trend === 'up', false);
-        break;
-      case 'active-subscribers':
-        dataPoints = generateRealisticTrend(pointCount, 1000, 1400, 0.03, metric.trend === 'up', false);
-        previousDataPoints = generateRealisticTrend(pointCount, 900, 1200, 0.03, metric.trend === 'up', false);
-        break;
-      case 'arpu':
-        dataPoints = generateRealisticTrend(pointCount, 80, 95, 0.04, metric.trend === 'up');
-        previousDataPoints = generateRealisticTrend(pointCount, 75, 90, 0.04, metric.trend === 'up');
-        break;
-      case 'mrr':
-        dataPoints = generateRealisticTrend(pointCount, 50000, 60000, 0.07, metric.trend === 'up');
-        previousDataPoints = generateRealisticTrend(pointCount, 46000, 55000, 0.07, metric.trend === 'up');
-        break;
-      default:
-        dataPoints = generateRealisticTrend(pointCount, 100, 200, 0.1, metric.trend === 'up');
-        previousDataPoints = generateRealisticTrend(pointCount, 90, 180, 0.1, metric.trend === 'up');
-    }
-    
-    const datasets = [{
-      data: dataPoints,
-      borderColor: STRIPE_PURPLE,
-      backgroundColor: 'transparent',
-      tension: 0.4,
-      pointRadius: 0,
-      borderWidth: 1.5
-    }];
-    
-    // Add comparison dataset if needed
-    if (includePrevious && activeComparison !== 'no-comparison') {
-      datasets.push({
-        data: previousDataPoints,
-        borderColor: GRAY,
-        backgroundColor: 'transparent',
-        tension: 0.4,
-        pointRadius: 0,
-        borderWidth: 1.5,
-        borderDash: [4, 4]
-      });
-    }
-    
-    return {
-      labels,
-      datasets,
-      currentData: dataPoints,
-      previousData: previousDataPoints
+    // Map the data to the format expected by the chart component
+    const chartData = {
+      labels: metricData.labels,
+      datasets: [
+        {
+          label: selectedMetric.title,
+          data: metricData.currentData,
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.5)',
+        }
+      ]
     };
+    
+    // If we have comparison data, add it as a second dataset
+    if (metricData.previousData.some(val => val !== null)) {
+      chartData.datasets.push({
+        label: 'Previous period',
+        data: metricData.previousData,
+        borderColor: 'rgba(201, 203, 207, 0.5)',
+        backgroundColor: 'rgba(201, 203, 207, 0.2)',
+        borderDash: [5, 5],
+      });
+    }
+    
+    return chartData;
   };
   
-  // Helper to generate realistic trending data
-  const generateRealisticTrend = (count, min, max, volatility, isUptrend, isCurrency = true) => {
-    const data = [];
-    let value = min + Math.random() * (max - min) * 0.5;
-    
-    for (let i = 0; i < count; i++) {
-      // Add some volatility
-      const change = (Math.random() - 0.5) * volatility * value;
-      // Add trend direction
-      const trend = isUptrend ? 
-        value * (volatility / 2) * (1 + (i / count)) : 
-        -value * (volatility / 2) * (1 + (i / count));
-      
-      value = Math.max(min * 0.8, value + change + trend);
-      
-      // Round appropriately based on type
-      if (isCurrency) {
-        data.push(parseFloat(value.toFixed(2)));
-      } else {
-        data.push(Math.round(value));
-      }
-    }
-    
-    return data;
-  };
-
   // Format currency with appropriate separation
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', {
