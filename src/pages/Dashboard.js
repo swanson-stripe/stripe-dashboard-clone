@@ -758,7 +758,12 @@ const Dashboard = () => {
   
   // Format numbers with commas
   const formatNumber = (value) => {
-    return new Intl.NumberFormat('en-US').format(value);
+    if (value >= 1000000) {
+      return (value / 1000000).toFixed(1) + 'M';
+    } else if (value >= 1000) {
+      return (value / 1000).toFixed(1) + 'K';
+    }
+    return value.toFixed(0);
   };
   
   // Handle date range changes
@@ -805,7 +810,12 @@ const Dashboard = () => {
     // Navigate to the metric detail page with full metric data
     navigate(`/metrics/${metricId}`, { 
       state: { 
-        metric: metric, 
+        metric: {
+          ...metric,
+          // Ensure baseCurrencyValue and baseNumberValue match the chart data
+          baseCurrencyValue: metric.isCurrency ? metric.numericalValue : metric.baseCurrencyValue,
+          baseNumberValue: !metric.isCurrency ? metric.numericalValue : metric.baseNumberValue,
+        }, 
         sourcePage: 'Home',
         sourceTab: '' 
       } 
@@ -874,31 +884,50 @@ const Dashboard = () => {
           (activeInterval === 'monthly') ? 1.2 : 1
         );
         
-        // Calculate adjusted values based on period and interval
-        const adjustedValue = metric.isCurrency
-          ? metric.baseCurrencyValue * valueMultiplier
-          : Math.round(metric.baseNumberValue * valueMultiplier);
+        // Get chart data first
+        const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
+        
+        // Use the last data point for the current value
+        let adjustedValue;
+        if (chartData.currentData && chartData.currentData.length > 0) {
+          // Use the last point from the chart data
+          adjustedValue = chartData.currentData[chartData.currentData.length - 1];
+        } else {
+          // Fall back to calculated value if chart data isn't available
+          adjustedValue = metric.isCurrency
+            ? metric.baseCurrencyValue * valueMultiplier
+            : Math.round(metric.baseNumberValue * valueMultiplier);
+        }
         
         // Format the display value
         const displayValue = metric.isCurrency
           ? formatCurrency(adjustedValue)
-          : formatNumber(adjustedValue);
+          : metric.unit === 'percentage'
+            ? adjustedValue.toFixed(2) + '%'
+            : formatNumber(adjustedValue);
         
-        // Adjust trend value based on comparison
+        // Calculate trend value based on comparison data
         let trendVal = metric.trendValue;
-        if (activeComparison === 'previous-year') {
+        
+        if (chartData.previousData && chartData.previousData.length > 0 && chartData.currentData && chartData.currentData.length > 0) {
+          const currentValue = chartData.currentData[chartData.currentData.length - 1];
+          const previousValue = chartData.previousData[chartData.previousData.length - 1];
+          
+          if (previousValue > 0) {
+            const percentChange = ((currentValue - previousValue) / previousValue) * 100;
+            trendVal = percentChange;
+          }
+        } else if (activeComparison === 'previous-year') {
           trendVal = trendVal * 1.5;
         } else if (activeComparison === 'no-comparison') {
           trendVal = 0;
         }
         
-        const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
-        
         return {
           ...metric,
           value: displayValue,
           numericalValue: adjustedValue,
-          trendValue: parseFloat(trendVal.toFixed(1)),
+          trendValue: parseFloat(trendVal.toFixed(2)), // Format to 2 decimal places
           chartData: chartData
         };
       });
@@ -1062,7 +1091,7 @@ const Dashboard = () => {
                     {metric.value}
                     {metric.trendValue > 0 && (
                       <MetricTrend trend={metric.trend}>
-                        {metric.trend === 'up' ? '+' : '-'}{metric.trendValue}%
+                        {metric.trend === 'up' ? '+' : '-'}{metric.trendValue.toFixed(2)}%
                       </MetricTrend>
                     )}
                   </MetricValue>
