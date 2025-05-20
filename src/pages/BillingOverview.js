@@ -1,14 +1,20 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import LineChart from '../components/LineChart';
+import BubbleChart from '../components/BubbleChart';
 import ReportingControls from '../components/ReportingControls';
+import { standardizedMetrics, CURRENT_KEY_METRICS } from '../data/companyData';
+import { useTooltip } from '../components/GlobalTooltip';
+import MerchantSegmentation from '../components/MerchantSegmentation';
+import BarChart from '../components/BarChart';
 
 // Constants for consistent styling
 const STRIPE_PURPLE = '#635bff';
 const STRIPE_PURPLE_LIGHT = 'rgba(99, 91, 255, 0.1)';
 const GRAY = '#aab7c4';
+const USAGE_BLUE = '#469FBF';
 const TREND_POSITIVE = '#217005';
 const TREND_NEGATIVE = '#B13600';
 
@@ -163,12 +169,8 @@ const MetricCard = styled.div`
   flex-direction: column;
   position: relative;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
   
   &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    transform: translateY(-2px);
-    
     .explore-action {
       opacity: 1;
     }
@@ -214,7 +216,7 @@ const MetricTrend = styled.div`
 
 const MetricChartContainer = styled.div`
   flex-grow: 1;
-  min-height: 80px;
+  min-height: 160px;
   margin-top: auto;
   margin-bottom: 8px;
   position: relative;
@@ -232,11 +234,12 @@ const Tooltip = styled.div`
   border-radius: 6px;
   font-size: 12px;
   white-space: nowrap;
-  z-index: 10;
+  z-index: 1000;
   transform: translate(-50%, -100%);
   transition: opacity 0.2s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid #eee;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e3e8ee;
+  font-weight: 500;
   
   &.visible {
     opacity: 1;
@@ -256,6 +259,8 @@ const Tooltip = styled.div`
   strong {
     color: ${STRIPE_PURPLE};
     font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
   }
   
   .current-value {
@@ -265,6 +270,7 @@ const Tooltip = styled.div`
   
   .previous-value {
     color: ${GRAY};
+    margin-top: 2px;
   }
 `;
 
@@ -332,9 +338,80 @@ const DownloadButton = styled.button`
 `;
 
 const SectionTitle = styled.h2`
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+`;
+
+const EmptySection = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 32px;
+  min-height: 150px;
+`;
+
+const TrendingGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+`;
+
+const TrendingCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  position: relative;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+    
+    .explore-action {
+      opacity: 1;
+    }
+  }
+`;
+
+const TrendingTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+`;
+
+const TrendingContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const TrendingValueSection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const TrendingValue = styled.div`
   font-size: 24px;
   font-weight: 600;
-  margin-bottom: 24px;
+  margin-bottom: 4px;
+`;
+
+const TrendingTrend = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+  color: ${props => props.trend === 'up' ? TREND_POSITIVE : TREND_NEGATIVE};
+`;
+
+const SparklineContainer = styled.div`
+  height: 50px;
+  width: 100px;
+  margin-left: 8px;
 `;
 
 const ExploreAction = styled.div`
@@ -432,67 +509,539 @@ const DownloadIcon = styled.span`
   color: #6772e5;
 `;
 
-// Remove the TooltipContainer component and use a more efficient pattern
-const MetricChart = React.memo(({ 
+// Modify the MetricChart component to better handle tooltips
+const MetricChart = memo(({
   metric, 
   activePeriod, 
   interval, 
   comparison, 
-  tooltipState, 
-  showTooltip, 
-  hideTooltip,
-  generateMetricChartData
+  generateMetricChartData,
+  handleShowTooltip,
+  hideTooltip
 }) => {
-  // Use a more stable memoization approach for chart data
-  const chartData = React.useMemo(() => {
-    return generateMetricChartData(metric, activePeriod, interval, comparison !== 'no-comparison');
-  }, [metric.id, activePeriod, interval, comparison, generateMetricChartData]);
+  // Refs for optimized tooltip handling
+  const throttleRef = useRef(null);
   
-  const unitType = metric.isCurrency ? 'currency' : 
-                  metric.unit === 'percentage' ? 'percentage' : 
-                  metric.unit === 'days' ? 'days' : 'number';
+  // Memoized event handlers to prevent recreating on each render
+  const chartData = useMemo(() => {
+    return generateMetricChartData(metric, activePeriod, interval, comparison !== 'none');
+  }, [metric, activePeriod, interval, comparison, generateMetricChartData]);
+  
+  const optimizedTooltipHandler = useCallback((e) => {
+    if (!e || !e.currentTarget) return;
+    if (throttleRef.current) return;
+    
+    throttleRef.current = setTimeout(() => {
+      throttleRef.current = null;
+    }, 100);
+    
+    handleShowTooltip(e, metric.id, chartData);
+  }, [metric.id, chartData, handleShowTooltip]);
+  
+  const optimizedHideTooltip = useCallback(() => {
+    hideTooltip();
+  }, [hideTooltip]);
+
+  // Only render if we have valid chart data
+  if (!chartData || !chartData.labels || !chartData.datasets) {
+    return <div>No data available</div>;
+  }
   
   return (
     <MetricChartContainer 
-      onMouseMove={(e) => showTooltip(e, metric.id, chartData)}
-      onMouseLeave={hideTooltip}
+      onMouseMove={optimizedTooltipHandler}
+      onMouseLeave={optimizedHideTooltip}
     >
       <LineChart 
         data={chartData} 
-        height={130} 
+        height={160}
         showLegend={false}
-        type="line"
-        unitType={unitType}
-        key={`${metric.id}-${activePeriod}-${interval}-${comparison}`}
+        unit={metric.unit || 'currency'}
       />
-      {tooltipState.visible && tooltipState.metricId === metric.id && (
-        <Tooltip 
-          className={tooltipState.visible ? 'visible' : ''}
-          style={{ 
-            left: `${tooltipState.x}px`,
-            top: `${tooltipState.y}px` 
-          }}
-          dangerouslySetInnerHTML={{ __html: tooltipState.content }}
-        />
-      )}
     </MetricChartContainer>
   );
 }, (prevProps, nextProps) => {
-  // Only rerender if these specific props changed
+  // Optimize re-renders with more comprehensive checks
   return (
     prevProps.metric.id === nextProps.metric.id &&
     prevProps.activePeriod === nextProps.activePeriod &&
     prevProps.interval === nextProps.interval &&
-    prevProps.comparison === nextProps.comparison &&
-    (prevProps.tooltipState.visible === nextProps.tooltipState.visible &&
-     prevProps.tooltipState.metricId === nextProps.tooltipState.metricId)
+    prevProps.comparison === nextProps.comparison
   );
 });
+
+const TwoColumnLayout = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 32px;
+`;
+
+const MetricColumnCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: none;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+    
+    .explore-action {
+      opacity: 1;
+    }
+  }
+`;
+
+const PlaceholderContainer = styled.div`
+  background: #f7f7f7;
+  border-radius: 8px;
+  min-height: 180px;
+`;
+
+const ForecastingContainer = styled.div`
+  border-radius: 8px;
+  padding: 20px;
+  height: 100%;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  justify-content: space-between;
+`;
+
+const ForecastingHeading = styled.h4`
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1f36;
+  margin: 0 0 16px 0;
+`;
+
+const ToggleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+`;
+
+const ToggleLabel = styled.span`
+  font-size: 14px;
+  color: var(--text-color);
+  margin-left: 12px;
+`;
+
+const ToggleSwitch = styled.label`
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  span {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .3s;
+    border-radius: 20px;
+    
+    &:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+  }
+  
+  input:checked + span {
+    background-color: ${STRIPE_PURPLE};
+  }
+  
+  input:checked + span:before {
+    transform: translateX(20px);
+  }
+`;
+
+const InsightContainer = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  height: 100%;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const InsightHeading = styled.h4`
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1f36;
+  margin: 0 0 6px 0;
+`;
+
+const InsightText = styled.p`
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-color);
+  margin: 0 0 8px 0;
+`;
+
+const RecommendationHeader = styled.div`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin: 16px 0 12px 0;
+`;
+
+const ChevronIcon = styled.span`
+  margin-left: 6px;
+  transition: transform 0.3s ease;
+  transform: ${props => props.expanded ? 'rotate(90deg)' : 'rotate(0deg)'};
+`;
+
+const RecommendationContent = styled.div`
+  max-height: ${props => props.expanded ? '500px' : '0'};
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+`;
+
+const MailchimpButton = styled.button`
+  background-color: white;
+  color: ${STRIPE_PURPLE};
+  border: 1px solid ${STRIPE_PURPLE};
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  width: auto;
+  align-self: flex-start;
+  
+  &:hover {
+    background-color: ${STRIPE_PURPLE_LIGHT};
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.3);
+  }
+`;
+
+// Create a non-interactive styled card specifically for the Total Revenue chart
+const StaticMetricCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: default;
+`;
+
+// Define the BarChartMetricCard styled component
+const BarChartMetricCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: default;
+`;
+
+// Define chart container for bar charts
+const ChartContainer = styled.div`
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 16px;
+  position: relative;
+`;
+
+// Define legend components
+const Legend = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 8px;
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+`;
+
+const LegendColor = styled.div`
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 8px;
+`;
+
+const LegendLabel = styled.span`
+  font-size: 14px;
+  color: #6B7C93;
+`;
+
+const HelperText = styled.p`
+  font-size: 13px;
+  color: #6B7C93;
+  margin: 0 0 16px 0;
+`;
+
+const ForecastToggleSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+`;
+
+const ForecastToggleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+`;
+
+const ForecastToggleSwitch = styled.label`
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  span {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .3s;
+    border-radius: 20px;
+    
+    &:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+  }
+  
+  input:checked + span {
+    background-color: ${STRIPE_PURPLE};
+  }
+  
+  input:checked + span:before {
+    transform: translateX(20px);
+  }
+`;
+
+const ForecastToggleLabel = styled.span`
+  font-size: 14px;
+  color: var(--text-color);
+  margin-left: 12px;
+`;
+
+const ForecastTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0 0 8px 0;
+`;
+
+const ConnectedForecasting = ({ forecastSettings, setForecastSettings }) => {
+  return (
+    <ForecastToggleSection>
+      <ForecastTitle style={{ marginTop: '20px' }}>Adjustments</ForecastTitle>
+      
+      <ForecastToggleContainer>
+        <ForecastToggleSwitch>
+            <input 
+              type="checkbox" 
+            checked={forecastSettings.creditsEnabled}
+            onChange={() => setForecastSettings(prev => ({
+              ...prev,
+              creditsEnabled: !prev.creditsEnabled
+            }))}
+          />
+          <span></span>
+        </ForecastToggleSwitch>
+        <ForecastToggleLabel>Include credits</ForecastToggleLabel>
+      </ForecastToggleContainer>
+      
+      <ForecastToggleContainer>
+        <ForecastToggleSwitch>
+            <input 
+              type="checkbox" 
+            checked={forecastSettings.discountsEnabled}
+            onChange={() => setForecastSettings(prev => ({
+              ...prev,
+              discountsEnabled: !prev.discountsEnabled
+            }))}
+          />
+          <span></span>
+        </ForecastToggleSwitch>
+        <ForecastToggleLabel>Include discounts</ForecastToggleLabel>
+      </ForecastToggleContainer>
+      
+      <HelperText>
+        Adjust these settings to see how different revenue sources affect your projected revenue.
+        Credits add about 12% to forecasted revenue, while discounts add 8%.
+      </HelperText>
+    </ForecastToggleSection>
+  );
+};
+
+const ConnectedRevenueComposition = ({ revenueComposition, setRevenueComposition }) => {
+  return (
+    <ForecastToggleSection>
+      <ForecastTitle style={{ marginBottom: '12px' }}>Forecasting</ForecastTitle>
+      
+      <ForecastToggleContainer>
+        <ForecastToggleSwitch>
+          <input
+            type="checkbox"
+            checked={revenueComposition.creditsEnabled}
+            onChange={() => setRevenueComposition(prev => ({
+              ...prev,
+              creditsEnabled: !prev.creditsEnabled
+            }))}
+          />
+          <span></span>
+        </ForecastToggleSwitch>
+        <ForecastToggleLabel>Include credits</ForecastToggleLabel>
+      </ForecastToggleContainer>
+      
+      <ForecastToggleContainer>
+        <ForecastToggleSwitch>
+          <input
+            type="checkbox"
+            checked={revenueComposition.discountsEnabled}
+            onChange={() => setRevenueComposition(prev => ({
+              ...prev,
+              discountsEnabled: !prev.discountsEnabled
+            }))}
+          />
+          <span></span>
+        </ForecastToggleSwitch>
+        <ForecastToggleLabel>Include discounts</ForecastToggleLabel>
+      </ForecastToggleContainer>
+      
+      <HelperText>
+        Adjust these settings to see how different revenue sources affect your projected revenue.
+        Credits add about 12% to forecasted revenue, while discounts add 8%.
+      </HelperText>
+    </ForecastToggleSection>
+  );
+};
+
+// Update styled components for the benchmark section
+const BenchmarkSparklineGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0; // Remove gap to create single continuous border
+  margin-bottom: 0;
+`;
+
+// Grouped container for benchmark section with a single border
+const BenchmarkContainer = styled.div`
+  margin-bottom: 32px;
+  border: 1px solid #E3E8EE;
+  border-radius: 8px;
+  background: white;
+  overflow: hidden;
+`;
+
+const BenchmarkSparklineCard = styled.div`
+  padding: 16px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  border-right: ${props => props.isLast ? 'none' : '1px solid #E3E8EE'};
+  border-bottom: ${props => props.active ? 'none' : '1px solid #E3E8EE'};
+  background-color: ${props => props.active ? '#f5f6f7' : 'white'};
+  
+  &:hover {
+    background-color: ${props => props.active ? '#f5f6f7' : '#f9f9f9'};
+  }
+`;
+
+// Updated styles for benchmark title, value and percentile
+const BenchmarkTitle = styled.div`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+`;
+
+const BenchmarkValue = styled.div`
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+`;
+
+const BenchmarkPercentile = styled.span`
+  font-size: 12px;
+  font-weight: 500;
+  color: ${props => props.trend === 'up' ? TREND_POSITIVE : TREND_NEGATIVE};
+  margin-top: -4px;
+  display: block;
+`;
+
+// Smaller container for sparkline to reduce height
+const BenchmarkSparklineContainer = styled.div`
+  height: 38px;
+  width: 90px;
+  margin-left: 8px;
+`;
+
+// Updated expanded chart container
+const ExpandedMetricContainer = styled.div`
+  background: white;
+  padding: 20px;
+  border-top: none;
+`;
+
+// Add the quartile lines color
+const QUARTILE_COLOR = '#D8DEE4';
 
 const BillingOverview = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('revenue');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState('summary');
   const [activePeriod, setActivePeriod] = useState('last_3_months');
   const [activeInterval, setActiveInterval] = useState('daily');
   const [activeComparison, setActiveComparison] = useState('previous_period');
@@ -504,407 +1053,260 @@ const BillingOverview = () => {
     metricId: ''
   });
   const [metricData, setMetricData] = useState([]);
+  const { showTooltip, hideTooltip } = useTooltip();
+  const [trendingMetrics, setTrendingMetrics] = useState([]);
+  // State for forecasting toggles
+  const [forecastSettings, setForecastSettings] = useState({
+    creditsEnabled: true,
+    discountsEnabled: true
+  });
+  // Add state for active benchmark
+  const [activeBenchmark, setActiveBenchmark] = useState('mrr-growth-rate');
 
-  // Check for tab parameter in URL on component mount
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
-    
-    if (tabParam && ['summary', 'revenue', 'subscribers', 'invoices', 'usage', 'churn', 'trials'].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [location.search]);
-
-  // Base metrics for revenue tab
-  const baseRevenueMetrics = [
-    {
-      id: 'mrr',
-      title: 'MRR',
-      baseCurrencyValue: 295016.81,
-      baseNumberValue: 0,
-      trendValue: 5.2,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'mrr-growth',
-      title: 'MRR growth',
-      baseCurrencyValue: 12847.43,
-      baseNumberValue: 0,
-      trendValue: 3.8,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'net-volume',
-      title: 'Net volume',
-      baseCurrencyValue: 187245.89,
-      baseNumberValue: 0,
-      trendValue: 4.9,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'mrr-growth-rate',
-      title: 'MRR growth rate',
-      baseCurrencyValue: 0,
-      baseNumberValue: 4.5,
-      trendValue: 1.2,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'percentage'
-    }
-  ];
-
-  // Base metrics for subscribers tab
-  const baseSubscribersMetrics = [
-    {
-      id: 'active-subscribers',
-      title: 'Active subscribers',
-      baseCurrencyValue: 0,
-      baseNumberValue: 2483,
-      trendValue: 4.2,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'number'
-    },
-    {
-      id: 'active-subscribers-growth',
-      title: 'Active subscribers growth',
-      baseCurrencyValue: 0,
-      baseNumberValue: 8.6,
-      trendValue: 1.3,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'percentage'
-    },
-    {
-      id: 'new-subscribers',
-      title: 'New subscribers',
-      baseCurrencyValue: 0,
-      baseNumberValue: 214,
-      trendValue: 6.8,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'number'
-    },
-    {
-      id: 'churned-subscribers',
-      title: 'Churned subscribers',
-      baseCurrencyValue: 0,
-      baseNumberValue: 48,
-      trendValue: 1.2,
-      trend: 'down',
-      isCurrency: false,
-      unit: 'number'
-    },
-    {
-      id: 'arpu',
-      title: 'Average revenue per user',
-      baseCurrencyValue: 118.32,
-      baseNumberValue: 0,
-      trendValue: 2.4,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'subscriber-ltv',
-      title: 'Subscriber lifetime value',
-      baseCurrencyValue: 2463.75,
-      baseNumberValue: 0,
-      trendValue: 3.7,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    }
-  ];
-
-  // Base metrics for invoices tab
-  const baseInvoicesMetrics = [
-    {
-      id: 'invoice-revenue',
-      title: 'Invoice revenue',
-      baseCurrencyValue: 247865.43,
-      baseNumberValue: 0,
-      trendValue: 5.8,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'past-due-invoice-volume',
-      title: 'Past due invoice volume',
-      baseCurrencyValue: 18432.21,
-      baseNumberValue: 0,
-      trendValue: 2.1,
-      trend: 'down',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'avg-invoice-payment-length',
-      title: 'Average invoice payment length',
-      baseCurrencyValue: 0,
-      baseNumberValue: 4.2,
-      trendValue: 0.3,
-      trend: 'down',
-      isCurrency: false,
-      unit: 'days'
-    }
-  ];
-
-  // Base metrics for usage tab
-  const baseUsageMetrics = [
-    {
-      id: 'usage-revenue',
-      title: 'Usage revenue',
-      baseCurrencyValue: 85742.65,
-      baseNumberValue: 0,
-      trendValue: 8.3,
-      trend: 'up',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'usage-count',
-      title: 'Usage count',
-      baseCurrencyValue: 0,
-      baseNumberValue: 1243572,
-      trendValue: 12.7,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'number'
-    }
-  ];
-
-  // Base metrics for churn tab
-  const baseChurnMetrics = [
-    {
-      id: 'subscriber-churn-rate',
-      title: 'Subscriber churn rate',
-      baseCurrencyValue: 0,
-      baseNumberValue: 2.4,
-      trendValue: 0.3,
-      trend: 'down',
-      isCurrency: false,
-      unit: 'percentage'
-    },
-    {
-      id: 'churned-revenue',
-      title: 'Churned revenue',
-      baseCurrencyValue: 14253.87,
-      baseNumberValue: 0,
-      trendValue: 1.6,
-      trend: 'down',
-      isCurrency: true,
-      unit: 'currency'
-    },
-    {
-      id: 'gross-mrr-churn-rate',
-      title: 'Gross MRR churn rate',
-      baseCurrencyValue: 0,
-      baseNumberValue: 2.8,
-      trendValue: 0.2,
-      trend: 'down',
-      isCurrency: false,
-      unit: 'percentage'
-    },
-    {
-      id: 'net-mrr-churn-rate',
-      title: 'Net MRR churn rate',
-      baseCurrencyValue: 0,
-      baseNumberValue: 0.7,
-      trendValue: 0.4,
-      trend: 'down',
-      isCurrency: false,
-      unit: 'percentage'
-    }
-  ];
-
-  // Base metrics for trials tab
-  const baseTrialsMetrics = [
-    {
-      id: 'new-trials',
-      title: 'New trials',
-      baseCurrencyValue: 0,
-      baseNumberValue: 183,
-      trendValue: 8.5,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'number'
-    },
-    {
-      id: 'trial-conversion-rate',
-      title: 'Trial conversion rate',
-      baseCurrencyValue: 0,
-      baseNumberValue: 42.6,
-      trendValue: 3.2,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'percentage'
-    },
-    {
-      id: 'active-trials',
-      title: 'Active trials',
-      baseCurrencyValue: 0,
-      baseNumberValue: 376,
-      trendValue: 5.4,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'number'
-    },
-    {
-      id: 'converted-trials',
-      title: 'Converted trials',
-      baseCurrencyValue: 0,
-      baseNumberValue: 78,
-      trendValue: 4.8,
-      trend: 'up',
-      isCurrency: false,
-      unit: 'number'
-    }
-  ];
-
-  // Handle tab change
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-  };
-
-  // Handle period change from reporting controls
-  const handlePeriodChange = (period) => {
-    setActivePeriod(period);
-    // Update metrics for the new period
-    updateMetricsForPeriodChange(period);
-  };
-  
-  // Handle interval change from reporting controls
-  const handleIntervalChange = (interval) => {
-    setActiveInterval(interval);
-    // Update metrics for the new interval
-    updateMetricsForIntervalChange(interval);
-  };
-  
-  // Handle comparison change from reporting controls
-  const handleComparisonChange = (comparison) => {
-    setActiveComparison(comparison);
-    // Update metrics for the new comparison
-    updateMetricsForComparisonChange(comparison);
-  };
-  
-  // Update metrics when period changes
-  const updateMetricsForPeriodChange = (period) => {
-    // Implementation depends on how metrics are generated in your app
-    // This is a placeholder for the actual implementation
-    const updatedMetrics = baseRevenueMetrics.map(metric => {
-      // Update metric data for new period
-      // ...
-      return metric;
-    });
-    // Update metrics state if necessary
-    // setMetrics(updatedMetrics);
-  };
-  
-  // Update metrics when interval changes
-  const updateMetricsForIntervalChange = (interval) => {
-    // Implementation depends on how metrics are generated in your app
-    // This is a placeholder for the actual implementation
-    const updatedMetrics = baseRevenueMetrics.map(metric => {
-      // Update metric data for new interval
-      // ...
-      return metric;
-    });
-    // Update metrics state if necessary
-    // setMetrics(updatedMetrics);
-  };
-  
-  // Update metrics when comparison changes
-  const updateMetricsForComparisonChange = (comparison) => {
-    // Implementation depends on how metrics are generated in your app
-    // This is a placeholder for the actual implementation
-    const updatedMetrics = baseRevenueMetrics.map(metric => {
-      // Update metric data for new comparison
-      // ...
-      return metric;
-    });
-    // Update metrics state if necessary
-    // setMetrics(updatedMetrics);
-  };
-
-  // Format currency values
-  const formatCurrency = (value) => {
+  // Helper functions for value formatting
+  const formatCurrency = useCallback((value) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: value < 100 ? 2 : 0,
-      maximumFractionDigits: value < 100 ? 2 : 0
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(value);
-  };
+  }, []);
 
-  // Format percentage values
-  const formatPercentage = (value) => {
-    return value.toFixed(1) + '%';
-  };
+  // Add a new formatter for metrics that should display cents
+  const formatCurrencyWithCents = useCallback((value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  }, []);
 
-  // Format general numbers
-  const formatNumber = (value) => {
-    if (value >= 1000000) {
-      return (value / 1000000).toFixed(1) + 'M';
-    } else if (value >= 1000) {
-      return (value / 1000).toFixed(1) + 'K';
+  const formatPercentage = useCallback((value) => {
+    return `${value.toFixed(2)}%`;
+  }, []);
+
+  const formatNumber = useCallback((value) => {
+    return new Intl.NumberFormat('en-US').format(value);
+  }, []);
+
+  // Define handleShowTooltip before it's used by other functions
+  const handleShowTooltip = useCallback((event, metricId, chartData) => {
+    // Skip processing if we don't have valid chart data
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.datasets.length) {
+      return;
     }
-    return value.toFixed(0);
-  };
 
-  // Generate chart data for metrics
-  const generateMetricChartData = (metric, period, interval, includePrevious = true) => {
+    // Static ref for throttling that won't cause re-renders
+    if (!event.currentTarget) return;
+    
+    // Use a more aggressive throttle to prevent flickering
+    if (event.currentTarget._tooltipThrottleTimestamp && 
+        Date.now() - event.currentTarget._tooltipThrottleTimestamp < 100) {
+      return;
+    }
+    
+    // Update timestamp instead of using a timeout
+    event.currentTarget._tooltipThrottleTimestamp = Date.now();
+    
+    const chartRect = event.currentTarget.getBoundingClientRect();
+    const xPosition = event.clientX - chartRect.left;
+    const yPosition = event.clientY;
+    const xRatio = xPosition / chartRect.width;
+    const dataIndex = Math.floor(xRatio * chartData.labels.length);
+    
+    if (dataIndex < 0 || dataIndex >= chartData.labels.length) {
+      return;
+    }
+    
+    // For Total Revenue or other custom metrics, use the metric directly from standardizedMetrics or create a temporary one
+    let metric;
+    if (metricId === 'total-revenue') {
+      metric = {
+        id: 'total-revenue',
+        title: 'Total revenue',
+        isCurrency: true,
+        unit: 'currency',
+        showCents: true
+      };
+    } else {
+      metric = metricData.find(m => m.id === metricId) || 
+               standardizedMetrics[metricId] || 
+               { id: metricId, title: 'Metric' };
+    }
+
+    // Check if we're dealing with a stacked chart
+    const isStacked = chartData.datasets.some(ds => ds.stack !== undefined);
+    
+    if (isStacked && metricId === 'total-revenue') {
+      // For stacked bar charts, show all categories in the tooltip
+      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
+      
+      // Process each dataset in the stacked chart
+      let hasValidData = false;
+      chartData.datasets.forEach(dataset => {
+        if (!dataset || !dataset.data || dataIndex >= dataset.data.length) return;
+        
+        const value = dataset.data[dataIndex];
+        if (value > 0) { // Only show non-zero values
+          hasValidData = true;
+          // Use formatCurrencyWithCents for revenue metrics
+          const formattedValue = metric.unit === 'currency' ? 
+            (metric.showCents || dataset.label.includes('Usage') ? formatCurrencyWithCents(value) : formatCurrency(value)) : 
+            formatNumber(value);
+          
+          // Determine color based on dataset
+          let color;
+          if (dataset.label === 'MRR') {
+            color = STRIPE_PURPLE;
+          } else if (dataset.label === 'Usage revenue') {
+            color = USAGE_BLUE;
+          } else if (dataset.label === 'Forecasted usage revenue') {
+            color = USAGE_BLUE;
+          } else {
+            color = dataset.borderColor || '#333';
+          }
+          
+          tooltipContent += `<div style="color: ${color};">${dataset.label}: ${formattedValue}</div>`;
+        }
+      });
+      
+      if (!hasValidData) return;
+      
+      // Add the total with cents
+      const total = chartData.datasets.reduce((acc, dataset) => {
+        if (!dataset || !dataset.data || dataIndex >= dataset.data.length) return acc;
+        return acc + (dataset.data[dataIndex] || 0);
+      }, 0);
+      
+      tooltipContent += `<div style="margin-top: 4px; font-weight: 600;">Total: ${formatCurrencyWithCents(total)}</div>`;
+      
+      showTooltip(event.clientX, yPosition, tooltipContent, metricId);
+    } else {
+      // Standard tooltip handling for non-stacked charts
+      const currentData = chartData.datasets[0]?.data;
+      const previousData = chartData.datasets[1]?.data;
+      
+      if (!currentData || dataIndex >= currentData.length) return;
+      
+      const currentValue = currentData[dataIndex];
+      if (currentValue === undefined || currentValue === null) return;
+      
+      const previousValue = previousData && dataIndex < previousData.length ? previousData[dataIndex] : null;
+      
+      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
+      
+      if (metric.unit === 'currency' || metric.isCurrency) {
+        // Show cents for usage revenue and ARPU
+        if (metric.id === 'usage-revenue' || metric.id === 'arpu' || metric.showCents) {
+          tooltipContent += `<div class="current-value">Current: ${formatCurrencyWithCents(currentValue)}</div>`;
+        } else {
+          tooltipContent += `<div class="current-value">Current: ${formatCurrency(currentValue)}</div>`;
+        }
+      } else if (metric.unit === 'percentage') {
+        tooltipContent += `<div class="current-value">Current: ${formatPercentage(currentValue)}</div>`;
+      } else {
+        tooltipContent += `<div class="current-value">Current: ${formatNumber(currentValue)}</div>`;
+      }
+      
+      if (previousValue !== null && previousValue !== undefined) {
+        if (metric.unit === 'currency' || metric.isCurrency) {
+          // Show cents for usage revenue and ARPU
+          if (metric.id === 'usage-revenue' || metric.id === 'arpu' || metric.showCents) {
+            tooltipContent += `<div class="previous-value">Previous: ${formatCurrencyWithCents(previousValue)}</div>`;
+          } else {
+            tooltipContent += `<div class="previous-value">Previous: ${formatCurrency(previousValue)}</div>`;
+          }
+        } else if (metric.unit === 'percentage') {
+          tooltipContent += `<div class="previous-value">Previous: ${formatPercentage(previousValue)}</div>`;
+        } else {
+          tooltipContent += `<div class="previous-value">Previous: ${formatNumber(previousValue)}</div>`;
+        }
+      }
+      
+      showTooltip(event.clientX, yPosition, tooltipContent, metricId);
+    }
+  }, [formatCurrency, formatCurrencyWithCents, formatPercentage, formatNumber, metricData, showTooltip]);
+
+  // Create a shared throttled tooltip handler for trending metrics
+  const throttledShowTooltip = useCallback((e, metricId, chartData) => {
+    // Skip if no event
+    if (!e || !e.currentTarget) return;
+    
+    // Use a static variable on the DOM element to prevent refires
+    if (!e.currentTarget._tooltipTimestamp || 
+        Date.now() - e.currentTarget._tooltipTimestamp > 100) {
+      
+      e.currentTarget._tooltipTimestamp = Date.now();
+      handleShowTooltip(e, metricId, chartData);
+    }
+  }, [handleShowTooltip]);
+
+  // Generate metric chart data
+  const generateMetricChartData = useCallback((metric, period, interval, includePrevious = false) => {
+    // Default to approximately 30 data points
+    let pointCount = 30;
     let labels = [];
     let currentData = [];
     let previousData = [];
-    let pointCount = 0;
     
-    // Determine number of data points based on period and interval
-    switch (period) {
-      case 'last7days':
-        pointCount = interval === 'daily' ? 7 : 1;
-        break;
-      case 'last30days':
-        pointCount = interval === 'daily' ? 30 : interval === 'weekly' ? 4 : 1;
-        break;
-      case 'last90days':
-        pointCount = interval === 'daily' ? 90 : interval === 'weekly' ? 13 : 3;
-        break;
-      case 'thisYear':
-        pointCount = interval === 'daily' ? 30 : interval === 'weekly' ? 52 : 12;
-        break;
-      default:
-        pointCount = 7;
+    // Adjust point count based on interval and period
+    if (interval === 'monthly') {
+      if (period === 'last_3_months') pointCount = 3;
+      else if (period === 'last_6_months') pointCount = 6;
+      else if (period === 'last_12_months') pointCount = 12;
+      else if (period === 'year_to_date') {
+        const today = new Date();
+        pointCount = today.getMonth() + 1;
+      }
+    } else if (interval === 'weekly') {
+      if (period === 'last_3_months') pointCount = 12; // ~3 months of weeks
+      else if (period === 'last_6_months') pointCount = 24; // ~6 months of weeks
+      else if (period === 'last_12_months') pointCount = 52; // ~1 year of weeks
+      else if (period === 'year_to_date') {
+        const today = new Date();
+        const startOfYear = new Date(today.getFullYear(), 0, 1);
+        const diffTime = Math.abs(today - startOfYear);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        pointCount = Math.ceil(diffDays / 7);
+      }
     }
     
-    // Generate labels based on interval
-    const today = new Date();
-    
-    for (let i = pointCount - 1; i >= 0; i--) {
-      let date = new Date(today);
-      
-      if (interval === 'daily') {
+    // Generate date labels based on interval
+    if (interval === 'daily') {
+      const today = new Date();
+      for (let i = pointCount - 1; i >= 0; i--) {
+        const date = new Date();
         date.setDate(today.getDate() - i);
         labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-      } else if (interval === 'weekly') {
+      }
+    } else if (interval === 'weekly') {
+      const today = new Date();
+      for (let i = pointCount - 1; i >= 0; i--) {
+        const date = new Date();
         date.setDate(today.getDate() - (i * 7));
         labels.push(`Week of ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
-      } else if (interval === 'monthly') {
+      }
+    } else if (interval === 'monthly') {
+      const today = new Date();
+      for (let i = pointCount - 1; i >= 0; i--) {
+        const date = new Date();
         date.setMonth(today.getMonth() - i);
         labels.push(date.toLocaleDateString('en-US', { month: 'long' }));
       }
     }
 
-    // Generate trend data based on metric type
-    const volatility = 0.08; // Standard volatility
+    // Use metric.id as seed for consistent pseudorandom values
+    const generateStableRandomValue = (i, metric) => {
+      // Create a deterministic seed based on metric id and index
+      const seed = metric.id.charCodeAt(0) + (i * 100);
+      // Simple pseudorandom generator with seed
+      const random = Math.sin(seed) * 10000;
+      return Math.abs(random - Math.floor(random));
+    };
     
+    // Generate trend data based on metric type with stable random values
     if (metric.isCurrency) {
       // Handle currency metrics - general trend with some volatility
       const baseValue = metric.baseCurrencyValue;
@@ -913,29 +1315,29 @@ const BillingOverview = () => {
       currentData = new Array(pointCount).fill(0).map((_, i) => {
         const progress = i / (pointCount - 1); // 0 to 1 based on position in timeline
         const trendFactor = metric.trend === 'up' ? 1 + (progress * 0.05) : 1 - (progress * 0.03);
-        const randomFactor = 1 + ((Math.random() * volatility * 2) - volatility);
+        const randomFactor = 1 + ((generateStableRandomValue(i, metric) * 0.16) - 0.08);
         return baseValue * trendFactor * randomFactor;
       });
       
       if (includePrevious) {
         // Previous period data - slightly different trend
         const prevTrendMultiplier = metric.trend === 'up' ? 0.92 : 1.05;
-        previousData = currentData.map(val => val * prevTrendMultiplier);
+        previousData = currentData.map((val, i) => val * prevTrendMultiplier * (1 + ((generateStableRandomValue(i + 50, metric) * 0.1) - 0.05)));
       }
     } else if (metric.id.includes('rate') || metric.unit === 'percentage') {
       // Handle percentage/rate metrics - smaller numbers, less volatility
-      const baseValue = metric.baseNumberValue / 100; // Convert to decimal for calculations
+      const baseValue = metric.baseNumberValue; 
       
       currentData = new Array(pointCount).fill(0).map((_, i) => {
         const progress = i / (pointCount - 1);
         const trendFactor = metric.trend === 'up' ? 1 + (progress * 0.03) : 1 - (progress * 0.02);
-        const randomFactor = 1 + ((Math.random() * (volatility/2) * 2) - (volatility/2));
+        const randomFactor = 1 + ((generateStableRandomValue(i, metric) * 0.1) - 0.05);
         return baseValue * trendFactor * randomFactor;
       });
       
       if (includePrevious) {
         const prevTrendMultiplier = metric.trend === 'up' ? 0.94 : 1.03;
-        previousData = currentData.map(val => val * prevTrendMultiplier);
+        previousData = currentData.map((val, i) => val * prevTrendMultiplier * (1 + ((generateStableRandomValue(i + 50, metric) * 0.06) - 0.03)));
       }
     } else {
       // Handle count/number metrics
@@ -944,7 +1346,7 @@ const BillingOverview = () => {
       currentData = new Array(pointCount).fill(0).map((_, i) => {
         const progress = i / (pointCount - 1);
         const trendFactor = metric.trend === 'up' ? 1 + (progress * 0.04) : 1 - (progress * 0.025);
-        const randomFactor = 1 + ((Math.random() * volatility * 2) - volatility);
+        const randomFactor = 1 + ((generateStableRandomValue(i, metric) * 0.16) - 0.08);
         
         // Round to whole numbers for count metrics
         return Math.round(baseValue * trendFactor * randomFactor);
@@ -952,7 +1354,7 @@ const BillingOverview = () => {
       
       if (includePrevious) {
         const prevTrendMultiplier = metric.trend === 'up' ? 0.93 : 1.04;
-        previousData = currentData.map(val => Math.round(val * prevTrendMultiplier));
+        previousData = currentData.map((val, i) => Math.round(val * prevTrendMultiplier * (1 + ((generateStableRandomValue(i + 50, metric) * 0.1) - 0.05))));
       }
     }
     
@@ -982,102 +1384,117 @@ const BillingOverview = () => {
         }] : [])
       ]
     };
+  }, []);
+  
+  // Handle tab change and update URL
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    // Update URL with tab parameter without full page reload
+    navigate(`/billing/overview?tab=${tab}`, { replace: true });
   };
 
-  // Handle metric card click
-  const handleMetricClick = (metric) => {
-    const metricIdMap = {
-      'MRR': 'mrr',
-      'Active subscribers': 'active-subscribers',
-      'MRR growth': 'mrr-growth',
-      'Revenue per subscriber': 'revenue-per-subscriber',
-      'Subscriber churn rate': 'subscriber-churn-rate'
-    };
-    
-    const metricId = metricIdMap[metric.title] || metric.title.toLowerCase().replace(/\s+/g, '-');
-    
-    // Navigate to the metric detail page with full metric data
-    navigate(`/metrics/${metricId}`, { 
-      state: { 
-        metric: metric, 
-        sourcePage: 'Billing',
-        sourceTab: activeTab 
-      } 
-    });
+  // Handle period change from reporting controls
+  const handlePeriodChange = (period) => {
+    setActivePeriod(period);
+  };
+  
+  // Handle interval change from reporting controls
+  const handleIntervalChange = (interval) => {
+    setActiveInterval(interval);
+  };
+  
+  // Handle comparison change from reporting controls
+  const handleComparisonChange = (comparison) => {
+    setActiveComparison(comparison);
   };
 
-  // Update the showTooltip function implementation
-  const showTooltip = (event, metricId, chartData) => {
-    const chartRect = event.currentTarget.getBoundingClientRect();
-    const xPosition = event.clientX - chartRect.left;
-    const xRatio = xPosition / chartRect.width;
-    const dataIndex = Math.floor(xRatio * chartData.labels.length);
+  // Use memoized values from standardized metrics for each tab section
+  const baseRevenueMetrics = useMemo(() => [
+    standardizedMetrics['mrr'],
+    standardizedMetrics['mrr-growth'],
+    standardizedMetrics['total-revenue'],
+    standardizedMetrics['net-volume']
+  ], []);
+
+  const baseGrowthMetrics = useMemo(() => [
+    standardizedMetrics['mrr-growth-rate'],
+    standardizedMetrics['subscriber-churn-rate'],
+    standardizedMetrics['churned-revenue'],
+    standardizedMetrics['gross-mrr-churn-rate'],
+    standardizedMetrics['net-mrr-churn-rate'],
+    standardizedMetrics['trial-conversion-rate'],
+    standardizedMetrics['new-trials'],
+    standardizedMetrics['active-trials'],
+    standardizedMetrics['converted-trials']
+  ], []);
+
+  const baseSubscribersMetrics = useMemo(() => [
+    standardizedMetrics['active-subscribers'],
+    standardizedMetrics['active-subscribers-growth'],
+    standardizedMetrics['new-subscribers'],
+    standardizedMetrics['churned-subscribers'],
+    standardizedMetrics['arpu'],
+    standardizedMetrics['subscriber-ltv']
+  ], []);
+
+  const baseInvoicingMetrics = useMemo(() => [
+    standardizedMetrics['invoice-revenue'],
+    standardizedMetrics['past-due-invoice-volume'],
+    standardizedMetrics['past-due-invoice-payment-rate'],
+    standardizedMetrics['avg-invoice-payment-length']
+  ], []);
+
+  const baseUsageMetrics = useMemo(() => [
+    standardizedMetrics['usage-revenue'],
+    standardizedMetrics['usage-count']
+  ], []);
+
+  // Check for tab parameter in URL on component mount or when URL changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
     
-    if (dataIndex >= 0 && dataIndex < chartData.labels.length) {
-      // Find the metric from any of the possible metric sources
-      const metric = metricData.find(m => m.id === metricId) || 
-                    baseRevenueMetrics.find(m => m.id === metricId) ||
-                    baseSubscribersMetrics.find(m => m.id === metricId) ||
-                    baseInvoicesMetrics.find(m => m.id === metricId) ||
-                    baseUsageMetrics.find(m => m.id === metricId) ||
-                    baseChurnMetrics.find(m => m.id === metricId) ||
-                    baseTrialsMetrics.find(m => m.id === metricId);
-                    
-      if (!metric) return;
-      
-      const currentValue = chartData.currentData[dataIndex];
-      const previousValue = chartData.previousData ? chartData.previousData[dataIndex] : null;
-      
-      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong><br/>`;
-      
-      if (metric.isCurrency) {
-        tooltipContent += `<span class="current-value">Current: ${formatCurrency(currentValue)}</span>`;
-      } else if (metric.unit === 'percentage') {
-        tooltipContent += `<span class="current-value">Current: ${formatPercentage(currentValue * 100)}</span>`;
-      } else {
-        tooltipContent += `<span class="current-value">Current: ${formatNumber(currentValue)}</span>`;
-      }
-      
-      if (previousValue !== null && activeComparison !== 'no-comparison') {
-        tooltipContent += '<br/>';
-        if (metric.isCurrency) {
-          tooltipContent += `<span class="previous-value">Previous: ${formatCurrency(previousValue)}</span>`;
-        } else if (metric.unit === 'percentage') {
-          tooltipContent += `<span class="previous-value">Previous: ${formatPercentage(previousValue * 100)}</span>`;
-        } else {
-          tooltipContent += `<span class="previous-value">Previous: ${formatNumber(previousValue)}</span>`;
-        }
-      }
-      
-      setTooltipState({
-        visible: true,
-        x: xPosition,
-        y: 0,
-        content: tooltipContent,
-        metricId
-      });
+    if (tabParam && ['summary', 'revenue', 'growth', 'subscribers', 'invoicing', 'usage'].includes(tabParam)) {
+      setActiveTab(tabParam);
     }
-  };
-
-  const hideTooltip = () => {
-    setTooltipState({
-      ...tooltipState,
-      visible: false
-    });
-  };
-
+  }, [searchParams]);
+  
   // Update metrics data when period or interval changes
   useEffect(() => {
     try {
-      // Generate updated metrics with chart data
-      const updatedMetrics = baseRevenueMetrics.map(metric => {
+      // Generate updated metrics with chart data based on current active tab
+      let metrics = [];
+      
+      switch (activeTab) {
+        case 'revenue':
+          metrics = baseRevenueMetrics;
+          break;
+        case 'growth':
+          metrics = baseGrowthMetrics;
+          break;
+        case 'subscribers':
+          metrics = baseSubscribersMetrics;
+          break;
+        case 'invoicing':
+          metrics = baseInvoicingMetrics;
+          break;
+        case 'usage':
+          metrics = baseUsageMetrics;
+          break;
+        default:
+          metrics = baseRevenueMetrics;
+      }
+      
+      // Generate chart data for each metric
+      const updatedMetrics = metrics.map(metric => {
         // Generate chart data for the metric
         const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
         
         // Format the display value
         const displayValue = metric.isCurrency
           ? formatCurrency(metric.baseCurrencyValue)
-          : formatPercentage(metric.baseNumberValue * 100);
+          : metric.unit === 'percentage'
+            ? formatPercentage(metric.baseNumberValue)
+            : formatNumber(metric.baseNumberValue);
         
         return {
           ...metric,
@@ -1091,279 +1508,668 @@ const BillingOverview = () => {
     } catch (error) {
       console.error("Error updating metrics data:", error);
     }
-  }, [activePeriod, activeInterval, activeComparison]);
+  }, [
+    activePeriod, 
+    activeInterval, 
+    activeComparison, 
+    activeTab, 
+    baseRevenueMetrics,
+    baseGrowthMetrics, 
+    baseSubscribersMetrics, 
+    baseInvoicingMetrics, 
+    baseUsageMetrics, 
+    generateMetricChartData, 
+    formatCurrency, 
+    formatPercentage, 
+    formatNumber
+  ]);
 
-  // Helper function to render reports - restored previous treatment
-  const renderReportSection = (title, reports) => {
-    return (
-      <ReportSection>
-        <SectionTitle>{title}</SectionTitle>
+  // Handle metric card click
+  const handleMetricClick = useCallback((metric) => {
+    const metricId = metric.id;
+    
+    navigate(`/metrics/${metricId}`, { 
+      state: { 
+        metric: metric, 
+        sourcePage: 'Billing',
+        sourceTab: activeTab 
+      } 
+    });
+  }, [navigate, activeTab]);
+
+  // Generate trending metrics for the summary tab
+  useEffect(() => {
+    // Use specific metrics as requested
+    const mrrGrowthRateMetric = standardizedMetrics['mrr-growth-rate'];
+    const subscriberChurnRateMetric = standardizedMetrics['subscriber-churn-rate'];
+    const usageRevenueMetric = standardizedMetrics['usage-revenue'];
+    
+    // Create a stable set of data points with realistic shapes
+    const generateStableChartData = (metric) => {
+      // Number of data points for the sparkline
+      const pointCount = 12;
+      const labels = [];
+      
+      // Create labels (these won't be shown but needed for chart.js)
+      for (let i = 0; i < pointCount; i++) {
+        labels.push(`P${i+1}`);
+      }
+      
+      // Generate realistic shapes that mimic the example image
+      // We'll use different patterns for each metric to simulate real-world data
+      let data = [];
+      let prevData = [];
+      const baseValue = metric.isCurrency ? metric.baseCurrencyValue : metric.baseNumberValue;
+      
+      if (metric === mrrGrowthRateMetric) {
+        // Shape pattern: starts medium, drops, gradual rise with a final spike (like the example)
+        const pattern = [1.0, 0.7, 0.5, 0.65, 0.8, 0.9, 0.85, 0.95, 0.9, 1.05, 1.1, 1.4];
+        data = pattern.map(factor => baseValue * factor);
+        // Previous period data (slightly lower values)
+        prevData = pattern.map(factor => baseValue * factor * 0.85);
+      } 
+      else if (metric === subscriberChurnRateMetric) {
+        // Shape pattern: starts low, spike in middle, drop, then gradual increase
+        const pattern = [0.8, 0.9, 1.0, 1.2, 1.3, 1.1, 0.9, 0.85, 0.95, 1.0, 1.05, 1.1];
+        data = pattern.map(factor => baseValue * factor);
+        // Previous period data (slightly higher values for churn - worse performance)
+        prevData = pattern.map(factor => baseValue * factor * 1.15);
+      }
+      else if (metric === usageRevenueMetric) {
+        // Shape pattern: zigzag with overall upward trend
+        const pattern = [0.85, 1.0, 0.9, 1.05, 0.95, 1.1, 1.0, 1.15, 1.05, 1.2, 1.1, 1.25];
+        data = pattern.map(factor => baseValue * factor);
+        // Previous period data (slightly lower values)
+        prevData = pattern.map(factor => baseValue * factor * 0.8);
+      }
+      
+      return {
+        labels,
+        datasets: [
+          {
+            data,
+            borderColor: STRIPE_PURPLE, // Use Stripe purple for all sparklines
+            backgroundColor: 'transparent',
+            tension: 0.2, // Less tension for more pronounced angles like in the example
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            borderWidth: 2
+          },
+          {
+            data: prevData,
+            borderColor: GRAY, // Gray for comparison line
+            backgroundColor: 'transparent',
+            tension: 0.2,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            borderWidth: 1.5,
+            borderDash: [5, 5]
+          }
+        ]
+      };
+    };
+    
+    // Create metrics with stable chart data
+    const stableMetrics = [mrrGrowthRateMetric, subscriberChurnRateMetric, usageRevenueMetric].map(metric => {
+      const chartData = generateStableChartData(metric);
+      
+      let displayValue, displayValueWithCents;
+      if (metric.isCurrency) {
+        displayValue = formatCurrency(metric.baseCurrencyValue);
+        displayValueWithCents = formatCurrencyWithCents(metric.baseCurrencyValue);
+      } else if (metric.unit === 'percentage') {
+        displayValue = formatPercentage(metric.baseNumberValue);
+      } else {
+        displayValue = formatNumber(metric.baseNumberValue);
+      }
+      
+      const trendSign = metric.trend === 'up' ? '+' : '-';
+      const trendDisplay = `${trendSign}${Math.abs(metric.trendValue).toFixed(2)}%`;
+      
+      return {
+        ...metric,
+        displayValue,
+        displayValueWithCents,
+        trendDisplay,
+        chartData
+      };
+    });
+    
+    setTrendingMetrics(stableMetrics);
+  }, [formatCurrency, formatCurrencyWithCents, formatPercentage, formatNumber]);
+
+  // Render metric cards for each tab
+  const renderMetricCards = useCallback(() => {
+    return metricData.map(metric => (
+      <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
+        <ExploreAction className="explore-action">
+          Explore
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ExploreAction>
         
-        {reports.map(report => (
-          <ReportCard key={report.id || report.title}>
-            <ReportInfo>
-              <ReportTitle>{report.title}</ReportTitle>
-              <ReportDescription>{report.description}</ReportDescription>
-            </ReportInfo>
-            <DownloadButton onClick={() => handleReportDownload(report)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Download
-            </DownloadButton>
-          </ReportCard>
-        ))}
-      </ReportSection>
-    );
-  };
+        <MetricHeader>
+          <MetricTitle>{metric.title}</MetricTitle>
+          <MetricValueRow>
+            <MetricValue>
+              {metric.value}
+              {metric.trend && (
+                <MetricTrend trend={metric.trend}>
+                  {metric.trend === 'up' ? '+' : '-'}{Math.abs(metric.trendValue).toFixed(2)}%
+                </MetricTrend>
+              )}
+            </MetricValue>
+          </MetricValueRow>
+        </MetricHeader>
+        
+        <MetricChartContainer
+          onMouseMove={(e) => throttledShowTooltip(e, metric.id, metric.chartData)}
+          onMouseLeave={hideTooltip}
+        >
+          <LineChart 
+            data={metric.chartData} 
+            height={160} 
+            showLegend={false}
+            unit={metric.unit}
+          />
+        </MetricChartContainer>
+      </MetricCard>
+    ));
+  }, [metricData, handleMetricClick, throttledShowTooltip, hideTooltip]);
 
-  // Function to handle report download
-  const handleReportDownload = (report) => {
-    console.log(`Downloading report: ${report.title}`);
-    // In a real implementation, this would trigger an API call or generate a report
-    // toast.success(`Started download: ${report.title}`);
-  };
-
-  // Update the renderMetricsGrid function to use the new MetricChart component
-  const renderMetricsGrid = (metrics, gridType = 'default') => {
-    return (
-      <MetricsGrid type={gridType}>
-        {metrics.map(metric => {
-          const valueDisplay = metric.isCurrency 
-            ? formatCurrency(metric.baseCurrencyValue)
-            : metric.unit === 'percentage'
-              ? formatPercentage(metric.baseNumberValue * 100)
-              : metric.unit === 'days'
-                ? `${formatNumber(metric.baseNumberValue)} ${metric.baseNumberValue === 1 ? 'day' : 'days'}`
-                : formatNumber(metric.baseNumberValue);
-                
-          const trendDisplay = metric.unit === 'days'
-            ? `${metric.trendValue} ${Math.abs(metric.trendValue) === 1 ? 'day' : 'days'} ${metric.trend === 'up' ? 'up' : 'down'}`
-            : `${metric.trend === 'up' ? '+' : '-'}${Math.abs(metric.trendValue).toFixed(1)}%`;
-
-          return (
-            <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
-              <ExploreAction className="explore-action">
-                Explore
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </ExploreAction>
-              
-              <MetricHeader>
-                <MetricTitle>{metric.title}</MetricTitle>
-                <MetricValueRow>
-                  <MetricValue>
-                    {valueDisplay}
-                    {metric.trendValue > 0 && (
-                      <MetricTrend trend={metric.trend}>
-                        {metric.trend === 'up' ? '+' : '-'}{metric.trendValue.toFixed(1)}%
-                      </MetricTrend>
-                    )}
-                  </MetricValue>
-                </MetricValueRow>
-              </MetricHeader>
-              
-              <MetricChart 
-                metric={metric}
-                activePeriod={activePeriod}
-                interval={activeInterval}
-                comparison={activeComparison}
-                tooltipState={tooltipState}
-                showTooltip={showTooltip}
-                hideTooltip={hideTooltip}
-                generateMetricChartData={generateMetricChartData}
+  // Render trending metrics for summary tab
+  const renderTrendingMetrics = useCallback(() => {
+    return trendingMetrics.map(metric => {
+      const metricKey = `trending-${metric.id}`;
+      
+      return (
+        <TrendingCard key={metricKey} onClick={() => handleMetricClick(metric)}>
+          <ExploreAction className="explore-action">
+            Explore
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </ExploreAction>
+          
+          <TrendingTitle>{metric.title}</TrendingTitle>
+          <TrendingContent>
+            <TrendingValueSection>
+              <TrendingValue>{metric.id === 'usage-revenue' ? metric.displayValueWithCents : metric.displayValue}</TrendingValue>
+              <TrendingTrend trend={metric.trend}>{metric.trendDisplay}</TrendingTrend>
+            </TrendingValueSection>
+            <SparklineContainer
+              onMouseMove={(e) => throttledShowTooltip(e, metric.id, metric.chartData)}
+              onMouseLeave={hideTooltip}
+            >
+              <LineChart 
+                data={metric.chartData} 
+                height={50} 
+                showLegend={false}
+                showAxes={false}
+                unit={metric.unit}
+                sparkline={true}
               />
-            </MetricCard>
-          );
-        })}
-      </MetricsGrid>
-    );
-  };
+            </SparklineContainer>
+          </TrendingContent>
+        </TrendingCard>
+      );
+    });
+  }, [trendingMetrics, handleMetricClick, throttledShowTooltip, hideTooltip]);
 
-  // Render content based on active tab
-  const renderTabContent = () => {
-    // Render different content based on the active tab
-    switch (activeTab) {
-      case 'revenue':
-        return (
-          <>
-            {renderMetricsGrid(metricData)}
-            
-            {renderReportSection("Report downloads", [
-              {
-                id: 'mrr-per-subscriber',
-                title: "MRR per subscriber per month",
-                description: "Includes the MRR for each subscriber at the end of the month."
-              },
-              {
-                id: 'subscription-metrics',
-                title: "Subscription metrics per month",
-                description: "Includes your MRR roll-forward, subscriber roll-forward, retention, and customer value for each month."
-              },
-              {
-                id: 'customer-mrr-changes',
-                title: "Customer MRR changes",
-                description: "Includes a log of every MRR change for each customer, including new subscribers, upgrades, downgrades, reactivations, and churn."
-              }
-            ])}
-          </>
-        );
+  // In the return statement, ensure chart data is properly structured for rendering
+  const activityData = useMemo(() => ({
+    revenue: [42000, 45000, 48000, 47000, 49000, 52000],
+    revenueMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+  }), []);
+  
+  const monthLabels = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], []);
+  
+  // Create stable stacked bar chart data
+  const stableRevenueBarData = useMemo(() => {
+    // Generate stable data for the stacked bar chart
+    const generateStableBarData = (baseValue) => {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+      // Create stable data points using a deterministic approach
+      return months.map((month, i) => {
+        // Use month index as seed for stable "random" variation
+        const seed = month.charCodeAt(0) + (i * 100);
+        const random = Math.abs(Math.sin(seed) * 10000);
+        const factor = 0.85 + ((random % 0.3) * 0.3);
+        return baseValue * factor;
+      });
+    };
 
-      case 'subscribers':
-        // Calculate metrics for subscribers tab using the helper functions
-        const subscribersMetrics = baseSubscribersMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
-          const displayValue = metric.isCurrency 
-            ? formatCurrency(metric.baseCurrencyValue) 
-            : formatPercentage(metric.baseNumberValue);
-
-          return {
-            ...metric,
-            value: displayValue,
-            chartData: chartData
-          };
-        });
-
-        return (
-          <>
-            {renderMetricsGrid(subscribersMetrics)}
-          </>
-        );
-
-      case 'invoices':
-        // Calculate metrics for invoices tab
-        const invoicesMetrics = baseInvoicesMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
-          const displayValue = metric.isCurrency 
-            ? formatCurrency(metric.baseCurrencyValue) 
-            : formatNumber(metric.baseNumberValue);
-
-          return {
-            ...metric,
-            value: displayValue,
-            chartData: chartData
-          };
-        });
-
-        return (
-          <>
-            {renderMetricsGrid(invoicesMetrics)}
-          </>
-        );
-
-      case 'usage':
-        // Calculate metrics for usage tab
-        const usageMetrics = baseUsageMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
-          const displayValue = metric.isCurrency 
-            ? formatCurrency(metric.baseCurrencyValue) 
-            : formatNumber(metric.baseNumberValue);
-
-          return {
-            ...metric,
-            value: displayValue,
-            chartData: chartData
-          };
-        });
-
-        return (
-          <>
-            {renderMetricsGrid(usageMetrics)}
-          </>
-        );
-
-      case 'churn':
-        // Calculate metrics for churn tab
-        const churnMetrics = baseChurnMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
-          let displayValue;
-          
-          if (metric.isCurrency) {
-            displayValue = formatCurrency(metric.baseCurrencyValue);
-          } else if (metric.id.includes('rate')) {
-            displayValue = formatPercentage(metric.baseNumberValue);
-          } else {
-            displayValue = formatNumber(metric.baseNumberValue);
-          }
-
-          return {
-            ...metric,
-            value: displayValue,
-            chartData: chartData
-          };
-        });
-
-        return (
-          <>
-            {renderMetricsGrid(churnMetrics)}
-          </>
-        );
-
-      case 'trials':
-        // Calculate metrics for trials tab
-        const trialsMetrics = baseTrialsMetrics.map(metric => {
-          const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
-          let displayValue;
-          
-          if (metric.id.includes('rate')) {
-            displayValue = formatPercentage(metric.baseNumberValue);
-          } else {
-            displayValue = formatNumber(metric.baseNumberValue);
-          }
-
-          return {
-            ...metric,
-            value: displayValue,
-            chartData: chartData
-          };
-        });
-
-        return (
-          <>
-            {renderMetricsGrid(trialsMetrics)}
-          </>
-        );
-        
-      case 'summary':
-        return (
-          <>
-            <div style={{ textAlign: 'center', padding: '40px 0', marginBottom: '40px' }}>
-              <p>Overview of your key billing metrics will appear here.</p>
-            </div>
-          </>
-        );
-        
-      default:
-        return (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <p>Select a tab to view content.</p>
-          </div>
-        );
+    const mrrValue = 42500;
+    const usageValue = 15800;
+    
+    // Apply toggle effects to base data
+    const applyToggles = (baseData) => {
+      let multiplier = 1.0;
+      
+      // Add approximately 5% for each enabled toggle
+      if (forecastSettings.creditsEnabled) {
+        multiplier *= 1.05; // 5% increase with credits
+      }
+      
+      if (forecastSettings.discountsEnabled) {
+        multiplier *= 1.05; // 5% increase with discounts
+      }
+      
+      // Apply the multiplier to all data points
+      return baseData.map(value => value * multiplier);
+    };
+    
+    // Generate baseline data
+    const baselineMrrData = generateStableBarData(mrrValue);
+    const baselineUsageData = generateStableBarData(usageValue);
+    
+    // Apply toggle effects to MRR and usage data
+    const mrrData = applyToggles(baselineMrrData);
+    const usageData = applyToggles(baselineUsageData);
+    
+    // Create forecasted data (only for last month)
+    const forecastedData = Array(6).fill(0);
+    
+    // For the last month (June), calculate additional forecasted usage
+    if (forecastSettings.creditsEnabled || forecastSettings.discountsEnabled) {
+      // Calculate a total of about 20% of usage for the forecasted component in last month
+      let forecastMultiplier = 0;
+      
+      if (forecastSettings.creditsEnabled) {
+        forecastMultiplier += 0.12; // 12% for credits
+      }
+      
+      if (forecastSettings.discountsEnabled) {
+        forecastMultiplier += 0.08; // 8% for discounts
+      }
+      
+      forecastedData[5] = usageData[5] * forecastMultiplier;
     }
-  };
+    
+    // Calculate total revenue for display in the header (using the last month)
+    const totalRevenue = mrrData[5] + usageData[5] + forecastedData[5];
+    const totalTrendPercentage = 5.2 + (forecastSettings.creditsEnabled ? 1.2 : 0) + (forecastSettings.discountsEnabled ? 0.8 : 0);
+    
+    return {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [
+        {
+          label: 'MRR',
+          data: mrrData,
+          backgroundColor: STRIPE_PURPLE,
+          borderColor: STRIPE_PURPLE,
+          borderWidth: 1,
+          barPercentage: 0.6,
+          categoryPercentage: 0.8,
+          stack: 'stack1'
+        },
+        {
+          label: 'Usage revenue',
+          data: usageData,
+          backgroundColor: USAGE_BLUE, // Use USAGE_BLUE (#469FBF) from constants
+          borderColor: USAGE_BLUE,
+          borderWidth: 1,
+          barPercentage: 0.6,
+          categoryPercentage: 0.8,
+          stack: 'stack1'
+        },
+        {
+          label: 'Forecasted usage revenue',
+          data: forecastedData,
+          backgroundColor: 'white',
+          borderColor: USAGE_BLUE,
+          borderWidth: 1,
+          barPercentage: 0.6,
+          categoryPercentage: 0.8,
+          stack: 'stack1'
+        }
+      ],
+      totalRevenue,
+      totalTrendPercentage
+    };
+  }, [forecastSettings]);
+
+  // Create benchmark metrics data
+  const benchmarkMetrics = useMemo(() => [
+    standardizedMetrics['mrr-growth-rate'],
+    standardizedMetrics['subscriber-churn-rate'],
+    standardizedMetrics['trial-conversion-rate'],
+    standardizedMetrics['arpu']
+  ], []);
+  
+  // Generate percentile values for each benchmark metric
+  const getPercentileForMetric = useCallback((metricId) => {
+    // Realistic percentile values for each metric
+    const percentiles = {
+      'mrr-growth-rate': '56th',
+      'subscriber-churn-rate': '72nd',
+      'trial-conversion-rate': '63rd',
+      'arpu': '48th'
+    };
+    
+    return percentiles[metricId] || '50th';
+  }, []);
+  
+  // Generate benchmark sparkline data
+  const generateBenchmarkSparklineData = useCallback((metric) => {
+    // Number of data points for the sparkline
+    const pointCount = 12;
+    const labels = [];
+    
+    // Create labels
+    for (let i = 0; i < pointCount; i++) {
+      labels.push(`P${i+1}`);
+    }
+    
+    // Generate realistic shapes based on metric type
+    let data = [];
+    const baseValue = metric.isCurrency ? metric.baseCurrencyValue : metric.baseNumberValue;
+    
+    // Different patterns for different metrics
+    if (metric.id === 'mrr-growth-rate') {
+      // Upward trend with some volatility
+      const pattern = [0.9, 1.0, 0.95, 1.05, 1.1, 1.05, 1.15, 1.1, 1.2, 1.25, 1.3, 1.35];
+      data = pattern.map(factor => baseValue * factor);
+    } 
+    else if (metric.id === 'subscriber-churn-rate') {
+      // Downward trend (good for churn rate)
+      const pattern = [1.1, 1.05, 1.0, 0.95, 1.0, 0.9, 0.92, 0.88, 0.85, 0.82, 0.8, 0.78];
+      data = pattern.map(factor => baseValue * factor);
+    }
+    else if (metric.id === 'trial-conversion-rate') {
+      // Gradual improvement
+      const pattern = [0.85, 0.87, 0.9, 0.88, 0.92, 0.94, 0.93, 0.95, 0.98, 0.97, 1.0, 1.02];
+      data = pattern.map(factor => baseValue * factor);
+    }
+    else if (metric.id === 'arpu') {
+      // Slight upward trend
+      const pattern = [0.95, 0.97, 0.98, 0.96, 0.99, 1.0, 1.02, 1.01, 1.03, 1.04, 1.05, 1.07];
+      data = pattern.map(factor => baseValue * factor);
+    }
+    else {
+      // Default pattern for any other metrics
+      const pattern = Array(pointCount).fill(0).map((_, i) => 0.8 + (i * 0.03));
+      data = pattern.map(factor => baseValue * factor);
+    }
+    
+    return {
+      labels,
+      datasets: [
+        {
+          data,
+          borderColor: STRIPE_PURPLE,
+          backgroundColor: 'transparent',
+          tension: 0.2,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          borderWidth: 1.5
+        }
+      ]
+    };
+  }, []);
+  
+  // Generate expanded chart data with quartile lines
+  const generateExpandedChartData = useCallback((metric) => {
+    const baseData = generateMetricChartData(metric, 'last_3_months', 'daily', false);
+    const currentData = baseData.datasets[0].data;
+    
+    // Generate quartile data based on the current data
+    const topQuartile = currentData.map(val => val * 1.3); // 25% higher
+    const median = currentData.map(val => val * 1.1);      // 10% higher
+    const bottomQuartile = currentData.map(val => val * 0.8); // 20% lower
+    
+    // Add quartile datasets
+    baseData.datasets = [
+      {
+        ...baseData.datasets[0],
+        label: 'Your Company',
+        borderColor: STRIPE_PURPLE,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 0,
+        borderWidth: 2
+      },
+      {
+        label: 'Top Quartile',
+        data: topQuartile,
+        borderColor: QUARTILE_COLOR,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 0,
+        borderWidth: 1.5,
+        borderDash: [5, 5]
+      },
+      {
+        label: 'Median',
+        data: median,
+        borderColor: GRAY,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 0,
+        borderWidth: 1.5,
+        borderDash: [5, 5]
+      },
+      {
+        label: 'Bottom Quartile',
+        data: bottomQuartile,
+        borderColor: QUARTILE_COLOR,
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 0,
+        borderWidth: 1.5,
+        borderDash: [5, 5]
+      }
+    ];
+    
+    return baseData;
+  }, [generateMetricChartData]);
+  
+  // Enhanced tooltip handler for expanded benchmark charts
+  const handleBenchmarkTooltip = useCallback((event, metricId, chartData) => {
+    // Skip processing if we don't have valid chart data
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.datasets.length) {
+      return;
+    }
+
+    // Static ref for throttling that won't cause re-renders
+    if (!event.currentTarget) return;
+    
+    if (event.currentTarget._tooltipThrottleTimestamp && 
+        Date.now() - event.currentTarget._tooltipThrottleTimestamp < 100) {
+      return;
+    }
+    
+    // Update timestamp instead of using a timeout
+    event.currentTarget._tooltipThrottleTimestamp = Date.now();
+    
+    const chartRect = event.currentTarget.getBoundingClientRect();
+    const xPosition = event.clientX - chartRect.left;
+    const yPosition = event.clientY;
+    const xRatio = xPosition / chartRect.width;
+    const dataIndex = Math.floor(xRatio * chartData.labels.length);
+    
+    if (dataIndex < 0 || dataIndex >= chartData.labels.length) {
+      return;
+    }
+    
+    const metric = metricData.find(m => m.id === metricId) || 
+                  standardizedMetrics[metricId] || 
+                  { id: metricId, title: 'Metric' };
+    
+    // Get values for all quartiles and company data
+    const companyData = chartData.datasets[0].data[dataIndex];
+    const topQuartileData = chartData.datasets[1].data[dataIndex];
+    const medianData = chartData.datasets[2].data[dataIndex];
+    const bottomQuartileData = chartData.datasets[3].data[dataIndex];
+    
+    // Format values based on metric type
+    let formattedCompany, formattedTop, formattedMedian, formattedBottom;
+    
+    if (metric.isCurrency) {
+      // Use cents for ARPU
+      if (metric.id === 'arpu') {
+        formattedCompany = formatCurrencyWithCents(companyData);
+        formattedTop = formatCurrencyWithCents(topQuartileData);
+        formattedMedian = formatCurrencyWithCents(medianData);
+        formattedBottom = formatCurrencyWithCents(bottomQuartileData);
+      } else {
+        formattedCompany = formatCurrency(companyData);
+        formattedTop = formatCurrency(topQuartileData);
+        formattedMedian = formatCurrency(medianData);
+        formattedBottom = formatCurrency(bottomQuartileData);
+      }
+    } else if (metric.unit === 'percentage') {
+      formattedCompany = formatPercentage(companyData);
+      formattedTop = formatPercentage(topQuartileData);
+      formattedMedian = formatPercentage(medianData);
+      formattedBottom = formatPercentage(bottomQuartileData);
+    } else {
+      formattedCompany = formatNumber(companyData);
+      formattedTop = formatNumber(topQuartileData);
+      formattedMedian = formatNumber(medianData);
+      formattedBottom = formatNumber(bottomQuartileData);
+    }
+    
+    // Create updated tooltip with custom format
+    let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
+    
+    // Add color square and category label for each quartile
+    tooltipContent += `
+      <div style="display: flex; align-items: center; margin-top: 4px;">
+        <div style="width: 8px; height: 8px; background-color: ${STRIPE_PURPLE}; border-radius: 2px; margin-right: 6px;"></div>
+        <div style="color: var(--text-color);">You (${getPercentileForMetric(metricId)})</div>
+        <div style="margin-left: auto; color: var(--text-color);">${formattedCompany}</div>
+      </div>
+      <div style="display: flex; align-items: center; margin-top: 4px;">
+        <div style="width: 8px; height: 8px; background-color: ${QUARTILE_COLOR}; border-radius: 2px; margin-right: 6px;"></div>
+        <div style="color: var(--text-color);">Top 25%</div>
+        <div style="margin-left: auto; color: var(--text-color);">${formattedTop}</div>
+      </div>
+      <div style="display: flex; align-items: center; margin-top: 4px;">
+        <div style="width: 8px; height: 8px; background-color: ${GRAY}; border-radius: 2px; margin-right: 6px;"></div>
+        <div style="color: var(--text-color);">Median 50%</div>
+        <div style="margin-left: auto; color: var(--text-color);">${formattedMedian}</div>
+      </div>
+      <div style="display: flex; align-items: center; margin-top: 4px;">
+        <div style="width: 8px; height: 8px; background-color: ${QUARTILE_COLOR}; border-radius: 2px; margin-right: 6px;"></div>
+        <div style="color: var(--text-color);">Bottom 25%</div>
+        <div style="margin-left: auto; color: var(--text-color);">${formattedBottom}</div>
+      </div>
+    `;
+    
+    showTooltip(event.clientX, yPosition, tooltipContent, metricId);
+  }, [formatCurrency, formatCurrencyWithCents, formatPercentage, formatNumber, metricData, showTooltip, getPercentileForMetric]);
+  
+  // Prepare benchmark metrics with sparkline and expanded chart data
+  const benchmarkMetricsWithData = useMemo(() => {
+    return benchmarkMetrics.map(metric => {
+      const sparklineData = generateBenchmarkSparklineData(metric);
+      const expandedChartData = generateExpandedChartData(metric);
+      
+      let displayValue;
+      if (metric.isCurrency) {
+        // Use cents for ARPU
+        if (metric.id === 'arpu') {
+          displayValue = formatCurrencyWithCents(metric.baseCurrencyValue);
+        } else {
+          displayValue = formatCurrency(metric.baseCurrencyValue);
+        }
+      } else if (metric.unit === 'percentage') {
+        displayValue = formatPercentage(metric.baseNumberValue);
+      } else {
+        displayValue = formatNumber(metric.baseNumberValue);
+      }
+      
+      // Use percentile instead of trend
+      const percentile = getPercentileForMetric(metric.id);
+      
+      return {
+        ...metric,
+        displayValue,
+        percentile: `${percentile} pct`,
+        sparklineData,
+        expandedChartData
+      };
+    });
+  }, [benchmarkMetrics, generateBenchmarkSparklineData, generateExpandedChartData, formatCurrency, formatCurrencyWithCents, formatPercentage, formatNumber, getPercentileForMetric]);
+  
+  // Render benchmark sparklines - update to use new styled components
+  const renderBenchmarkSparklines = useCallback(() => {
+    return benchmarkMetricsWithData.map((metric, index) => {
+      const isActive = activeBenchmark === metric.id;
+      const isLast = index === benchmarkMetricsWithData.length - 1;
+      
+      return (
+        <BenchmarkSparklineCard 
+          key={metric.id} 
+          active={isActive}
+          isLast={isLast}
+          onClick={() => setActiveBenchmark(isActive ? null : metric.id)}
+        >
+          <BenchmarkTitle>{metric.title}</BenchmarkTitle>
+          <TrendingContent>
+            <div>
+              <BenchmarkValue>{metric.displayValue}</BenchmarkValue>
+              <BenchmarkPercentile trend="up">{metric.percentile}</BenchmarkPercentile>
+            </div>
+            <BenchmarkSparklineContainer>
+              <LineChart 
+                data={metric.sparklineData} 
+                height={38} 
+                showLegend={false}
+                showAxes={false}
+                unit={metric.unit}
+                sparkline={true}
+              />
+            </BenchmarkSparklineContainer>
+          </TrendingContent>
+        </BenchmarkSparklineCard>
+      );
+    });
+  }, [benchmarkMetricsWithData, activeBenchmark]);
+  
+  // Render expanded benchmark chart - update to increase height by 50%
+  const renderExpandedBenchmarkChart = useCallback(() => {
+    if (!activeBenchmark) return null;
+    
+    const selectedMetric = benchmarkMetricsWithData.find(m => m.id === activeBenchmark);
+    if (!selectedMetric) return null;
+    
+    return (
+      <ExpandedMetricContainer>
+        <MetricChartContainer
+          onMouseMove={(e) => handleBenchmarkTooltip(e, selectedMetric.id, selectedMetric.expandedChartData)}
+          onMouseLeave={hideTooltip}
+        >
+          <LineChart 
+            data={selectedMetric.expandedChartData} 
+            height={270} // Increased by 50% from 180px
+            showLegend={false}
+            unit={selectedMetric.unit}
+          />
+        </MetricChartContainer>
+      </ExpandedMetricContainer>
+    );
+  }, [activeBenchmark, benchmarkMetricsWithData, handleBenchmarkTooltip, hideTooltip]);
 
   return (
-    <PageContainer
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
+    <PageContainer>
       <HeaderContainer>
         <Title>Billing Overview</Title>
         <EditLayoutButton>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="5" height="5" fill="#474E5A" />
+            <rect x="9" y="2" width="5" height="5" fill="#474E5A" />
+            <rect x="2" y="9" width="5" height="5" fill="#474E5A" />
+            <rect x="9" y="9" width="5" height="5" fill="#474E5A" />
           </svg>
           Edit layout
         </EditLayoutButton>
       </HeaderContainer>
-      
+
       <TabsContainer>
         <Tab 
           active={activeTab === 'summary'} 
@@ -1378,16 +2184,22 @@ const BillingOverview = () => {
           Revenue
         </Tab>
         <Tab 
+          active={activeTab === 'growth'} 
+          onClick={() => handleTabChange('growth')}
+        >
+          Growth
+        </Tab>
+        <Tab 
           active={activeTab === 'subscribers'} 
           onClick={() => handleTabChange('subscribers')}
         >
           Subscribers
         </Tab>
         <Tab 
-          active={activeTab === 'invoices'} 
-          onClick={() => handleTabChange('invoices')}
+          active={activeTab === 'invoicing'} 
+          onClick={() => handleTabChange('invoicing')}
         >
-          Invoices
+          Invoicing
         </Tab>
         <Tab 
           active={activeTab === 'usage'} 
@@ -1395,32 +2207,194 @@ const BillingOverview = () => {
         >
           Usage
         </Tab>
-        <Tab 
-          active={activeTab === 'churn'} 
-          onClick={() => handleTabChange('churn')}
-        >
-          Churn
-        </Tab>
-        <Tab 
-          active={activeTab === 'trials'} 
-          onClick={() => handleTabChange('trials')}
-        >
-          Trials
-        </Tab>
       </TabsContainer>
+
+      {/* Only show controls when not on summary tab */}
+      {activeTab !== 'summary' && (
+        <ControlsContainer>
+          <ControlsRow>
+            <ControlGroup>
+              <ControlLabel>Period</ControlLabel>
+              <ButtonGroup>
+                <ControlButton 
+                  active={activePeriod === 'last_3_months'} 
+                  onClick={() => handlePeriodChange('last_3_months')}
+                >
+                  Last 3 months
+                </ControlButton>
+                <ControlButton 
+                  active={activePeriod === 'last_6_months'} 
+                  onClick={() => handlePeriodChange('last_6_months')}
+                >
+                  Last 6 months
+                </ControlButton>
+                <ControlButton 
+                  active={activePeriod === 'last_12_months'} 
+                  onClick={() => handlePeriodChange('last_12_months')}
+                >
+                  Last 12 months
+                </ControlButton>
+                <ControlButton 
+                  active={activePeriod === 'year_to_date'} 
+                  onClick={() => handlePeriodChange('year_to_date')}
+                >
+                  Year to date
+                </ControlButton>
+              </ButtonGroup>
+            </ControlGroup>
+            
+            <ControlGroup>
+              <ControlLabel>Interval</ControlLabel>
+              <ButtonGroup>
+                <ControlButton 
+                  active={activeInterval === 'daily'} 
+                  onClick={() => handleIntervalChange('daily')}
+                >
+                  Daily
+                </ControlButton>
+                <ControlButton 
+                  active={activeInterval === 'weekly'} 
+                  onClick={() => handleIntervalChange('weekly')}
+                >
+                  Weekly
+                </ControlButton>
+                <ControlButton 
+                  active={activeInterval === 'monthly'} 
+                  onClick={() => handleIntervalChange('monthly')}
+                >
+                  Monthly
+                </ControlButton>
+              </ButtonGroup>
+            </ControlGroup>
+            
+            <ControlGroup>
+              <ControlLabel>Compare to</ControlLabel>
+              <ComparisonSelect 
+                value={activeComparison} 
+                onChange={(e) => handleComparisonChange(e.target.value)}
+              >
+                <option value="previous_period">Previous period</option>
+                <option value="previous_year">Previous year</option>
+                <option value="no-comparison">No comparison</option>
+              </ComparisonSelect>
+            </ControlGroup>
+          </ControlsRow>
+        </ControlsContainer>
+      )}
       
-      <ControlsContainer>
-        <ReportingControls 
-          initialPeriod={activePeriod}
-          initialInterval={activeInterval}
-          initialComparison={activeComparison}
-          onPeriodChange={handlePeriodChange}
-          onIntervalChange={handleIntervalChange}
-          onComparisonChange={handleComparisonChange}
-        />
-      </ControlsContainer>
+      {activeTab === 'summary' && (
+        <>
+          <SectionTitle>Trending metrics</SectionTitle>
+          {trendingMetrics.length > 0 ? (
+            <TrendingGrid>
+              {renderTrendingMetrics()}
+            </TrendingGrid>
+          ) : (
+            <EmptySection>
+              <div style={{ padding: "20px", textAlign: "center" }}>
+                Loading trending metrics...
+              </div>
+            </EmptySection>
+          )}
+          
+          <SectionTitle>Forecasting</SectionTitle>
+          <TwoColumnLayout>
+            <div>
+              <StaticMetricCard>
+                <MetricHeader>
+                  <MetricTitle>Total revenue</MetricTitle>
+                  <MetricValue>
+                    {formatCurrencyWithCents(stableRevenueBarData.totalRevenue)}
+                    <MetricTrend trend="up">+{stableRevenueBarData.totalTrendPercentage.toFixed(2)}%</MetricTrend>
+                  </MetricValue>
+                </MetricHeader>
+                <ChartContainer
+                  onMouseMove={(e) => throttledShowTooltip(e, 'total-revenue', stableRevenueBarData)}
+                  onMouseLeave={hideTooltip}
+                >
+                  <BarChart 
+                    data={stableRevenueBarData} 
+                    height={180}
+                    options={{
+                      maintainAspectRatio: false,
+                      scales: {
+                        x: {
+                          grid: {
+                            display: false
+                          }
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            borderDash: [3, 3]
+                          },
+                          ticks: {
+                            callback: function(value) {
+                              return '$' + (value >= 1000 ? (value / 1000) + 'k' : value);
+                            }
+                          }
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          display: false
+                        },
+                        tooltip: {
+                          enabled: false
+                        }
+                      }
+                    }}
+                  />
+                </ChartContainer>
+                {/* Add the legend */}
+                <Legend>
+                  <LegendItem>
+                    <LegendColor style={{ backgroundColor: STRIPE_PURPLE }} />
+                    <LegendLabel>MRR</LegendLabel>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendColor style={{ backgroundColor: USAGE_BLUE }} />
+                    <LegendLabel>Usage revenue</LegendLabel>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendColor style={{ backgroundColor: 'white', border: `1px solid ${USAGE_BLUE}` }} />
+                    <LegendLabel>Forecasted usage revenue</LegendLabel>
+                  </LegendItem>
+                </Legend>
+              </StaticMetricCard>
+            </div>
+            <div>
+              <ConnectedForecasting 
+                forecastSettings={forecastSettings}
+                setForecastSettings={setForecastSettings}
+              />
+            </div>
+          </TwoColumnLayout>
+          
+          <SectionTitle>Benchmarks</SectionTitle>
+          <BenchmarkContainer>
+            <BenchmarkSparklineGrid>
+              {renderBenchmarkSparklines()}
+            </BenchmarkSparklineGrid>
+            
+            {activeBenchmark && renderExpandedBenchmarkChart()}
+          </BenchmarkContainer>
+        </>
+      )}
       
-      {renderTabContent()}
+      {activeTab !== 'summary' && (
+        metricData.length > 0 ? (
+          <MetricsGrid>
+            {renderMetricCards()}
+          </MetricsGrid>
+        ) : (
+          <EmptySection>
+            <div style={{ padding: "20px", textAlign: "center" }}>
+              Loading {activeTab} metrics...
+            </div>
+          </EmptySection>
+        )
+      )}
     </PageContainer>
   );
 };
