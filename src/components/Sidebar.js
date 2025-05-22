@@ -186,7 +186,7 @@ const Sidebar = () => {
   return (
     <SidebarContainer>
       <Logo>
-        <LogoImg src="/cactus-icon.svg" alt="Stripe Dashboard" />
+        <LogoImg src={`${process.env.PUBLIC_URL}/cactus-icon.svg`} alt="Stripe Dashboard" />
       </Logo>
       
       <NavigationSection>
