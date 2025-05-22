@@ -2081,11 +2081,25 @@ const BillingOverview = () => {
     
     // Create forecasted data (only for last month)
     const forecastedData = Array(6).fill(0);
+    const forecastedMRR = Array(6).fill(0);
     
-    // For the last month (June), calculate additional forecasted usage
+    // For May (current month), calculate forecasted usage revenue
     if (forecastSettings.creditsEnabled || forecastSettings.discountsEnabled) {
-      // Calculate a total of about 20% of usage for the forecasted component in last month
+      // Calculate a total of about 15% of usage for the forecasted component in current month (May)
       let forecastMultiplier = 0;
+      
+      if (forecastSettings.creditsEnabled) {
+        forecastMultiplier += 0.09; // 9% for credits
+      }
+      
+      if (forecastSettings.discountsEnabled) {
+        forecastMultiplier += 0.06; // 6% for discounts
+      }
+      
+      forecastedData[4] = usageData[4] * forecastMultiplier;
+      
+      // Calculate a total of about 20% of usage for the forecasted component in last month (June)
+      forecastMultiplier = 0;
       
       if (forecastSettings.creditsEnabled) {
         forecastMultiplier += 0.12; // 12% for credits
@@ -2096,10 +2110,13 @@ const BillingOverview = () => {
       }
       
       forecastedData[5] = usageData[5] * forecastMultiplier;
+      
+      // For June, also forecast MRR (about 5% of June MRR)
+      forecastedMRR[5] = mrrData[5] * 0.05;
     }
     
     // Calculate total revenue for display in the header (using the last month)
-    const totalRevenue = mrrData[5] + usageData[5] + forecastedData[5];
+    const totalRevenue = mrrData[5] + usageData[5] + forecastedData[5] + forecastedMRR[5];
     const totalTrendPercentage = 5.2 + (forecastSettings.creditsEnabled ? 1.2 : 0) + (forecastSettings.discountsEnabled ? 0.8 : 0);
     
     return {
@@ -2118,7 +2135,7 @@ const BillingOverview = () => {
         {
           label: 'Usage revenue',
           data: usageData,
-          backgroundColor: USAGE_BLUE, // Use USAGE_BLUE (#469FBF) from constants
+          backgroundColor: USAGE_BLUE,
           borderColor: USAGE_BLUE,
           borderWidth: 1,
           barPercentage: 0.6,
@@ -2130,6 +2147,16 @@ const BillingOverview = () => {
           data: forecastedData,
           backgroundColor: 'white',
           borderColor: USAGE_BLUE,
+          borderWidth: 1,
+          barPercentage: 0.6,
+          categoryPercentage: 0.8,
+          stack: 'stack1'
+        },
+        {
+          label: 'Forecasted MRR',
+          data: forecastedMRR,
+          backgroundColor: 'white',
+          borderColor: STRIPE_PURPLE,
           borderWidth: 1,
           barPercentage: 0.6,
           categoryPercentage: 0.8,
@@ -3053,6 +3080,10 @@ const BillingOverview = () => {
                   <LegendItem>
                     <LegendColor style={{ backgroundColor: 'white', border: `1px solid ${USAGE_BLUE}` }} />
                     <LegendLabel>Forecasted usage revenue</LegendLabel>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendColor style={{ backgroundColor: 'white', border: `1px solid ${STRIPE_PURPLE}` }} />
+                    <LegendLabel>Forecasted MRR</LegendLabel>
                   </LegendItem>
         </Legend>
               </StaticMetricCard>
