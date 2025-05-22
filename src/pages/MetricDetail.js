@@ -6,6 +6,8 @@ import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
 import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData';
 import { useTooltip } from '../components/GlobalTooltip';
+import MeterChart from '../components/MeterChart';
+import StackedBarChart from '../components/StackedBarChart';
 
 const Container = styled(motion.div)`
   width: 100%;
@@ -429,7 +431,7 @@ const ChartSectionContainer = styled.div`
 
 const ChartWrapper = styled.div`
   flex: 3;
-  height: 280px;
+  height: 200px; /* Reduced from 280px to 200px */
 `;
 
 const AnomalyBreakdownContainer = styled.div`
@@ -532,6 +534,108 @@ const XAxisFilterLabel = styled.div`
   }
 `;
 
+// First, let's add a new styled component for the filter chip section
+const FilterChipContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+`;
+
+const FilterChip = styled.div`
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  background-color: white;
+  border-radius: 14px;
+  border: 1px solid #e3e8ee;
+  cursor: pointer;
+  position: relative;
+  font-size: 12px;
+  
+  &:hover {
+    border-color: #d7dfe8;
+  }
+  
+  &:focus-within {
+    border-color: #6772e5;
+  }
+`;
+
+const FilterLabel = styled.span`
+  color: #424770;
+  font-weight: 600;
+  margin-right: 4px;
+`;
+
+const FilterValue = styled.span`
+  color: #6772e5;
+  font-weight: 600;
+`;
+
+const FilterIcon = styled.span`
+  display: flex;
+  align-items: center;
+  margin-left: 6px;
+`;
+
+const FilterPopover = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 240px;
+  padding: 12px;
+  display: ${props => props.isOpen ? 'block' : 'none'};
+`;
+
+const FilterHeader = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+  color: #424770;
+  margin-bottom: 8px;
+`;
+
+const CheckboxContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+`;
+
+const CheckboxItem = styled.label`
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  cursor: pointer;
+  
+  input {
+    margin-right: 8px;
+  }
+`;
+
+const ApplyButton = styled.button`
+  width: 100%;
+  background-color: #635bff;
+  color: white;
+  border: 1px solid #635bff;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #564bd9;
+  }
+`;
+
 const MetricDetail = () => {
   const { metricId } = useParams();
   const location = useLocation();
@@ -631,6 +735,23 @@ const MetricDetail = () => {
       const standardizedMetric = standardizedMetrics[baseMetric.id];
       if (!standardizedMetric) {
         throw new Error(`No standardized metric found for ${baseMetric.id}`);
+      }
+      
+      // For meter charts, calculate the total value from the meter data
+      if (standardizedMetric.chartType === 'meter' && standardizedMetric.meterData) {
+        const meterTotal = standardizedMetric.meterData.reduce((total, item) => total + item.value, 0);
+        
+        return {
+          chartData: {
+            labels: [],
+            datasets: []
+          },
+          metricValuesData: {
+            value: meterTotal,
+            trendValue: standardizedMetric.trendValue,
+            trend: standardizedMetric.trend
+          }
+        };
       }
       
       // Get data for chart visualization
@@ -790,6 +911,23 @@ const MetricDetail = () => {
   
   // Format the displayed metric value with null checking
   const getFormattedValue = useCallback(() => {
+    // Check if this is a meter chart and has meter data
+    const isMeterChart = baseMetric.chartType === 'meter';
+    const meterData = baseMetric.meterData || (location.state?.metric?.meterData);
+    
+    if (isMeterChart && meterData) {
+      // Calculate total from meter data
+      const total = meterData.reduce((sum, item) => sum + item.value, 0);
+      // Determine if it's a currency value based on the first item's type
+      const isCurrency = meterData[0]?.type === 'currency';
+      
+      if (isCurrency) {
+        return formatCurrency(total);
+      } else {
+        return formatNumber(total);
+      }
+    }
+    
     // Use the latest value if available, otherwise use the base metric value
     const valueToUse = latestValues.value !== null ? latestValues.value : 
                     (baseMetric.isCurrency ? baseMetric.baseCurrencyValue : baseMetric.baseNumberValue);
@@ -805,7 +943,7 @@ const MetricDetail = () => {
     } else {
       return formatNumber(valueToUse);
     }
-  }, [baseMetric, latestValues.value, formatCurrency, formatNumber]);
+  }, [baseMetric, latestValues.value, location.state, formatCurrency, formatNumber]);
   
   // Format value based on metric type
   const formatValue = useCallback((value) => {
@@ -1295,6 +1433,151 @@ const MetricDetail = () => {
     }
   }), []);
   
+  // Check if the metric is a meter chart type
+  const isMeterChart = location.state?.metric?.chartType === 'meter';
+  const meterData = location.state?.metric?.meterData;
+  
+  // Add state for status filter dropdown
+  const [statusFilterOpen, setStatusFilterOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const statusFilterRef = useRef(null);
+  
+  // Define all available statuses for payments
+  const allPaymentStatuses = [
+    'Blocked', 'Canceled', 'Dispute lost', 'Dispute needs response', 
+    'Dispute under review', 'Dispute won', 'Early fraud warning',
+    'Expired', 'Failed', 'Incomplete', 'Inquiry closed', 
+    'Inquiry needs response', 'Inquiry under review', 'Partially captured',
+    'Partially paid', 'Partially refunded', 'Pending', 'Refund pending',
+    'Refunded', 'Succeeded', 'Uncaptured', 'Waiting on funding'
+  ];
+  
+  // Track pending status changes separately from applied ones
+  const [pendingStatuses, setPendingStatuses] = useState([]);
+  
+  // Initialize selected statuses based on meter data
+  useEffect(() => {
+    if (isMeterChart && meterData) {
+      // Extract statuses from meter data labels
+      const meterStatuses = meterData.map(item => item.label);
+      setSelectedStatuses(meterStatuses);
+      setPendingStatuses(meterStatuses);
+    }
+  }, [isMeterChart, meterData]);
+  
+  // Apply pending status changes
+  const applyStatusChanges = () => {
+    setSelectedStatuses(pendingStatuses);
+    setStatusFilterOpen(false);
+  };
+  
+  // Handle checkbox changes
+  const handleStatusChange = (status) => {
+    if (pendingStatuses.includes(status)) {
+      setPendingStatuses(pendingStatuses.filter(s => s !== status));
+    } else {
+      setPendingStatuses([...pendingStatuses, status]);
+    }
+  };
+  
+  // Generate a formatted display string for selected statuses
+  const getStatusDisplayString = () => {
+    if (selectedStatuses.length === 0) return '';
+    if (selectedStatuses.length === 1) return selectedStatuses[0];
+    if (selectedStatuses.length === 2) return `${selectedStatuses[0]} and ${selectedStatuses[1]}`;
+    
+    return `${selectedStatuses[0]}, ${selectedStatuses[1]}, and ${selectedStatuses.length - 2} more`;
+  };
+  
+  // Close filter dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (statusFilterRef.current && !statusFilterRef.current.contains(event.target)) {
+        setStatusFilterOpen(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Add function to generate stacked bar chart data
+  const generateStackedBarData = useCallback(() => {
+    if (!meterData || !meterData.length) return null;
+
+    // Create sample data across time periods to match chart data structure
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].slice(0, 6);
+    
+    // Generate datasets with one dataset per category
+    const datasets = meterData.map((category, index) => {
+      // Generate some realistic looking data that adds up to the category value
+      const total = category.value;
+      const distributionFactor = 0.2; // Controls variance in distribution
+      
+      const generateValue = (targetSum) => {
+        const values = [];
+        let remaining = targetSum;
+        
+        for (let i = 0; i < labels.length - 1; i++) {
+          // Calculate a portion based on position in array (ascending trend)
+          const portion = (remaining / (labels.length - i)) * (1 + (Math.random() * distributionFactor - distributionFactor/2));
+          const value = Math.max(0, Math.min(remaining, portion));
+          values.push(value);
+          remaining -= value;
+        }
+        
+        // Add the remainder to the last element
+        values.push(Math.max(0, remaining));
+        
+        return values;
+      };
+      
+      return {
+        label: category.label,
+        backgroundColor: category.color,
+        borderColor: category.color,
+        borderWidth: 1,
+        data: generateValue(total),
+        currency: category.type === 'currency',
+      };
+    });
+    
+    return {
+      labels,
+      datasets
+    };
+  }, [meterData]);
+
+  // Create data for the stacked bar chart
+  const stackedBarData = useMemo(() => {
+    return generateStackedBarData();
+  }, [generateStackedBarData]);
+
+  // Create the summary table data for meter chart type
+  const generateMeterSummaryData = useCallback(() => {
+    if (!meterData || !meterData.length || !stackedBarData || !stackedBarData.labels) return null;
+    
+    // Calculate totals for each column
+    const totals = Array(stackedBarData.labels.length).fill(0);
+    stackedBarData.datasets.forEach(dataset => {
+      dataset.data.forEach((value, index) => {
+        totals[index] += value;
+      });
+    });
+    
+    return {
+      categories: meterData,
+      totals,
+      labels: stackedBarData.labels
+    };
+  }, [meterData, stackedBarData]);
+
+  const meterSummaryData = useMemo(() => {
+    return generateMeterSummaryData();
+  }, [generateMeterSummaryData]);
+
   return (
     <Container
       initial={{ opacity: 0 }}
@@ -1392,25 +1675,71 @@ const MetricDetail = () => {
               // Reset to first page when filter is removed
               setCurrentPage(1);
             }}
+            // Add custom content to be placed in the controls
+            customContent={isMeterChart && meterData && (
+              <FilterChip 
+                ref={statusFilterRef}
+                onClick={() => setStatusFilterOpen(!statusFilterOpen)}
+              >
+                <FilterLabel>Group |</FilterLabel>
+                <FilterValue>{getStatusDisplayString()}</FilterValue>
+                <FilterIcon>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </FilterIcon>
+                
+                <FilterPopover isOpen={statusFilterOpen}>
+                  <FilterHeader>Filter by Status</FilterHeader>
+                  <CheckboxContainer>
+                    {allPaymentStatuses.map(status => (
+                      <CheckboxItem key={status}>
+                        <input 
+                          type="checkbox" 
+                          checked={pendingStatuses.includes(status)}
+                          onChange={() => handleStatusChange(status)}
+                        />
+                        {status}
+                      </CheckboxItem>
+                    ))}
+                  </CheckboxContainer>
+                  <ApplyButton onClick={applyStatusChanges}>Apply</ApplyButton>
+                </FilterPopover>
+              </FilterChip>
+            )}
           />
         </ControlsContainer>
         
         <ChartSectionContainer>
-          <ChartWrapper 
-            id="chart-container"
-            onMouseMove={handleChartHover}
-            onMouseLeave={handleTableCellLeave}
-            onClick={handleChartClick} 
-          >
-            <LineChart 
-              ref={chartInstanceRef}
-              data={chartData} 
-              height={280} 
-              showLegend={false} 
-              useMarkers={true}
-              customPlugins={[verticalLinePlugin]}
-            />
-          </ChartWrapper>
+          {isMeterChart ? (
+            <div style={{ width: '100%' }}>
+              <h3>Breakdown by Category</h3>
+              <div style={{ height: '200px', marginTop: '20px' }}>
+                <StackedBarChart 
+                  data={stackedBarData} 
+                  height={200} 
+                />
+              </div>
+            </div>
+          ) : (
+            <ChartWrapper 
+              id="chart-container"
+              onMouseMove={handleChartHover}
+              onMouseLeave={handleTableCellLeave}
+              onClick={handleChartClick} 
+            >
+              <LineChart 
+                ref={chartInstanceRef}
+                data={chartData} 
+                height={200} /* Adjust this value as well */
+                type={location.state?.metric?.chartType || 'line'}
+                unit={location.state?.metric?.unit || 'currency'}
+                showLegend={false} 
+                useMarkers={true}
+                customPlugins={[verticalLinePlugin]}
+              />
+            </ChartWrapper>
+          )}
           
           {/* Anomaly Breakdown Section */}
           <AnomalyBreakdownContainer hasAnomaly={hasAnomaly()}>
@@ -1457,7 +1786,7 @@ const MetricDetail = () => {
           </AnomalyBreakdownContainer>
         </ChartSectionContainer>
         
-        {/* Summary Table - update to handle clicks and indicate the selected interval */}
+        {/* Summary Table - update for meter chart type */}
         <SummaryTableSection>
           <TransactionsHeader>
             <SectionTitle>Summary</SectionTitle>
@@ -1472,47 +1801,120 @@ const MetricDetail = () => {
             </ExportButton>
           </TransactionsHeader>
           
-          {chartData && chartData.labels && chartData.datasets && chartData.datasets[0] && (
+          {isMeterChart && meterSummaryData ? (
             <SummaryTableContainer>
               <SummaryTable>
                 <thead>
                   <tr>
-                    <SummaryTableHeaderCell className="first-column">Period</SummaryTableHeaderCell>
-                    {chartData.labels.map((label, index) => (
-                      <SummaryTableHeaderCell 
-                        key={index}
-                        onMouseEnter={() => handleTableCellHover(index)}
-                        onMouseLeave={handleTableCellLeave}
-                      >
+                    <SummaryTableHeaderCell className="first-column">Category</SummaryTableHeaderCell>
+                    {meterSummaryData.labels.map((label, index) => (
+                      <SummaryTableHeaderCell key={index}>
                         {label}
                       </SummaryTableHeaderCell>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <SummaryTableCell className="header first-column">{baseMetric.title}</SummaryTableCell>
-                    {chartData.datasets[0].data.map((value, index) => (
+                  {/* Render a row for each category */}
+                  {meterSummaryData.categories.map((category, categoryIndex) => (
+                    <tr key={categoryIndex}>
+                      <SummaryTableCell className="header first-column">
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div 
+                            style={{ 
+                              width: '12px', 
+                              height: '12px', 
+                              backgroundColor: category.color, 
+                              borderRadius: '3px',
+                              marginRight: '8px'
+                            }} 
+                          />
+                          {category.label}
+                        </div>
+                      </SummaryTableCell>
+                      {stackedBarData.datasets[categoryIndex].data.map((value, valueIndex) => (
+                        <SummaryTableCell 
+                          key={valueIndex} 
+                          className="value-cell"
+                          isValue={true}
+                          value={value}
+                        >
+                          {category.type === 'currency' ? 
+                            formatCurrency(value) : 
+                            formatNumber(value)
+                          }
+                        </SummaryTableCell>
+                      ))}
+                    </tr>
+                  ))}
+                  
+                  {/* Total row */}
+                  <tr style={{ fontWeight: 'bold' }}>
+                    <SummaryTableCell className="header first-column">Total</SummaryTableCell>
+                    {meterSummaryData.totals.map((total, index) => (
                       <SummaryTableCell 
                         key={index} 
                         className="value-cell"
                         isValue={true}
-                        value={value}
-                        onMouseEnter={() => handleTableCellHover(index)}
-                        onMouseLeave={handleTableCellLeave}
-                        style={{ 
-                          cursor: 'default'
-                        }}
+                        value={total}
+                        style={{ fontWeight: 'bold' }}
                       >
-                        {formatValue(value)}
+                        {meterData[0].type === 'currency' ? 
+                          formatCurrency(total) : 
+                          formatNumber(total)
+                        }
                       </SummaryTableCell>
                     ))}
                   </tr>
                   
-                  {reportingControls.comparison !== 'no-comparison' && chartData.datasets.length > 1 && (
+                  {/* Previous period row - optional based on comparison setting */}
+                  {reportingControls.comparison !== 'no-comparison' && (
                     <tr>
                       <SummaryTableCell className="header first-column">Previous period</SummaryTableCell>
-                      {chartData.datasets[1].data.map((value, index) => (
+                      {meterSummaryData.totals.map((total, index) => {
+                        // Generate previous period data (80% of current for demo)
+                        const prevValue = total * 0.8;
+                        return (
+                          <SummaryTableCell 
+                            key={index} 
+                            className="value-cell"
+                            isValue={true}
+                            value={prevValue}
+                          >
+                            {meterData[0].type === 'currency' ? 
+                              formatCurrency(prevValue) : 
+                              formatNumber(prevValue)
+                            }
+                          </SummaryTableCell>
+                        );
+                      })}
+                    </tr>
+                  )}
+                </tbody>
+              </SummaryTable>
+            </SummaryTableContainer>
+          ) : (
+            chartData && chartData.labels && chartData.datasets && chartData.datasets[0] && (
+              <SummaryTableContainer>
+                <SummaryTable>
+                  <thead>
+                    <tr>
+                      <SummaryTableHeaderCell className="first-column">Period</SummaryTableHeaderCell>
+                      {chartData.labels.map((label, index) => (
+                        <SummaryTableHeaderCell 
+                          key={index}
+                          onMouseEnter={() => handleTableCellHover(index)}
+                          onMouseLeave={handleTableCellLeave}
+                        >
+                          {label}
+                        </SummaryTableHeaderCell>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <SummaryTableCell className="header first-column">{baseMetric.title}</SummaryTableCell>
+                      {chartData.datasets[0].data.map((value, index) => (
                         <SummaryTableCell 
                           key={index} 
                           className="value-cell"
@@ -1528,10 +1930,31 @@ const MetricDetail = () => {
                         </SummaryTableCell>
                       ))}
                     </tr>
-                  )}
-                </tbody>
-              </SummaryTable>
-            </SummaryTableContainer>
+                    
+                    {reportingControls.comparison !== 'no-comparison' && chartData.datasets.length > 1 && (
+                      <tr>
+                        <SummaryTableCell className="header first-column">Previous period</SummaryTableCell>
+                        {chartData.datasets[1].data.map((value, index) => (
+                          <SummaryTableCell 
+                            key={index} 
+                            className="value-cell"
+                            isValue={true}
+                            value={value}
+                            onMouseEnter={() => handleTableCellHover(index)}
+                            onMouseLeave={handleTableCellLeave}
+                            style={{ 
+                              cursor: 'default'
+                            }}
+                          >
+                            {formatValue(value)}
+                          </SummaryTableCell>
+                        ))}
+                      </tr>
+                    )}
+                  </tbody>
+                </SummaryTable>
+              </SummaryTableContainer>
+            )
           )}
         </SummaryTableSection>
         

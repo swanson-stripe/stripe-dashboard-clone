@@ -166,6 +166,18 @@ const LineChart = memo(forwardRef(({
         }
       }
     };
+
+    // This is the key fix - custom function for properly displaying x-axis labels
+    const filterLabels = (value, index, values) => {
+      // For metric cards (simplified or small height), only show first and last labels
+      if (simplified || height <= 150) {
+        // Only return the actual label for first and last indices, empty string for others
+        return index === 0 || index === values.length - 1 ? chartData.labels[index] : '';
+      }
+      
+      // For regular charts, use the actual label from chartData
+      return chartData.labels[index];
+    };
     
     // Basic configuration options with enhanced animations
     const options = {
@@ -203,42 +215,46 @@ const LineChart = memo(forwardRef(({
       },
       scales: {
         x: {
-          display: showAxes && !simplified,
+          display: showAxes, // Show x-axis regardless of simplified flag
           grid: {
-            display: showAxes && !simplified,
+            display: showAxes, // Show gridlines regardless of simplified flag
             color: '#eee',
           },
           border: {
-            display: showAxes && !simplified
+            display: showAxes // Show border regardless of simplified flag
           },
           ticks: {
-            display: showAxes && !simplified,
+            display: showAxes, // Show ticks regardless of simplified flag
             font: {
               size: 11,
             },
             padding: 8,
-            maxRotation: 45, // Allow rotation of labels to fit more
+            maxRotation: 0, // Always horizontal labels
             minRotation: 0,
-            autoSkip: reducedLabels, // Only skip labels if reducedLabels is true
-            autoSkipPadding: 5 // Add padding between skipped labels
+            autoSkip: simplified ? false : true, // Disable auto-skipping for simplified charts
+            autoSkipPadding: 10, // Add padding between labels to prevent overlap
+            callback: filterLabels // Use our custom function to return actual labels
           }
         },
         y: {
-          display: showAxes && !simplified,
+          display: showAxes, // Show y-axis regardless of simplified flag
           border: {
-            display: showAxes && !simplified,
+            display: showAxes, // Show border regardless of simplified flag
           },
           grid: {
-            display: showAxes && !simplified,
+            display: showAxes, // Show gridlines regardless of simplified flag
             color: '#eee',
           },
           beginAtZero: true,
           ticks: {
-            display: showAxes && !simplified,
+            display: showAxes, // Show ticks regardless of simplified flag
             font: {
               size: 11,
             },
             padding: 10,
+            // Limit to exactly 3 ticks (including zero if beginAtZero is true)
+            count: 4,
+            maxTicksLimit: 4,
             callback: (value) => {
               if (unitType === 'currency') {
                 return formatCurrency(value);
@@ -278,38 +294,46 @@ const LineChart = memo(forwardRef(({
     if (chartType === 'line') {
       options.scales = {
         x: {
-          display: showAxes && !simplified,
+          display: showAxes, // Show x-axis regardless of simplified flag
           grid: {
-            display: showAxes && !simplified,
+            display: showAxes, // Show gridlines regardless of simplified flag
             color: 'rgba(0, 0, 0, 0.05)'
           },
           border: {
-            display: showAxes && !simplified
+            display: showAxes // Show border regardless of simplified flag
           },
           ticks: {
-            display: showAxes && !simplified,
-            font: {
-              family: "'Inter', sans-serif",
-              size: 11
-            }
-          }
-        },
-        y: {
-          display: showAxes && !simplified,
-          beginAtZero: unitType !== 'percentage',
-          grid: {
-            display: showAxes && !simplified,
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          border: {
-            display: showAxes && !simplified
-          },
-          ticks: {
-            display: showAxes && !simplified,
+            display: showAxes, // Show ticks regardless of simplified flag
             font: {
               family: "'Inter', sans-serif",
               size: 11
             },
+            maxRotation: 0, // Always horizontal labels
+            minRotation: 0,
+            autoSkip: simplified ? false : true, // Disable auto-skipping for simplified charts
+            autoSkipPadding: 10, // Add padding between labels to prevent overlap
+            callback: filterLabels // Use our custom function to return actual labels
+          }
+        },
+        y: {
+          display: showAxes, // Show y-axis regardless of simplified flag
+          beginAtZero: unitType !== 'percentage',
+          grid: {
+            display: showAxes, // Show gridlines regardless of simplified flag
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          border: {
+            display: showAxes // Show border regardless of simplified flag
+          },
+          ticks: {
+            display: showAxes, // Show ticks regardless of simplified flag
+            font: {
+              family: "'Inter', sans-serif",
+              size: 11
+            },
+            // Limit to exactly 3 ticks (including zero if beginAtZero is true)
+            count: 4,
+            maxTicksLimit: 4,
             callback: function(value) {
               if (unitType === 'currency') {
                 return formatCurrency(value);
@@ -387,7 +411,12 @@ const LineChart = memo(forwardRef(({
             font: {
               family: "'Inter', sans-serif",
               size: 11
-            }
+            },
+            maxRotation: 0, // Always horizontal labels
+            minRotation: 0,
+            autoSkip: true, // Always enable auto-skipping for better readability
+            autoSkipPadding: 10, // Add padding between labels to prevent overlap
+            callback: filterLabels // Use our custom function to return actual labels
           }
         },
         y: {
@@ -400,6 +429,9 @@ const LineChart = memo(forwardRef(({
               family: "'Inter', sans-serif",
               size: 11
             },
+            // Limit to exactly 3 ticks (including zero if beginAtZero is true)
+            count: 4,
+            maxTicksLimit: 4,
             callback: function(value) {
               if (unitType === 'currency') {
                 return formatCurrency(value);

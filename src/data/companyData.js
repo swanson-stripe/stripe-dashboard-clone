@@ -144,7 +144,7 @@ const generateMonthlyData = () => {
     // Add to monthly data array
     monthlyData.push({
       date: month,
-      label: month.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      label: month.toLocaleDateString('en-US', { month: 'short' }),
       metrics: {
         mrr: parseFloat(currentMetrics.mrr.toFixed(2)),
         customers: currentMetrics.customers,
@@ -183,6 +183,16 @@ const generateWeeklyData = (monthlyData) => {
       const date = new Date(monthData.date);
       date.setDate(date.getDate() + (week * 7));
       
+      // Calculate end date of week (add 6 days to start date)
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      
+      // Format as "Mar 3-9" style
+      const startDay = date.getDate();
+      const endDay = endDate.getDate();
+      const month = date.toLocaleDateString('en-US', { month: 'short' });
+      const weekLabel = `${month} ${startDay}-${endDay}`;
+      
       // For the last month, add a progressive spike in overage revenue for weeks 3 and 4
       let overageRevenueFactor = weekFactor;
       if (monthIndex === monthlyData.length - 1) {
@@ -195,7 +205,7 @@ const generateWeeklyData = (monthlyData) => {
       
       weeklyData.push({
         date: date,
-        label: `Week ${week + 1}, ${date.toLocaleDateString('en-US', { month: 'short' })}`,
+        label: weekLabel,
         metrics: {
           mrr: parseFloat((monthData.metrics.mrr / weeksInMonth * weekFactor).toFixed(2)),
           customers: Math.round(monthData.metrics.customers + (week * monthData.metrics.newCustomers / weeksInMonth)),
@@ -272,8 +282,12 @@ const dailyData = generateDailyData(weeklyData);
 
 // Helper function to get data for a specific period and interval
 const getMetricData = (metricName, period, interval) => {
+  // Normalize the metric name - handle special cases like mrr vs MRR
+  const normalizedMetricName = metricName.toLowerCase();
+  
   let dataSource;
   let startIndex = 0;
+  let targetDataPoints = 0;
   
   switch (interval) {
     case PERIODS.MONTHLY:
@@ -288,63 +302,190 @@ const getMetricData = (metricName, period, interval) => {
       break;
   }
   
-  // Determine start index based on the period
+  // Determine start index and target number of data points based on the period and interval
   switch (period) {
     case 'last7days':
-      startIndex = dataSource === dailyData ? dataSource.length - 7 : 0;
+      if (interval === PERIODS.DAILY) {
+        // Daily data for last 7 days - show all 7 days
+        targetDataPoints = 7;
+        startIndex = dataSource.length - targetDataPoints;
+      } else if (interval === PERIODS.WEEKLY) {
+        // Weekly data for last 7 days - show 2-3 weeks
+        targetDataPoints = 3;
+        startIndex = dataSource.length - targetDataPoints;
+      } else {
+        // Monthly data for last 7 days - show 2 months
+        targetDataPoints = 2;
+        startIndex = dataSource.length - targetDataPoints;
+      }
       break;
     case 'last30days':
-      startIndex = dataSource === dailyData ? dataSource.length - 30 : 
-                   dataSource === weeklyData ? dataSource.length - 4 : 0;
+      if (interval === PERIODS.DAILY) {
+        // Daily data for last 30 days - show 10-12 data points (every 3rd day)
+        targetDataPoints = 12;
+        startIndex = dataSource.length - 30;
+      } else if (interval === PERIODS.WEEKLY) {
+        // Weekly data for last 30 days - show 4-5 weeks
+        targetDataPoints = 5;
+        startIndex = dataSource.length - targetDataPoints;
+      } else {
+        // Monthly data for last 30 days - show 3 months
+        targetDataPoints = 3;
+        startIndex = dataSource.length - targetDataPoints;
+      }
       break;
     case 'last90days':
-      startIndex = dataSource === dailyData ? dataSource.length - 90 : 
-                   dataSource === weeklyData ? dataSource.length - 13 : 
-                   dataSource.length - 3;
+      if (interval === PERIODS.DAILY) {
+        // Daily data for last 90 days - show 12-14 data points (every ~7th day)
+        targetDataPoints = 14;
+        startIndex = dataSource.length - 90;
+      } else if (interval === PERIODS.WEEKLY) {
+        // Weekly data for last 90 days - show 12-13 weeks
+        targetDataPoints = 13;
+        startIndex = dataSource.length - targetDataPoints;
+      } else {
+        // Monthly data for last 90 days - show 6 months (every other month)
+        targetDataPoints = 6;
+        startIndex = dataSource.length - targetDataPoints;
+      }
       break;
     case 'thisYear':
-      startIndex = 0; // All data is within the current year
+      if (interval === PERIODS.DAILY) {
+        // Daily data for this year - show 12 data points (monthly samples)
+        targetDataPoints = 12;
+        startIndex = 0;
+      } else if (interval === PERIODS.WEEKLY) {
+        // Weekly data for this year - show 12 data points (monthly samples)
+        targetDataPoints = 12;
+        startIndex = 0;
+      } else {
+        // Monthly data for this year - show all months
+        targetDataPoints = dataSource.length;
+        startIndex = 0;
+      }
       break;
     default:
-      startIndex = Math.max(0, dataSource.length - 7);
+      targetDataPoints = 7;
+      startIndex = Math.max(0, dataSource.length - targetDataPoints);
   }
   
   startIndex = Math.max(0, startIndex);
-  const relevantData = dataSource.slice(startIndex);
+  let relevantData = dataSource.slice(startIndex);
   
   // Make sure we have at least some data points
   if (relevantData.length === 0) {
-    console.warn(`No data available for ${metricName} with period ${period} and interval ${interval}`);
+    console.warn(`No data available for ${normalizedMetricName} with period ${period} and interval ${interval}`);
     // Generate dummy data for testing
-    return generateDummyData(metricName, period, interval);
+    return generateDummyData(normalizedMetricName, period, interval);
+  }
+  
+  // If we have too many data points for daily data, sample them to get the target number
+  if (interval === PERIODS.DAILY && period !== 'last7days' && relevantData.length > targetDataPoints) {
+    const step = Math.floor(relevantData.length / targetDataPoints);
+    const sampledData = [];
+    
+    for (let i = 0; i < relevantData.length; i += step) {
+      if (sampledData.length < targetDataPoints) {
+        sampledData.push(relevantData[i]);
+      }
+    }
+    
+    // Ensure we include the most recent data point
+    if (sampledData.length < targetDataPoints) {
+      sampledData.push(relevantData[relevantData.length - 1]);
+    }
+    
+    relevantData = sampledData;
+  }
+  
+  // Sample weekly data if needed for longer periods
+  if (interval === PERIODS.WEEKLY && relevantData.length > targetDataPoints) {
+    const step = Math.ceil(relevantData.length / targetDataPoints);
+    const sampledData = [];
+    
+    for (let i = 0; i < relevantData.length; i += step) {
+      if (sampledData.length < targetDataPoints) {
+        sampledData.push(relevantData[i]);
+      }
+    }
+    
+    // Always include the most recent week
+    if (sampledData.length > 0 && sampledData[sampledData.length - 1] !== relevantData[relevantData.length - 1]) {
+      sampledData.push(relevantData[relevantData.length - 1]);
+    }
+    
+    relevantData = sampledData;
   }
   
   // Extract the specific metric values and format for chart data
   const labels = relevantData.map(d => d.label);
+  
+  // Check for the specific metrics that need normalization (like MRR, etc.)
+  // This ensures they use the same data points and scaling as other metrics
+  const metricKey = normalizedMetricName.includes('mrr') ? 'mrr' : normalizedMetricName;
+  
   const values = relevantData.map(d => {
     // Handle nested metrics
-    if (typeof d.metrics[metricName] !== 'undefined') {
-      return d.metrics[metricName];
+    if (typeof d.metrics[metricKey] !== 'undefined') {
+      // For MRR-related metrics, ensure they follow the same pattern as the base metric
+      if (normalizedMetricName.includes('mrr') && normalizedMetricName !== 'mrr') {
+        // Apply appropriate transformation based on the specific MRR metric type
+        if (normalizedMetricName === 'mrrgrowth') {
+          return d.metrics.mrr * (d.metrics.mrrGrowthRate / 100);
+        } else if (normalizedMetricName === 'mrrgrowthrate') {
+          return d.metrics.mrrGrowthRate;
+        } else {
+          return d.metrics.mrr; // Default to base MRR value
+        }
+      }
+      return d.metrics[metricKey];
     }
     return null;
   }).filter(v => v !== null);
   
   // If we don't have any valid values after filtering, generate dummy data
   if (values.length === 0) {
-    console.warn(`No valid metric values for ${metricName}`);
-    return generateDummyData(metricName, period, interval);
+    console.warn(`No valid metric values for ${normalizedMetricName}`);
+    return generateDummyData(normalizedMetricName, period, interval);
   }
   
   // Generate comparison data (previous period)
-  const previousStartIndex = Math.max(0, startIndex - relevantData.length);
+  // Use the same sample rate for the previous period
+  const previousPeriodLength = relevantData.length;
+  const previousStartIndex = Math.max(0, startIndex - previousPeriodLength * 2);
   const previousEndIndex = startIndex;
-  const previousData = previousStartIndex < previousEndIndex 
+  
+  // Get raw previous data
+  const rawPreviousData = previousStartIndex < previousEndIndex 
     ? dataSource.slice(previousStartIndex, previousEndIndex)
     : [];
   
+  // Sample the previous data with the same approach
+  let previousData = rawPreviousData;
+  if (interval !== PERIODS.MONTHLY && previousData.length > relevantData.length) {
+    const step = Math.floor(previousData.length / relevantData.length);
+    const sampledPreviousData = [];
+    
+    for (let i = 0; i < previousData.length && sampledPreviousData.length < relevantData.length; i += step) {
+      sampledPreviousData.push(previousData[i]);
+    }
+    
+    previousData = sampledPreviousData;
+  }
+  
   const previousValues = previousData.map(d => {
-    if (typeof d.metrics[metricName] !== 'undefined') {
-      return d.metrics[metricName];
+    if (typeof d.metrics[metricKey] !== 'undefined') {
+      // Apply the same transformations for MRR metrics in the previous period
+      if (normalizedMetricName.includes('mrr') && normalizedMetricName !== 'mrr') {
+        if (normalizedMetricName === 'mrrgrowth') {
+          return d.metrics.mrr * (d.metrics.mrrGrowthRate / 100);
+        } else if (normalizedMetricName === 'mrrgrowthrate') {
+          return d.metrics.mrrGrowthRate;
+        } else {
+          return d.metrics.mrr;
+        }
+      }
+      return d.metrics[metricKey];
     }
     return null;
   }).filter(v => v !== null);
@@ -358,10 +499,9 @@ const getMetricData = (metricName, period, interval) => {
     labels,
     currentData: values,
     previousData: paddedPreviousValues,
-    metricName
+    metricName: normalizedMetricName
   };
   
-  console.log(`Generated chart data for ${metricName}:`, result);
   return result;
 };
 
@@ -424,11 +564,16 @@ const generateDummyData = (metricName, period, interval) => {
       const date = fixedDates[i];
       
       if (interval === PERIODS.MONTHLY) {
-        labels.push(date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+        labels.push(date.toLocaleDateString('en-US', { month: 'short' }));
       } else if (interval === PERIODS.WEEKLY) {
-        labels.push(`Week ${Math.floor(i/7) + 1}, ${date.toLocaleDateString('en-US', { month: 'short' })}`);
+        const endDate = new Date(date);
+        endDate.setDate(date.getDate() + 6);
+        
+        const startDay = date.getDate();
+        const endDay = endDate.getDate();
+        const month = date.toLocaleDateString('en-US', { month: 'short' });
+        labels.push(`${month} ${startDay}-${endDay}`);
       } else {
-        // Format to match "Jun 11" pattern seen in the reference image
         labels.push(`${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
       }
       
@@ -472,9 +617,15 @@ const generateDummyData = (metricName, period, interval) => {
     date.setDate(today.getDate() - (daysCount - i));
     
     if (interval === PERIODS.MONTHLY) {
-      labels.push(date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+      labels.push(date.toLocaleDateString('en-US', { month: 'short' }));
     } else if (interval === PERIODS.WEEKLY) {
-      labels.push(`Week ${Math.floor(i/7) + 1}, ${date.toLocaleDateString('en-US', { month: 'short' })}`);
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      
+      const startDay = date.getDate();
+      const endDay = endDate.getDate();
+      const month = date.toLocaleDateString('en-US', { month: 'short' });
+      labels.push(`${month} ${startDay}-${endDay}`);
     } else {
       labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     }
@@ -727,6 +878,41 @@ const standardizedMetrics = {
     trend: 'up',
     isCurrency: true,
     unit: 'currency'
+  },
+  'payments-status': {
+    id: 'payments-status',
+    title: 'Payments',
+    chartType: 'meter',
+    baseCurrencyValue: 0,
+    baseNumberValue: 0,
+    trendValue: 3.7,
+    trend: 'up',
+    isCurrency: false,
+    unit: 'number',
+    meterData: [
+      { label: 'Succeeded', value: 752.50, color: '#9D7AF7', type: 'currency' },
+      { label: 'Uncaptured', value: 0.00, color: '#386CF3', type: 'currency' },
+      { label: 'Refunded', value: 94.20, color: '#40B9D4', type: 'currency' },
+      { label: 'Failed', value: 322.63, color: '#F97415', type: 'currency' }
+    ]
+  },
+  'invoices-status': {
+    id: 'invoices-status',
+    title: 'Invoices',
+    chartType: 'meter',
+    baseCurrencyValue: 0,
+    baseNumberValue: 0,
+    trendValue: 4.2,
+    trend: 'up',
+    isCurrency: false,
+    unit: 'number',
+    meterData: [
+      { label: 'Draft', value: 42, color: '#9D7AF7', type: 'number' },
+      { label: 'Open', value: 156, color: '#386CF3', type: 'number' },
+      { label: 'Paid', value: 742, color: '#40B9D4', type: 'number' },
+      { label: 'Uncollectible', value: 38, color: '#F97415', type: 'number' },
+      { label: 'Void', value: 25, color: '#E36873', type: 'number' }
+    ]
   }
 };
 
@@ -877,15 +1063,68 @@ const billingMetrics = {
 // Merge billing metrics into standardized metrics
 Object.assign(standardizedMetrics, billingMetrics);
 
+// Define category groups for the selection modal
+const metricCategories = {
+  'Revenue': [
+    'gross-volume',
+    'net-volume',
+    'mrr',
+    'total-revenue',
+    'arpu',
+    'revenue-per-customer',
+    'average-order',
+    'mrr-growth',
+    'subscriber-ltv'
+  ],
+  'Payments': [
+    'successful-payments',
+    'refund-rate',
+    'payments-status'
+  ],
+  'Customers': [
+    'new-customers',
+    'active-subscribers',
+    'new-subscribers',
+    'churned-subscribers',
+    'churn-rate',
+    'conversion-rate'
+  ],
+  'Usage': [
+    'usage-revenue',
+    'usage-count',
+    'overage-revenue',
+    'usage-overage-revenue'
+  ],
+  'Billing': [
+    'invoice-revenue',
+    'past-due-invoice-volume', 
+    'past-due-invoice-payment-rate',
+    'avg-invoice-payment-length',
+    'invoices-status'
+  ]
+};
+
+// Default metrics to show on the dashboard
+const defaultMetricIds = [
+  'payments-status',
+  'gross-volume',
+  'net-volume',
+  'new-customers',
+  'active-subscribers',
+  'mrr',
+  'subscriber-ltv',
+  'invoices-status'
+];
+
 // Export the company data
 export {
+  PERIODS,
   COMPANY_PROFILE,
   PRICING_TIERS,
   CURRENT_KEY_METRICS,
+  generateMonthlyData,
   standardizedMetrics,
-  monthlyData,
-  weeklyData,
-  dailyData,
+  metricCategories,
+  defaultMetricIds,
   getMetricData,
-  PERIODS
 }; 

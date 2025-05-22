@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
-import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData';
+import { standardizedMetrics, getMetricData, PERIODS, metricCategories, defaultMetricIds } from '../data/companyData';
 import { useTooltip } from '../components/GlobalTooltip';
+import MeterChart from '../components/MeterChart';
 
 // Constants for consistent styling
 const STRIPE_PURPLE = '#635bff';
@@ -56,7 +57,9 @@ const ChartCard = styled.div`
   padding: 20px;
   box-shadow: none;
   height: ${props => props.height || 'auto'};
-  overflow: hidden;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
 `;
 
 const SmallCard = styled.div`
@@ -149,6 +152,10 @@ const ChartWrapper = styled.div`
   width: 100%;
   height: ${props => props.height || '200px'};
   position: relative;
+  margin-top: ${props => props.marginTop || '0'};
+  margin-bottom: ${props => props.marginBottom || '0'};
+  padding: ${props => props.padding || '0'};
+  overflow: visible;
 `;
 
 const OverviewSection = styled.div`
@@ -552,6 +559,37 @@ const ApplyButton = styled.button`
   }
 `;
 
+const PreviewChart = styled.div`
+  margin-top: 12px;
+  height: 40px;
+  position: relative;
+  overflow: hidden;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+// Add this styled component for the Explore link to match other metrics
+const ExploreLink = styled.div`
+  display: flex;
+  align-items: center;
+  color: ${STRIPE_PURPLE};
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  
+  svg {
+    margin-left: 4px;
+    width: 16px;
+    height: 16px;
+  }
+  
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState({ 
@@ -593,16 +631,8 @@ const Dashboard = () => {
   ];
   
   // Base metrics data with their types
-  const defaultMetricIds = [
-    'gross-volume',
-    'net-volume',
-    'new-customers',
-    'active-subscribers',
-    'mrr',
-    'subscriber-ltv'
-  ];
-
   const [baseMetrics, setBaseMetrics] = useState(() => {
+    // Use the imported defaultMetricIds from companyData.js
     return defaultMetricIds
       .map(id => standardizedMetrics[id])
       .filter(Boolean);
@@ -630,30 +660,6 @@ const Dashboard = () => {
     setIsMetricsOverlayOpen(false);
   };
 
-  // Update the metricCategories object to include the additional metrics in their proper sections
-  const metricCategories = {
-    'Payments': [
-      'gross-volume', 'net-volume', 'successful-payments', 'refund-rate', 'average-order'
-    ],
-    'Usage': [
-      'usage-revenue', 'usage-count', 'total-revenue', 'revenue-per-unit', 'overage-revenue'
-    ],
-    'Customers': [
-      'new-customers', 'revenue-per-customer', 'conversion-rate'
-    ],
-    'Subscriptions': [
-      'active-subscribers', 'active-subscribers-growth', 'new-subscribers', 'churned-subscribers',
-      'subscriber-churn-rate', 'subscriber-ltv', 'new-trials', 'active-trials', 'trial-conversion-rate'
-    ],
-    'Invoicing': [
-      'invoice-revenue', 'past-due-invoice-volume', 'past-due-invoice-payment-rate', 
-      'avg-invoice-payment-length'
-    ],
-    'Fraud & Risk': [
-      'churn-rate', 'churned-revenue'
-    ]
-  };
-  
   // Initialize today data - only called once
   useEffect(() => {
     try {
@@ -673,7 +679,7 @@ const Dashboard = () => {
     }
   }, []);
   
-  // Generate volume data based on metric type
+  // Modify the generateTodayVolumeDataForMetric function to format hour labels to 12-hour format
   const generateTodayVolumeDataForMetric = (metricId) => {
     // Find the metric based on the ID
     const selectedMetric = baseMetrics.find(m => m.id === metricId) || baseMetrics[0];
@@ -695,10 +701,16 @@ const Dashboard = () => {
       const dateTime = new Date();
       dateTime.setHours(hour, 0, 0, 0);
       
+      // Format hour in 12-hour format (12am, 1am, etc.)
+      const formattedHour = hour === 0 ? '12am' : 
+                             hour === 12 ? '12pm' : 
+                             hour < 12 ? `${hour}am` : 
+                             `${hour-12}pm`;
+      
       // For hours beyond the current hour, show no data
       const currentHour = new Date().getHours();
       if (hour > currentHour) {
-        return { hour: `${hour}:00`, value: null };
+        return { hour: formattedHour, value: null };
       }
       
       let value;
@@ -711,7 +723,7 @@ const Dashboard = () => {
         value = Math.round(baseValue * ratio);
       }
       
-      return { hour: `${hour}:00`, value };
+      return { hour: formattedHour, value };
     });
     
     // Convert hourly data to the format expected by the LineChart component
@@ -730,7 +742,7 @@ const Dashboard = () => {
     };
   };
 
-  // Generate realistic volume data for Today section - independent from overview controls
+  // Generate volume data for Today section - independent from overview controls
   const generateTodayVolumeData = () => {
     return generateTodayVolumeDataForMetric('gross-volume');
   };
@@ -749,8 +761,15 @@ const Dashboard = () => {
   // Generate chart data for metrics based on period and interval
   const generateMetricChartData = (selectedMetric, period, interval, includeComparison = true) => {
     try {
+      // Determine the right metric ID to use
+      let metricId = selectedMetric.id;
+      
+      // Only convert format for non-MRR metrics
+      if (!metricId.includes('mrr')) {
+        metricId = metricId.replace('-', '');
+      }
+      
       // Use the centralized data source
-      const metricId = selectedMetric.id.replace('-', ''); // Convert ID format
       const metricData = getMetricData(metricId, period, interval);
       
       if (!metricData || !metricData.labels || !metricData.currentData) {
@@ -931,6 +950,8 @@ const Dashboard = () => {
           // Ensure baseCurrencyValue and baseNumberValue match the chart data
           baseCurrencyValue: metric.isCurrency ? metric.numericalValue : metric.baseCurrencyValue,
           baseNumberValue: !metric.isCurrency ? metric.numericalValue : metric.baseNumberValue,
+          // Add a flag for the meter chart type if applicable
+          chartType: metric.chartType
         }, 
         sourcePage: 'Home',
         sourceTab: '' 
@@ -982,7 +1003,23 @@ const Dashboard = () => {
     try {
       // Generate updated metrics with chart data
       const updatedMetrics = baseMetrics.map(metric => {
-        // Get chart data first
+        // For meter chart metrics, we don't need to generate chart data
+        if (metric.chartType === 'meter') {
+          const totalValue = metric.meterData.reduce((sum, item) => sum + item.value, 0);
+          const formattedTotal = metric.meterData[0].type === 'currency' 
+            ? formatCurrency(totalValue)
+            : formatNumber(totalValue);
+          
+          return {
+            ...metric,
+            value: formattedTotal,
+            numericalValue: totalValue,
+            trendValue: metric.trendValue,
+            meterData: metric.meterData
+          };
+        }
+        
+        // Get chart data for regular metrics - ensure MRR metrics use exact same period/interval
         const chartData = generateMetricChartData(metric, activePeriod, activeInterval);
         
         // Use the last data point for the current value if available
@@ -1031,6 +1068,61 @@ const Dashboard = () => {
       console.error("Error updating metrics data:", error);
     }
   }, [activePeriod, activeInterval, activeComparison, baseMetrics]);
+
+  // Add a specific useEffect to refresh MRR metric data when other metrics are updated
+  useEffect(() => {
+    if (metricData.length > 0) {
+      // Find MRR metric if it exists in the current metrics
+      const mrrMetric = metricData.find(m => m.id === 'mrr');
+      
+      if (mrrMetric) {
+        // Ensure MRR is using the latest period and interval
+        const updatedMRRData = generateMetricChartData(
+          mrrMetric, 
+          activePeriod,
+          activeInterval, 
+          activeComparison !== 'none'
+        );
+        
+        // Update the MRR metric with the correct data
+        setMetricData(prevMetrics => {
+          return prevMetrics.map(m => {
+            if (m.id === 'mrr') {
+              // Get the last value for MRR display
+              let adjustedValue = m.numericalValue;
+              if (updatedMRRData && updatedMRRData.datasets && updatedMRRData.datasets[0] && 
+                  updatedMRRData.datasets[0].data && updatedMRRData.datasets[0].data.length > 0) {
+                adjustedValue = updatedMRRData.datasets[0].data[updatedMRRData.datasets[0].data.length - 1];
+              }
+              
+              // Calculate trend if we have comparison data
+              let trendVal = m.trendValue;
+              if (updatedMRRData && updatedMRRData.datasets && updatedMRRData.datasets.length > 1 && 
+                  updatedMRRData.datasets[0].data && updatedMRRData.datasets[0].data.length > 0 && 
+                  updatedMRRData.datasets[1].data && updatedMRRData.datasets[1].data.length > 0) {
+                const currentValue = updatedMRRData.datasets[0].data[updatedMRRData.datasets[0].data.length - 1];
+                const previousValue = updatedMRRData.datasets[1].data[updatedMRRData.datasets[1].data.length - 1];
+                
+                if (previousValue > 0) {
+                  const percentChange = ((currentValue - previousValue) / previousValue) * 100;
+                  trendVal = percentChange;
+                }
+              }
+              
+              return {
+                ...m,
+                value: formatCurrency(adjustedValue),
+                numericalValue: adjustedValue,
+                trendValue: parseFloat(trendVal.toFixed(2)),
+                chartData: updatedMRRData
+              };
+            }
+            return m;
+          });
+        });
+      }
+    }
+  }, [activePeriod, activeInterval, activeComparison, metricData.length]);
 
   // Handle period change from reporting controls
   const handlePeriodChange = (period) => {
@@ -1081,12 +1173,34 @@ const Dashboard = () => {
     setSelectedMetrics(initialSelectedMetrics);
   }, []);
 
+  // Add a new function to generate chart data specifically for preview modal with gray comparison lines
+  const generatePreviewChartData = (selectedMetric, period, interval) => {
+    // Get the standard chart data
+    const chartData = generateMetricChartData(selectedMetric, period, interval, true);
+    
+    // If we have comparison data (second dataset), ensure it uses gray color
+    if (chartData.datasets && chartData.datasets.length > 1) {
+      chartData.datasets[1] = {
+        ...chartData.datasets[1],
+        borderColor: '#9ca3af', // Ensure we use gray for comparison lines
+        backgroundColor: 'transparent',
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        borderWidth: 1.5,
+        borderDash: [4, 4]
+      };
+    }
+    
+    return chartData;
+  };
+
   return (
     <DashboardContainer>
       <TodaySection>
         <SectionTitle>Today</SectionTitle>
         <TodayChartsGrid>
-          <ChartCard height="260px">
+          <ChartCard height="280px">
             <ChartHeader>
               <div>
                 <TitleWithDropdown 
@@ -1119,13 +1233,29 @@ const Dashboard = () => {
                 <MetricValue>{todayData.volume}</MetricValue>
                 <MetricTime>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</MetricTime>
               </div>
-              <ViewLink to={`/metrics/${selectedMetric}`}>View</ViewLink>
+              <ExploreLink onClick={() => handleMetricClick({
+                id: selectedMetric,
+                title: availableMetrics.find(m => m.id === selectedMetric)?.label,
+                isCurrency: selectedMetric === 'new-customers' || selectedMetric === 'successful-payments' ? false : true
+              })}>
+                Explore
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </ExploreLink>
             </ChartHeader>
-            <ChartWrapper height="180px">
+            <ChartWrapper 
+              height="200px" 
+              padding="0 0 10px 0" 
+              marginBottom="10px"
+              onMouseMove={(e) => handleShowTooltip(e, selectedMetric, todayData.volumeChart)}
+              onMouseLeave={hideTooltip}
+            >
               {todayData.volumeChart && (
                 <LineChart 
                   data={todayData.volumeChart} 
-                  height={180} 
+                  height={200}
                   showLegend={false} 
                   type="area" 
                   unit={selectedMetric === 'new-customers' || selectedMetric === 'successful-payments' ? 'number' : 'currency'}
@@ -1201,7 +1331,7 @@ const Dashboard = () => {
                 <MetricValueRow>
                   <MetricValue>
                     {metric.value}
-                    {metric.trendValue > 0 && (
+                    {metric.trendValue > 0 && metric.chartType !== 'meter' && (
                       <MetricTrend trend={metric.trend}>
                         {metric.trend === 'up' ? '+' : '-'}{metric.trendValue.toFixed(2)}%
                       </MetricTrend>
@@ -1211,16 +1341,21 @@ const Dashboard = () => {
               </MetricHeader>
               
               <MetricChartContainer 
-                onMouseMove={(e) => handleShowTooltip(e, metric.id, metric.chartData)}
+                onMouseMove={(e) => metric.chartType !== 'meter' && handleShowTooltip(e, metric.id, metric.chartData)}
                 onMouseLeave={hideTooltip}
               >
-                <LineChart 
-                  data={metric.chartData} 
-                  height={160} 
-                  showLegend={false} 
-                  type="line" 
-                  unit={metric.unit || 'currency'}
-                />
+                {metric.chartType === 'meter' ? (
+                  <MeterChart data={metric.meterData} />
+                ) : (
+                  <LineChart 
+                    data={metric.chartData} 
+                    height={160} 
+                    showLegend={false}
+                    simplified={true}
+                    type="line" 
+                    unit={metric.unit || 'currency'}
+                  />
+                )}
               </MetricChartContainer>
             </MetricCard>
           ))}
@@ -1247,7 +1382,9 @@ const Dashboard = () => {
                       const isSelected = selectedMetrics[metric.id];
                       
                       // Generate the chart data for the preview
-                      const chartData = generateMetricChartData(metric, activePeriod, activeInterval, true);
+                      const chartData = metric.chartType !== 'meter' ? 
+                        generatePreviewChartData(metric, activePeriod, activeInterval) : 
+                        null;
                       
                       return (
                         <SelectableMetricCard 
@@ -1270,24 +1407,34 @@ const Dashboard = () => {
                           
                           <MetricTitle>{metric.title}</MetricTitle>
                           <MetricValue style={{ fontSize: '18px' }}>
-                            {metric.isCurrency 
-                              ? formatCurrency(metric.baseCurrencyValue)
-                              : metric.unit === 'percentage'
-                                ? `${metric.baseNumberValue.toFixed(1)}%`
-                                : formatNumber(metric.baseNumberValue)
-                            }
+                            {metric.chartType === 'meter' ? (
+                              metric.meterData[0].type === 'currency' ?
+                                formatCurrency(metric.meterData.reduce((sum, item) => sum + item.value, 0)) :
+                                formatNumber(metric.meterData.reduce((sum, item) => sum + item.value, 0))
+                            ) : (
+                              metric.isCurrency 
+                                ? formatCurrency(metric.baseCurrencyValue)
+                                : metric.unit === 'percentage'
+                                  ? `${metric.baseNumberValue.toFixed(1)}%`
+                                  : formatNumber(metric.baseNumberValue)
+                            )}
                           </MetricValue>
                           
-                          <MetricPreview>
-                            <LineChart 
-                              data={chartData} 
-                              height={40} 
-                              showLegend={false} 
-                              type="line" 
-                              unit={metric.unit || 'currency'}
-                              simplified={true}
-                            />
-                          </MetricPreview>
+                          <PreviewChart>
+                            {metric.chartType === 'meter' ? (
+                              <MeterChart data={metric.meterData || []} compact={true} />
+                            ) : chartData ? (
+                              <LineChart 
+                                data={generatePreviewChartData(metric, activePeriod, activeInterval)} 
+                                height={40} 
+                                showLegend={false} 
+                                showAxes={false}
+                                simplified={true}
+                                type="line" 
+                                unit={metric.unit || 'currency'}
+                              />
+                            ) : null}
+                          </PreviewChart>
                         </SelectableMetricCard>
                       );
                     })}

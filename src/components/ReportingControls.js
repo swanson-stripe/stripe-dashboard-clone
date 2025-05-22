@@ -129,7 +129,8 @@ const ReportingControls = ({
   onIntervalChange, 
   onComparisonChange,
   filters = [],
-  onRemoveFilter
+  onRemoveFilter,
+  customContent
 }) => {
   // Find initial option objects
   const initialPeriodOption = periodOptions.find(option => option.value === initialPeriod) || periodOptions[0];
@@ -278,6 +279,9 @@ const ReportingControls = ({
           ))}
         </Popover>
       </Chip>
+      
+      {/* Custom Content - Render after Compare chip and before active filters */}
+      {customContent}
       
       {/* Active Filter Chips */}
       {filters.map(filter => (
