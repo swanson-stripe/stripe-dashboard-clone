@@ -151,20 +151,24 @@ const SectionTitle = styled.h3`
 `;
 
 const ExportButton = styled.button`
+  padding: 8px 12px;
   background-color: white;
   color: var(--text-color);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 8px 16px;
   font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   
   &:hover {
-    background-color: #f7f9fc;
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
   }
 `;
 

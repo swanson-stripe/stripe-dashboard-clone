@@ -400,21 +400,19 @@ const SummaryTableHeaderCell = styled.th`
 `;
 
 const ExportButton = styled.button`
+  padding: 8px 12px;
   background-color: white;
   color: var(--text-color);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 8px 16px;
   font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
-  text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   
   &:hover {
-    background-color: #f7f9fc;
+    background-color: rgba(0, 0, 0, 0.04);
   }
   
   svg {
@@ -1792,10 +1790,9 @@ const MetricDetail = () => {
             <SectionTitle>Summary</SectionTitle>
             <ExportButton>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 16L12 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M9 11L12 8L15 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M8 16H7C5.89543 16 5 15.1046 5 14V7C5 5.89543 5.89543 5 7 5H17C18.1046 5 19 5.89543 19 7V14C19 15.1046 18.1046 16 17 16H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 16V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Export
             </ExportButton>
@@ -1963,6 +1960,14 @@ const MetricDetail = () => {
             <SectionTitle>
               {transactions.length} results
             </SectionTitle>
+            <ExportButton>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Export
+            </ExportButton>
           </TransactionsHeader>
           
           <TableContainer>
