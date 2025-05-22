@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
 import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData';
+import { useTooltip } from '../components/GlobalTooltip';
 
 // Constants for consistent styling
 const STRIPE_PURPLE = '#635bff';
@@ -294,7 +295,7 @@ const MetricValue = styled.div`
 
 const MetricChartContainer = styled.div`
   flex-grow: 1;
-  min-height: 80px;
+  min-height: 160px;
   margin-top: auto;
   margin-bottom: 8px;
   position: relative;
@@ -362,6 +363,195 @@ const NegativeValue = styled.div`
   color: #EF4444;
 `;
 
+const AddMetricsButton = styled.button`
+  background-color: white;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-left: auto;
+  
+  &:hover {
+    background-color: #f7f9fc;
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const ControlsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 16px;
+`;
+
+const MetricsOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: ${props => props.isOpen ? 'flex' : 'none'};
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const MetricsModal = styled.div`
+  background-color: white;
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ModalHeader = styled.div`
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const ModalContent = styled.div`
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(80vh - 180px);
+`;
+
+const MetricCategorySection = styled.div`
+  margin-bottom: 24px;
+`;
+
+const CategoryTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: var(--text-color);
+`;
+
+const MetricsList = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SelectableMetricCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid ${props => props.selected ? STRIPE_PURPLE : 'var(--border-color)'};
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+  }
+`;
+
+const MetricPreview = styled.div`
+  margin-top: 8px;
+  height: 40px;
+  position: relative;
+  overflow: hidden;
+`;
+
+const ToggleIconOverlay = styled.div`
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: ${props => props.selected ? STRIPE_PURPLE : 'white'};
+  border: 1px solid ${props => props.selected ? STRIPE_PURPLE : 'var(--border-color)'};
+  color: ${props => props.selected ? 'white' : GRAY};
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const MetricName = styled.div`
+  font-size: 14px;
+  font-weight: ${props => props.selected ? '500' : 'normal'};
+  color: var(--text-color);
+`;
+
+const ModalFooter = styled.div`
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+`;
+
+const CancelButton = styled.button`
+  background-color: white;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #f7f9fc;
+  }
+`;
+
+const ApplyButton = styled.button`
+  background-color: ${STRIPE_PURPLE};
+  color: white;
+  border: 1px solid ${STRIPE_PURPLE};
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #564bd9;
+  }
+`;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState({ 
@@ -372,13 +562,7 @@ const Dashboard = () => {
   const [activeInterval, setActiveInterval] = useState('daily');
   const [activeComparison, setActiveComparison] = useState('previous_period');
   const [metricData, setMetricData] = useState([]);
-  const [tooltipState, setTooltipState] = useState({
-    visible: false,
-    x: 0,
-    y: 0,
-    content: '',
-    metricId: ''
-  });
+  const { showTooltip, hideTooltip } = useTooltip();
   const [todayData, setTodayData] = useState({
     volume: '$0.00',
     volumeChart: {
@@ -409,52 +593,95 @@ const Dashboard = () => {
   ];
   
   // Base metrics data with their types
-  const [baseMetrics, setBaseMetrics] = useState(Object.values(standardizedMetrics));
+  const defaultMetricIds = [
+    'gross-volume',
+    'net-volume',
+    'new-customers',
+    'active-subscribers',
+    'mrr',
+    'subscriber-ltv'
+  ];
+
+  const [baseMetrics, setBaseMetrics] = useState(() => {
+    return defaultMetricIds
+      .map(id => standardizedMetrics[id])
+      .filter(Boolean);
+  });
   
-  // Handle dropdown item click
-  const handleMetricChange = (metricId) => {
-    setSelectedMetric(metricId);
-    setIsDropdownOpen(false);
+  // Inside the Dashboard component, add these state variables
+  const [isMetricsOverlayOpen, setIsMetricsOverlayOpen] = useState(false);
+  const [selectedMetrics, setSelectedMetrics] = useState({});
+  
+  // Add these functions to handle the overlay
+  const toggleMetricSelection = (metricId) => {
+    setSelectedMetrics(prev => ({
+      ...prev,
+      [metricId]: !prev[metricId]
+    }));
+  };
+
+  const handleApplyMetrics = () => {
+    const selectedMetricsList = Object.entries(selectedMetrics)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([id]) => Object.values(standardizedMetrics).find(m => m.id === id))
+      .filter(Boolean);
     
-    // Find the base metric data
-    const metric = baseMetrics.find(m => m.id === metricId);
-    if (!metric) return;
-    
-    // Generate new data for the selected metric
-    const newVolumeData = generateTodayVolumeDataForMetric(metricId);
-    
-    setTodayData({
-      volume: metric.isCurrency ? formatCurrency(metric.baseCurrencyValue) : formatNumber(metric.baseNumberValue),
-      volumeChart: newVolumeData
-    });
+    setBaseMetrics(selectedMetricsList);
+    setIsMetricsOverlayOpen(false);
+  };
+
+  // Update the metricCategories object to include the additional metrics in their proper sections
+  const metricCategories = {
+    'Payments': [
+      'gross-volume', 'net-volume', 'successful-payments', 'refund-rate', 'average-order'
+    ],
+    'Usage': [
+      'usage-revenue', 'usage-count', 'total-revenue', 'revenue-per-unit', 'overage-revenue'
+    ],
+    'Customers': [
+      'new-customers', 'revenue-per-customer', 'conversion-rate'
+    ],
+    'Subscriptions': [
+      'active-subscribers', 'active-subscribers-growth', 'new-subscribers', 'churned-subscribers',
+      'subscriber-churn-rate', 'subscriber-ltv', 'new-trials', 'active-trials', 'trial-conversion-rate'
+    ],
+    'Invoicing': [
+      'invoice-revenue', 'past-due-invoice-volume', 'past-due-invoice-payment-rate', 
+      'avg-invoice-payment-length'
+    ],
+    'Fraud & Risk': [
+      'churn-rate', 'churned-revenue'
+    ]
   };
   
-  // Close dropdown when clicking outside
+  // Initialize today data - only called once
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    try {
+      // Use the exact value from standardizedMetrics
+      const grossVolumeMetric = standardizedMetrics['gross-volume'];
+      
+      // Generate hourly breakdown for visualization only
+      const volumeData = generateTodayVolumeDataForMetric('gross-volume');
+      
+      setTodayData({
+        // Use the EXACT value from standardizedMetrics for display
+        volume: formatCurrency(grossVolumeMetric.baseCurrencyValue),
+        volumeChart: volumeData
+      });
+    } catch (error) {
+      console.error("Error initializing today's data:", error);
+    }
   }, []);
   
   // Generate volume data based on metric type
-  const generateTodayVolumeDataForMetric = (selectedMetric) => {
-    // Instead of generating random data, we'll use our consistent data
-    const metricData = getMetricData(
-      selectedMetric.id.replace('-', ''), // Convert ID format to match the data keys
-      'last7days',
-      PERIODS.DAILY
-    );
+  const generateTodayVolumeDataForMetric = (metricId) => {
+    // Find the metric based on the ID
+    const selectedMetric = baseMetrics.find(m => m.id === metricId) || baseMetrics[0];
     
-    // Get the most recent day's data
-    const latestData = metricData.currentData.length > 0 ? 
-      metricData.currentData[metricData.currentData.length - 1] : 0;
+    // Use exact value from standardizedMetrics
+    const baseValue = selectedMetric.isCurrency ? 
+      selectedMetric.baseCurrencyValue : 
+      selectedMetric.baseNumberValue;
     
     // Create hourly distribution based on typical business patterns
     const hourlyDistribution = [
@@ -476,18 +703,31 @@ const Dashboard = () => {
       
       let value;
       if (selectedMetric.isCurrency) {
-        value = latestData * ratio;
+        value = baseValue * ratio;
       } else if (selectedMetric.unit === 'percentage') {
-        value = latestData; // For percentages, use the same daily value
+        value = baseValue; // For percentages, use the same daily value
       } else {
         // For counts, distribute through the day
-        value = Math.round(latestData * ratio);
+        value = Math.round(baseValue * ratio);
       }
       
       return { hour: `${hour}:00`, value };
     });
     
-    return hourlyData;
+    // Convert hourly data to the format expected by the LineChart component
+    return {
+      labels: hourlyData.map(item => item.hour),
+      datasets: [{
+        label: selectedMetric.title,
+        data: hourlyData.map(item => item.value),
+        borderColor: STRIPE_PURPLE,
+        backgroundColor: STRIPE_PURPLE_LIGHT,
+        tension: 0.4,
+        pointRadius: 0,
+        borderWidth: 2,
+        fill: true
+      }]
+    };
   };
 
   // Generate realistic volume data for Today section - independent from overview controls
@@ -500,63 +740,127 @@ const Dashboard = () => {
     if (!volumeData || !volumeData.datasets || !volumeData.datasets[0] || !volumeData.datasets[0].data) {
       return '$0.00';
     }
-    const total = volumeData.datasets[0].data.reduce((sum, val) => sum + val, 0);
+    // Filter out null or undefined values before summing
+    const validData = volumeData.datasets[0].data.filter(val => val !== null && val !== undefined);
+    const total = validData.reduce((sum, val) => sum + val, 0);
     return formatCurrency(total);
   };
 
-  // Initialize today data - only called once
-  useEffect(() => {
+  // Generate chart data for metrics based on period and interval
+  const generateMetricChartData = (selectedMetric, period, interval, includeComparison = true) => {
     try {
-      const volumeData = generateTodayVolumeData();
-      if (volumeData && volumeData.datasets && volumeData.datasets[0]) {
-        setTodayData({
-          volume: calculateTodayVolume(volumeData),
-          volumeChart: volumeData
-        });
+      // Use the centralized data source
+      const metricId = selectedMetric.id.replace('-', ''); // Convert ID format
+      const metricData = getMetricData(metricId, period, interval);
+      
+      if (!metricData || !metricData.labels || !metricData.currentData) {
+        console.error("Invalid metric data for", metricId);
+        return {
+          labels: [],
+          datasets: [{
+            label: selectedMetric.title,
+            data: [],
+            borderColor: '#635bff',
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            pointRadius: 3,
+            borderWidth: 1.5
+          }]
+        };
       }
-    } catch (error) {
-      console.error("Error initializing today's data:", error);
-    }
-  }, []);
-  
-  // For the overview metrics, generate data based on selected time period and interval
-  const generateMetricChartData = (selectedMetric, period, interval) => {
-    // Use the centralized data source instead of generating random data
-    const metricId = selectedMetric.id.replace('-', ''); // Convert ID format
-    const metricData = getMetricData(metricId, period, interval);
-    
-    // Map the data to the format expected by the chart component
-    const chartData = {
-      labels: metricData.labels,
-      datasets: [
-        {
-          label: selectedMetric.title,
-          data: metricData.currentData,
-          borderColor: STRIPE_PURPLE,
+
+      // Ensure we have valid data points (convert nulls to zeros for better chart display)
+      const processedCurrentData = metricData.currentData.map(val => 
+        val === null || isNaN(val) ? 0 : parseFloat(val)
+      );
+      
+      // Map the data to the format expected by the chart component
+      const chartData = {
+        labels: metricData.labels,
+        datasets: [
+          {
+            label: selectedMetric.title,
+            data: processedCurrentData,
+            borderColor: '#635bff',
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2
+          }
+        ]
+      };
+
+      // If we have comparison data and it's enabled, add it as a second dataset
+      if (includeComparison && metricData.previousData && metricData.previousData.some(val => val !== null)) {
+        // Process previous data to replace nulls with zeros
+        const processedPreviousData = metricData.previousData.map(val => 
+          val === null || isNaN(val) ? 0 : parseFloat(val)
+        );
+        
+        chartData.datasets.push({
+          label: 'Previous period',
+          data: processedPreviousData,
+          borderColor: '#9ca3af',
           backgroundColor: 'transparent',
           tension: 0.4,
-          pointRadius: 0,
-          borderWidth: 1.5
-        }
-      ]
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderWidth: 1.5,
+          borderDash: [4, 4]
+        });
+      }
+      
+      return chartData;
+    } catch (error) {
+      console.error("Error generating chart data:", error);
+      // Return a minimal valid chart data structure
+      return {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+          label: selectedMetric.title,
+          data: [5, 10, 15, 12, 8, 9, 11], // Sample data
+          borderColor: '#635bff',
+          backgroundColor: 'transparent'
+        }]
+      };
+    }
+  };
+
+  // Handle dropdown item click
+  const handleMetricChange = (metricId) => {
+    setSelectedMetric(metricId);
+    setIsDropdownOpen(false);
+    
+    // Find the base metric data
+    const metric = baseMetrics.find(m => m.id === metricId);
+    if (!metric) return;
+    
+    // Generate new data for the selected metric
+    const newVolumeData = generateTodayVolumeDataForMetric(metricId);
+    
+    setTodayData({
+      // Use the exact value from the metric for consistency
+      volume: metric.isCurrency ? 
+        formatCurrency(metric.baseCurrencyValue) : 
+        formatNumber(metric.baseNumberValue),
+      volumeChart: newVolumeData
+    });
+  };
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
     };
     
-    // If we have comparison data, add it as a second dataset
-    if (metricData.previousData.some(val => val !== null)) {
-      chartData.datasets.push({
-        label: 'Previous period',
-        data: metricData.previousData,
-        borderColor: GRAY,
-        backgroundColor: 'transparent',
-        tension: 0.4,
-        pointRadius: 0,
-        borderWidth: 1.5,
-        borderDash: [4, 4]
-      });
-    }
-    
-    return chartData;
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   // Format currency with appropriate separation
   const formatCurrency = (value) => {
@@ -635,14 +939,15 @@ const Dashboard = () => {
   };
 
   // Handle tooltip display
-  const showTooltip = (event, metricId, chartData) => {
+  const handleShowTooltip = (event, metricId, chartData) => {
     // Ensure chartData and its properties exist
-    if (!chartData || !chartData.labels || !chartData.currentData) {
+    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.datasets[0]) {
       return;
     }
 
     const chartRect = event.currentTarget.getBoundingClientRect();
     const xPosition = event.clientX - chartRect.left;
+    const yPosition = event.clientY;
     const xRatio = xPosition / chartRect.width;
     const dataIndex = Math.floor(xRatio * chartData.labels.length);
     
@@ -650,76 +955,44 @@ const Dashboard = () => {
       const metric = metricData.find(m => m.id === metricId);
       if (!metric) return;
 
-      const currentValue = chartData.currentData[dataIndex];
-      if (currentValue === undefined) return;
+      const currentData = chartData.datasets[0].data;
+      if (!currentData || dataIndex >= currentData.length) return;
       
-      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong><br/>`;
-      tooltipContent += `<span class="current-value">Current: ${metric.isCurrency ? formatCurrency(currentValue) : formatNumber(currentValue)}</span><br/>`;
+      const currentValue = currentData[dataIndex];
       
-      // Make sure previousData exists and has a value at dataIndex before trying to use it
+      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
+      tooltipContent += `<div class="current-value">Current: ${metric.isCurrency ? formatCurrency(currentValue) : formatNumber(currentValue)}</div>`;
+      
+      // Check if we have a second dataset for comparison
       if (activeComparison !== 'no-comparison' && 
-          chartData.previousData && 
-          chartData.previousData[dataIndex] !== undefined) {
-        const previousValue = chartData.previousData[dataIndex];
-        tooltipContent += `<span class="previous-value">Previous: ${metric.isCurrency ? formatCurrency(previousValue) : formatNumber(previousValue)}</span>`;
+          chartData.datasets.length > 1 && 
+          chartData.datasets[1] && 
+          chartData.datasets[1].data && 
+          dataIndex < chartData.datasets[1].data.length) {
+        const previousValue = chartData.datasets[1].data[dataIndex];
+        tooltipContent += `<div class="previous-value">Previous: ${metric.isCurrency ? formatCurrency(previousValue) : formatNumber(previousValue)}</div>`;
       }
       
-      setTooltipState({
-        visible: true,
-        x: xPosition,
-        y: 0,
-        content: tooltipContent,
-        metricId
-      });
+      showTooltip(event.clientX, yPosition, tooltipContent, metricId);
     }
-  };
-
-  const hideTooltip = () => {
-    setTooltipState({
-      ...tooltipState,
-      visible: false
-    });
   };
 
   // Update metrics data when period or interval changes
   useEffect(() => {
     try {
-      // Adjust multipliers based on period
-      let periodMultiplier = 1;
-      switch(activePeriod) {
-        case 'last30days':
-          periodMultiplier = 4.2;
-          break;
-        case 'last90days':
-          periodMultiplier = 12.5;
-          break;
-        case 'thisYear':
-          periodMultiplier = 48;
-          break;
-        default:
-          periodMultiplier = 1;
-      }
-      
       // Generate updated metrics with chart data
       const updatedMetrics = baseMetrics.map(metric => {
-        const valueMultiplier = periodMultiplier * (
-          (activeInterval === 'weekly') ? 1.1 : 
-          (activeInterval === 'monthly') ? 1.2 : 1
-        );
-        
         // Get chart data first
-        const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
+        const chartData = generateMetricChartData(metric, activePeriod, activeInterval);
         
-        // Use the last data point for the current value
+        // Use the last data point for the current value if available
         let adjustedValue;
-        if (chartData.currentData && chartData.currentData.length > 0) {
+        if (chartData && chartData.datasets && chartData.datasets[0] && chartData.datasets[0].data && chartData.datasets[0].data.length > 0) {
           // Use the last point from the chart data
-          adjustedValue = chartData.currentData[chartData.currentData.length - 1];
+          adjustedValue = chartData.datasets[0].data[chartData.datasets[0].data.length - 1];
         } else {
           // Fall back to calculated value if chart data isn't available
-          adjustedValue = metric.isCurrency
-            ? metric.baseCurrencyValue * valueMultiplier
-            : Math.round(metric.baseNumberValue * valueMultiplier);
+          adjustedValue = metric.isCurrency ? metric.baseCurrencyValue : metric.baseNumberValue;
         }
         
         // Format the display value
@@ -732,18 +1005,16 @@ const Dashboard = () => {
         // Calculate trend value based on comparison data
         let trendVal = metric.trendValue;
         
-        if (chartData.previousData && chartData.previousData.length > 0 && chartData.currentData && chartData.currentData.length > 0) {
-          const currentValue = chartData.currentData[chartData.currentData.length - 1];
-          const previousValue = chartData.previousData[chartData.previousData.length - 1];
+        if (chartData && chartData.datasets && chartData.datasets.length > 1 && 
+            chartData.datasets[0].data && chartData.datasets[0].data.length > 0 && 
+            chartData.datasets[1].data && chartData.datasets[1].data.length > 0) {
+          const currentValue = chartData.datasets[0].data[chartData.datasets[0].data.length - 1];
+          const previousValue = chartData.datasets[1].data[chartData.datasets[1].data.length - 1];
           
           if (previousValue > 0) {
             const percentChange = ((currentValue - previousValue) / previousValue) * 100;
             trendVal = percentChange;
           }
-        } else if (activeComparison === 'previous-year') {
-          trendVal = trendVal * 1.5;
-        } else if (activeComparison === 'no-comparison') {
-          trendVal = 0;
         }
         
         return {
@@ -759,7 +1030,7 @@ const Dashboard = () => {
     } catch (error) {
       console.error("Error updating metrics data:", error);
     }
-  }, [activePeriod, activeInterval, activeComparison, navigate]);
+  }, [activePeriod, activeInterval, activeComparison, baseMetrics]);
 
   // Handle period change from reporting controls
   const handlePeriodChange = (period) => {
@@ -798,6 +1069,17 @@ const Dashboard = () => {
     });
     setMetricData(updatedMetrics);
   };
+
+  // Update the toggle effect to use the default metric IDs
+  useEffect(() => {
+    // Set initial toggle state: ON for default metrics, OFF for others
+    const initialSelectedMetrics = {};
+    Object.values(standardizedMetrics).forEach(metric => {
+      initialSelectedMetrics[metric.id] = defaultMetricIds.includes(metric.id);
+    });
+    
+    setSelectedMetrics(initialSelectedMetrics);
+  }, []);
 
   return (
     <DashboardContainer>
@@ -857,10 +1139,8 @@ const Dashboard = () => {
               <ChartHeader>
                 <div>
                   <ChartTitle>USD balance</ChartTitle>
-                  <NegativeValue>
-                    <MetricValue>-$71,431.76</MetricValue>
-                  </NegativeValue>
-                  <MetricTime>Your Stripe balance is negative. <Link to="/balances" style={{ color: STRIPE_PURPLE }}>Add funds</Link></MetricTime>
+                  <MetricValue>$184,506.24</MetricValue>
+                  <MetricTime>Available balance</MetricTime>
                 </div>
                 <ViewLink to="/balances">View</ViewLink>
               </ChartHeader>
@@ -870,7 +1150,7 @@ const Dashboard = () => {
               <ChartHeader>
                 <div>
                   <ChartTitle>Debits</ChartTitle>
-                  <MetricValue>$41.60</MetricValue>
+                  <MetricValue>$17,501.67</MetricValue>
                   <MetricTime>Debited Nov 24, 2024</MetricTime>
                 </div>
                 <ViewLink to="/transactions">View</ViewLink>
@@ -882,15 +1162,24 @@ const Dashboard = () => {
       
       <OverviewSection>
         <OverviewHeader>
-          <SectionTitle>Business overview</SectionTitle>
-          <ReportingControls 
-            initialPeriod={activePeriod}
-            initialInterval={activeInterval}
-            initialComparison={activeComparison}
-            onPeriodChange={handlePeriodChange}
-            onIntervalChange={handleIntervalChange}
-            onComparisonChange={handleComparisonChange}
-          />
+          <SectionTitle>Your overview</SectionTitle>
+          <ControlsContainer>
+            <ReportingControls 
+              initialPeriod={activePeriod}
+              initialInterval={activeInterval}
+              initialComparison={activeComparison}
+              onPeriodChange={handlePeriodChange}
+              onIntervalChange={handleIntervalChange}
+              onComparisonChange={handleComparisonChange}
+            />
+            <AddMetricsButton onClick={() => setIsMetricsOverlayOpen(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Add metrics
+            </AddMetricsButton>
+          </ControlsContainer>
         </OverviewHeader>
         
         <MetricsGrid>
@@ -922,31 +1211,101 @@ const Dashboard = () => {
               </MetricHeader>
               
               <MetricChartContainer 
-                onMouseMove={(e) => showTooltip(e, metric.id, metric.chartData)}
+                onMouseMove={(e) => handleShowTooltip(e, metric.id, metric.chartData)}
                 onMouseLeave={hideTooltip}
               >
                 <LineChart 
                   data={metric.chartData} 
-                  height={80} 
+                  height={160} 
                   showLegend={false} 
                   type="line" 
                   unit={metric.unit || 'currency'}
                 />
-                {tooltipState.visible && tooltipState.metricId === metric.id && (
-                  <Tooltip 
-                    className={tooltipState.visible ? 'visible' : ''}
-                    style={{ 
-                      left: `${tooltipState.x}px`,
-                      top: `${tooltipState.y}px` 
-                    }}
-                    dangerouslySetInnerHTML={{ __html: tooltipState.content }}
-                  />
-                )}
               </MetricChartContainer>
             </MetricCard>
           ))}
         </MetricsGrid>
       </OverviewSection>
+      <MetricsOverlay isOpen={isMetricsOverlayOpen}>
+        <MetricsModal>
+          <ModalHeader>
+            <ModalTitle>Choose which metrics to include on Home</ModalTitle>
+          </ModalHeader>
+          <ModalContent>
+            {Object.entries(metricCategories).map(([category, metricIds]) => {
+              const metricsInCategory = metricIds
+                .map(id => standardizedMetrics[id])
+                .filter(Boolean);
+                
+              if (metricsInCategory.length === 0) return null;
+              
+              return (
+                <MetricCategorySection key={category}>
+                  <CategoryTitle>{category}</CategoryTitle>
+                  <MetricsList>
+                    {metricsInCategory.map(metric => {
+                      const isSelected = selectedMetrics[metric.id];
+                      
+                      // Generate the chart data for the preview
+                      const chartData = generateMetricChartData(metric, activePeriod, activeInterval, true);
+                      
+                      return (
+                        <SelectableMetricCard 
+                          key={metric.id} 
+                          selected={isSelected}
+                          onClick={() => toggleMetricSelection(metric.id)}
+                        >
+                          <ToggleIconOverlay selected={isSelected}>
+                            {isSelected ? (
+                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 12L10 17L19 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </ToggleIconOverlay>
+                          
+                          <MetricTitle>{metric.title}</MetricTitle>
+                          <MetricValue style={{ fontSize: '18px' }}>
+                            {metric.isCurrency 
+                              ? formatCurrency(metric.baseCurrencyValue)
+                              : metric.unit === 'percentage'
+                                ? `${metric.baseNumberValue.toFixed(1)}%`
+                                : formatNumber(metric.baseNumberValue)
+                            }
+                          </MetricValue>
+                          
+                          <MetricPreview>
+                            <LineChart 
+                              data={chartData} 
+                              height={40} 
+                              showLegend={false} 
+                              type="line" 
+                              unit={metric.unit || 'currency'}
+                              simplified={true}
+                            />
+                          </MetricPreview>
+                        </SelectableMetricCard>
+                      );
+                    })}
+                  </MetricsList>
+                </MetricCategorySection>
+              );
+            })}
+          </ModalContent>
+          <ModalFooter>
+            <CancelButton onClick={() => setIsMetricsOverlayOpen(false)}>
+              Cancel
+            </CancelButton>
+            <ApplyButton onClick={handleApplyMetrics}>
+              Apply
+            </ApplyButton>
+          </ModalFooter>
+        </MetricsModal>
+      </MetricsOverlay>
     </DashboardContainer>
   );
 };

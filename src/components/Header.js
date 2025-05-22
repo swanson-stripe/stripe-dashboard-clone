@@ -142,9 +142,9 @@ const Header = () => {
       <AccountSection>
         <IconButton data-tooltip="Help">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-            <path d="M12 17.5V17.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-            <path d="M12 14V14C10.5 14 9.5 13 9.5 11.5V11.5C9.5 10 10.5 9 12 9V9C13.5 9 14.5 10 14.5 11.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 13.8214 2.48697 15.5291 3.33782 17L2.5 21.5L7 20.6622C8.47087 21.513 10.1786 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 16.5V16.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+            <path d="M12 13.5C12 13.5 12 13 12 12C12 10.5 13.5 10 13.5 8.5C13.5 7 12.5 6 11 6C9.5 6 8.5 7 8.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </IconButton>
         

@@ -6,8 +6,14 @@ import MetricDetail from './pages/MetricDetail';
 import MetricEditor from './pages/MetricEditor';
 import EmptyPage from './pages/EmptyPage';
 import BillingOverview from './pages/BillingOverview';
+import Metrics from './pages/Metrics';
+import Data from './pages/Data';
+import Reports from './pages/Reports';
+import ReportDetail from './pages/ReportDetail';
+import UserDetail from './pages/UserDetail';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import { TooltipProvider } from './components/GlobalTooltip';
 import './styles/App.css';
 import styled from 'styled-components';
 
@@ -68,59 +74,69 @@ function App() {
   const isEditorRoute = useMatch('/metrics/:metricId/edit');
 
   return (
-    <div className="app">
-      <DocumentTitle />
-      {!isEditorRoute && <Sidebar />}
-      <div className={`main-content ${isEditorRoute ? 'fullscreen' : ''}`}>
-        {!isEditorRoute && <Header />}
-        <LayoutGroup>
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
-              <Route path="/" element={<Dashboard />} />
-              
-              {/* Metrics Routes */}
-              <Route path="/metrics/:metricId" element={<MetricDetail />} />
-              <Route path="/metrics/:metricId/edit" element={<MetricEditor />} />
-              <Route path="/metric/:metricId" element={<MetricDetail />} />
-              
-              {/* Main Menu */}
-              <Route path="/balances" element={<EmptyPage title="Balances" />} />
-              <Route path="/transactions" element={<EmptyPage title="Transactions" />} />
-              <Route path="/customers" element={<EmptyPage title="Customers" />} />
-              <Route path="/products" element={<EmptyPage title="Product Catalog" />} />
-              
-              {/* Shortcuts */}
-              <Route path="/sigma" element={<EmptyPage title="Sigma" />} />
-              <Route path="/billing-overview" element={<EmptyPage title="Billing Overview" />} />
-              <Route path="/meters" element={<EmptyPage title="Meters" />} />
-              <Route path="/subscriptions" element={<EmptyPage title="Subscriptions" />} />
-              <Route path="/reports" element={<EmptyPage title="Reports" />} />
-              
-              {/* Products */}
-              <Route path="/connect" element={<EmptyPage title="Connect" />} />
-              <Route path="/payments" element={<EmptyPage title="Payments" />} />
-              <Route path="/billing-product" element={<EmptyPage title="Billing" />} />
-              <Route path="/reporting" element={<EmptyPage title="Reporting" />} />
-              <Route path="/more" element={<EmptyPage title="More" />} />
-              
-              {/* Bottom */}
-              <Route path="/developers" element={<EmptyPage title="Developers" />} />
-              <Route path="/settings" element={<EmptyPage title="Settings" />} />
-              
-              {/* Billing routes */}
-              <Route path="/billing/overview" element={<BillingOverview />} />
-              <Route path="/billing/subscriptions" element={<EmptyPage title="Subscriptions" />} />
-              <Route path="/billing/invoices" element={<EmptyPage title="Invoices" />} />
-              <Route path="/billing/usage-based" element={<EmptyPage title="Usage-based Billing" />} />
-              <Route path="/billing/revenue-recovery" element={<EmptyPage title="Revenue Recovery" />} />
-              
-              {/* Fallback route for any other paths */}
-              <Route path="*" element={<EmptyPage title="Page Not Found" subtitle="The page you're looking for doesn't exist." />} />
-            </Routes>
-          </AnimatePresence>
-        </LayoutGroup>
+    <TooltipProvider>
+      <div className="app">
+        <DocumentTitle />
+        {!isEditorRoute && <Sidebar />}
+        <div className={`main-content ${isEditorRoute ? 'fullscreen' : ''}`}>
+          {!isEditorRoute && <Header />}
+          <LayoutGroup>
+            <AnimatePresence mode="wait">
+              <Routes location={location} key={location.pathname}>
+                <Route path="/" element={<Dashboard />} />
+                
+                {/* Metrics Routes */}
+                <Route path="/metrics" element={<Metrics />} />
+                <Route path="/metrics/:metricId" element={<MetricDetail />} />
+                <Route path="/metrics/:metricId/edit" element={<MetricEditor />} />
+                <Route path="/metric/:metricId" element={<MetricDetail />} />
+                
+                {/* Data */}
+                <Route path="/data" element={<Data />} />
+                
+                {/* Reports */}
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/reports/:reportId" element={<ReportDetail />} />
+                <Route path="/users/:userId/:reportId" element={<UserDetail />} />
+                
+                {/* Main Menu */}
+                <Route path="/balances" element={<EmptyPage title="Balances" />} />
+                <Route path="/transactions" element={<EmptyPage title="Transactions" />} />
+                <Route path="/customers" element={<EmptyPage title="Customers" />} />
+                <Route path="/products" element={<EmptyPage title="Product Catalog" />} />
+                
+                {/* Shortcuts */}
+                <Route path="/sigma" element={<EmptyPage title="Sigma" />} />
+                <Route path="/billing-overview" element={<EmptyPage title="Billing Overview" />} />
+                <Route path="/meters" element={<EmptyPage title="Meters" />} />
+                <Route path="/subscriptions" element={<EmptyPage title="Subscriptions" />} />
+                
+                {/* Products */}
+                <Route path="/connect" element={<EmptyPage title="Connect" />} />
+                <Route path="/payments" element={<EmptyPage title="Payments" />} />
+                <Route path="/billing-product" element={<EmptyPage title="Billing" />} />
+                <Route path="/reporting" element={<EmptyPage title="Reporting" />} />
+                <Route path="/more" element={<EmptyPage title="More" />} />
+                
+                {/* Bottom */}
+                <Route path="/developers" element={<EmptyPage title="Developers" />} />
+                <Route path="/settings" element={<EmptyPage title="Settings" />} />
+                
+                {/* Billing routes */}
+                <Route path="/billing/overview" element={<BillingOverview />} />
+                <Route path="/billing/subscriptions" element={<EmptyPage title="Subscriptions" />} />
+                <Route path="/billing/invoices" element={<EmptyPage title="Invoices" />} />
+                <Route path="/billing/usage-based" element={<EmptyPage title="Usage" />} />
+                <Route path="/billing/revenue-recovery" element={<EmptyPage title="Revenue Recovery" />} />
+                
+                {/* Fallback route for any other paths */}
+                <Route path="*" element={<EmptyPage title="Page Not Found" subtitle="The page you're looking for doesn't exist." />} />
+              </Routes>
+            </AnimatePresence>
+          </LayoutGroup>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
 

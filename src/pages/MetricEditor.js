@@ -4,6 +4,7 @@ import styled from 'styled-components';
 // eslint-disable-next-line
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
+import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData';
 
 const EditorContainer = styled.div`
   display: flex;
@@ -960,8 +961,8 @@ const MetricEditor = () => {
       aggregation: 'sum',
       color: '#635bff',
       format: 'currency',
-      metricValue: '$25,650.45',
-      trendValue: 12.5,
+      metricValue: formatCurrency(standardizedMetrics['gross-volume'].baseCurrencyValue), // Use exact value from standardizedMetrics
+      trendValue: standardizedMetrics['gross-volume'].trendValue,
       chartType: 'area',
       timeRange: '14d',
       dataSource: 'stripe_payments',
@@ -976,8 +977,8 @@ const MetricEditor = () => {
       aggregation: 'sum',
       color: '#00c389',
       format: 'currency',
-      metricValue: '$20,650.45',
-      trendValue: 8.2,
+      metricValue: formatCurrency(standardizedMetrics['net-volume'].baseCurrencyValue), // Use exact value from standardizedMetrics
+      trendValue: standardizedMetrics['net-volume'].trendValue,
       chartType: 'area',
       timeRange: '14d',
       dataSource: 'stripe_payments',
@@ -992,8 +993,8 @@ const MetricEditor = () => {
       aggregation: 'count',
       color: '#0a84ff',
       format: 'number',
-      metricValue: '245',
-      trendValue: 4.7,
+      metricValue: String(standardizedMetrics['new-customers'].baseNumberValue), // Use exact value from standardizedMetrics
+      trendValue: standardizedMetrics['new-customers'].trendValue,
       chartType: 'bar',
       timeRange: '30d',
       dataSource: 'stripe_customers',

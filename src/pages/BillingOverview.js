@@ -64,6 +64,96 @@ const EditLayoutButton = styled.button`
   }
 `;
 
+// More options button with three dots
+const MoreOptionsButton = styled.button`
+  padding: 8px;
+  background-color: transparent;
+  color: var(--text-color);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+// Make section titles have the more options button appear on hover
+const SectionTitleContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  
+  &:hover ${MoreOptionsButton} {
+    opacity: 1;
+  }
+`;
+
+// Popover for section options
+const SectionOptionsPopoverStyled = styled.div`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 160px;
+  overflow: hidden;
+  display: ${props => props.isOpen ? 'block' : 'none'};
+`;
+
+// Create a forwardRef component for the popover
+const SectionOptionsPopover = React.forwardRef((props, ref) => {
+  return <SectionOptionsPopoverStyled {...props} ref={ref} />;
+});
+
+const PopoverItem = styled.div`
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: #f5f7fa;
+  }
+`;
+
+// Replace EditLayoutButton inheritance with direct styling
+const ConfigureMetricsButton = styled.button`
+  padding: 8px 12px;
+  background-color: white;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
 const TabsContainer = styled.div`
   display: flex;
   border-bottom: 1px solid var(--border-color);
@@ -89,68 +179,6 @@ const Tab = styled.button`
 
 const ControlsContainer = styled.div`
   margin-bottom: 32px;
-`;
-
-const ControlsRow = styled.div`
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-`;
-
-const ControlButton = styled.button`
-  padding: 8px 16px;
-  background-color: ${props => props.active ? STRIPE_PURPLE : 'white'};
-  color: ${props => props.active ? 'white' : 'var(--text-secondary)'};
-  border: 1px solid ${props => props.active ? STRIPE_PURPLE : 'var(--border-color)'};
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: ${props => props.active ? STRIPE_PURPLE : 'rgba(0, 0, 0, 0.04)'};
-  }
-`;
-
-const ControlLabel = styled.div`
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-`;
-
-const ControlGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  
-  button {
-    border-radius: 0;
-    
-    &:first-child {
-      border-top-left-radius: 6px;
-      border-bottom-left-radius: 6px;
-    }
-    
-    &:last-child {
-      border-top-right-radius: 6px;
-      border-bottom-right-radius: 6px;
-    }
-    
-    &:not(:last-child) {
-      border-right: none;
-    }
-  }
-`;
-
-const ComparisonSelect = styled.select`
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background-color: white;
-  font-size: 14px;
 `;
 
 const MetricsGrid = styled.div`
@@ -1037,6 +1065,55 @@ const ExpandedMetricContainer = styled.div`
 // Add the quartile lines color
 const QUARTILE_COLOR = '#D8DEE4';
 
+// Create a reusable SectionHeader component
+const SectionHeader = ({ id, title, isActive, onOptionsClick, onActionClick, optionsRef }) => {
+  return (
+    <SectionTitleContainer>
+      <SectionTitle>{title}</SectionTitle>
+      <MoreOptionsButton onClick={(e) => onOptionsClick(id, e)}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="3" r="1.5" fill="#474E5A" />
+          <circle cx="8" cy="8" r="1.5" fill="#474E5A" />
+          <circle cx="8" cy="13" r="1.5" fill="#474E5A" />
+        </svg>
+      </MoreOptionsButton>
+      {isActive && (
+        <SectionOptionsPopover isOpen={true} ref={isActive ? optionsRef : null}>
+          <PopoverItem onClick={(e) => onActionClick(id, 'moveUp', e)}>
+            Move up
+          </PopoverItem>
+          <PopoverItem onClick={(e) => onActionClick(id, 'moveDown', e)}>
+            Move down
+          </PopoverItem>
+          <PopoverItem onClick={(e) => onActionClick(id, 'hide', e)}>
+            Hide section
+          </PopoverItem>
+        </SectionOptionsPopover>
+      )}
+    </SectionTitleContainer>
+  );
+};
+
+// Add a new styled component for the small anomaly icon
+const SmallAnomalyIcon = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: 18px;
+  padding: 0 4px;
+  margin-left: 6px;
+  background-color: #f0ecff;
+  border-radius: 4px;
+  color: ${STRIPE_PURPLE};
+  
+  svg {
+    width: 12px;
+    height: 12px;
+    margin-right: 2px;
+  }
+`;
+
 const BillingOverview = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1062,18 +1139,89 @@ const BillingOverview = () => {
   });
   // Add state for active benchmark
   const [activeBenchmark, setActiveBenchmark] = useState('mrr-growth-rate');
+  // Add state for section options popover
+  const [activeSectionOptions, setActiveSectionOptions] = useState(null);
+  // Ref for detecting clicks outside popover
+  const sectionOptionsRef = useRef(null);
+  
+  // State for metrics configuration modal and settings
+  const [isConfigureMetricsOpen, setIsConfigureMetricsOpen] = useState(false);
+  const [metricsSettings, setMetricsSettings] = useState({
+    subtractRecurringDiscounts: false,
+    subtractOneTimeDiscounts: true,
+    countCanceledSubscriptions: 'immediately',
+    countSubscriptionsActive: 'at_subscription_start'
+  });
+
+  // Update the anomaly indicator styling to increase spacing and prevent overlap
+  const AnomalyIndicator = styled.div`
+    position: absolute;
+    top: 20px;
+    right: 100px; // Increase spacing from the right to avoid overlapping with Explore button
+    display: flex;
+    align-items: center;
+    background-color: #f0ecff;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: ${STRIPE_PURPLE};
+    z-index: 1; // Ensure it appears above other elements
+  `;
+
+  // Update the hasAnomaly function to check specifically for both revenue and usage overage IDs
+  const hasAnomaly = (metricId) => {
+    // Check for both overage-revenue and usage-overage-revenue IDs
+    return metricId === 'overage-revenue' || metricId === 'usage-overage-revenue';
+  };
+
+  // Update the generateAnomalyHighlight function to create proper highlighting
+  const generateAnomalyHighlight = (chartData, metricId) => {
+    if (!hasAnomaly(metricId) || !chartData || !chartData.datasets || !chartData.datasets[0] || !chartData.datasets[0].data) {
+      return chartData;
+    }
+    
+    // Make a deep copy of the chart data to avoid mutations
+    const chartDataCopy = JSON.parse(JSON.stringify(chartData));
+    
+    // Get the number of data points
+    const dataLength = chartDataCopy.datasets[0].data.length;
+    
+    // Only proceed if there are at least 2 data points
+    if (dataLength < 2) return chartDataCopy;
+    
+    // Create a new dataset for the highlighted area (last two intervals)
+    const highlightData = Array(dataLength).fill(null);
+    
+    // Set the last two points to match the current data
+    highlightData[dataLength - 2] = chartDataCopy.datasets[0].data[dataLength - 2];
+    highlightData[dataLength - 1] = chartDataCopy.datasets[0].data[dataLength - 1];
+    
+    // Add the highlight dataset
+    chartDataCopy.datasets.push({
+      label: 'Anomaly Highlight',
+      data: highlightData,
+      backgroundColor: 'rgba(99, 91, 255, 0.15)',
+      borderColor: 'transparent',
+      pointRadius: 0,
+      fill: true,
+      order: chartDataCopy.datasets.length + 1
+    });
+    
+    return chartDataCopy;
+  };
 
   // Helper functions for value formatting
   const formatCurrency = useCallback((value) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(value);
   }, []);
 
-  // Add a new formatter for metrics that should display cents
+  // @deprecated - Use formatCurrency instead, which now displays cents by default
   const formatCurrencyWithCents = useCallback((value) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -1091,42 +1239,30 @@ const BillingOverview = () => {
     return new Intl.NumberFormat('en-US').format(value);
   }, []);
 
-  // Define handleShowTooltip before it's used by other functions
+  // Enhanced tooltip handler for charts
   const handleShowTooltip = useCallback((event, metricId, chartData) => {
-    // Skip processing if we don't have valid chart data
-    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.datasets.length) {
-      return;
+    // Get the y position, adjusting if too close to the bottom of the window
+    let yPosition = event.clientY;
+    if (event.clientY > window.innerHeight - 200) {
+      yPosition = window.innerHeight - 200;
     }
+    
+    // Calculate which data point we're hovering over
+    const chartBounds = event.currentTarget.getBoundingClientRect();
+    const mouseX = event.clientX - chartBounds.left;
+    const chartWidth = chartBounds.width;
+    const dataPointWidth = chartWidth / chartData.labels.length;
+    const dataIndex = Math.min(
+      Math.floor(mouseX / dataPointWidth),
+      chartData.labels.length - 1
+    );
 
-    // Static ref for throttling that won't cause re-renders
-    if (!event.currentTarget) return;
-    
-    // Use a more aggressive throttle to prevent flickering
-    if (event.currentTarget._tooltipThrottleTimestamp && 
-        Date.now() - event.currentTarget._tooltipThrottleTimestamp < 100) {
-      return;
-    }
-    
-    // Update timestamp instead of using a timeout
-    event.currentTarget._tooltipThrottleTimestamp = Date.now();
-    
-    const chartRect = event.currentTarget.getBoundingClientRect();
-    const xPosition = event.clientX - chartRect.left;
-    const yPosition = event.clientY;
-    const xRatio = xPosition / chartRect.width;
-    const dataIndex = Math.floor(xRatio * chartData.labels.length);
-    
-    if (dataIndex < 0 || dataIndex >= chartData.labels.length) {
-      return;
-    }
-    
-    // For Total Revenue or other custom metrics, use the metric directly from standardizedMetrics or create a temporary one
+    // Get the metric details
     let metric;
     if (metricId === 'total-revenue') {
       metric = {
         id: 'total-revenue',
-        title: 'Total revenue',
-        isCurrency: true,
+        title: 'Total Revenue',
         unit: 'currency',
         showCents: true
       };
@@ -1151,10 +1287,9 @@ const BillingOverview = () => {
         const value = dataset.data[dataIndex];
         if (value > 0) { // Only show non-zero values
           hasValidData = true;
-          // Use formatCurrencyWithCents for revenue metrics
+          // Use formatCurrency for all values
           const formattedValue = metric.unit === 'currency' ? 
-            (metric.showCents || dataset.label.includes('Usage') ? formatCurrencyWithCents(value) : formatCurrency(value)) : 
-            formatNumber(value);
+            formatCurrency(value) : formatNumber(value);
           
           // Determine color based on dataset
           let color;
@@ -1180,7 +1315,7 @@ const BillingOverview = () => {
         return acc + (dataset.data[dataIndex] || 0);
       }, 0);
       
-      tooltipContent += `<div style="margin-top: 4px; font-weight: 600;">Total: ${formatCurrencyWithCents(total)}</div>`;
+      tooltipContent += `<div style="margin-top: 4px; font-weight: 600;">Total: ${formatCurrency(total)}</div>`;
       
       showTooltip(event.clientX, yPosition, tooltipContent, metricId);
     } else {
@@ -1198,12 +1333,7 @@ const BillingOverview = () => {
       let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
       
       if (metric.unit === 'currency' || metric.isCurrency) {
-        // Show cents for usage revenue and ARPU
-        if (metric.id === 'usage-revenue' || metric.id === 'arpu' || metric.showCents) {
-          tooltipContent += `<div class="current-value">Current: ${formatCurrencyWithCents(currentValue)}</div>`;
-        } else {
-          tooltipContent += `<div class="current-value">Current: ${formatCurrency(currentValue)}</div>`;
-        }
+        tooltipContent += `<div class="current-value">Current: ${formatCurrency(currentValue)}</div>`;
       } else if (metric.unit === 'percentage') {
         tooltipContent += `<div class="current-value">Current: ${formatPercentage(currentValue)}</div>`;
       } else {
@@ -1212,12 +1342,7 @@ const BillingOverview = () => {
       
       if (previousValue !== null && previousValue !== undefined) {
         if (metric.unit === 'currency' || metric.isCurrency) {
-          // Show cents for usage revenue and ARPU
-          if (metric.id === 'usage-revenue' || metric.id === 'arpu' || metric.showCents) {
-            tooltipContent += `<div class="previous-value">Previous: ${formatCurrencyWithCents(previousValue)}</div>`;
-          } else {
-            tooltipContent += `<div class="previous-value">Previous: ${formatCurrency(previousValue)}</div>`;
-          }
+          tooltipContent += `<div class="previous-value">Previous: ${formatCurrency(previousValue)}</div>`;
         } else if (metric.unit === 'percentage') {
           tooltipContent += `<div class="previous-value">Previous: ${formatPercentage(previousValue)}</div>`;
         } else {
@@ -1227,7 +1352,7 @@ const BillingOverview = () => {
       
       showTooltip(event.clientX, yPosition, tooltipContent, metricId);
     }
-  }, [formatCurrency, formatCurrencyWithCents, formatPercentage, formatNumber, metricData, showTooltip]);
+  }, [formatCurrency, formatPercentage, formatNumber, metricData, showTooltip]);
 
   // Create a shared throttled tooltip handler for trending metrics
   const throttledShowTooltip = useCallback((e, metricId, chartData) => {
@@ -1265,7 +1390,7 @@ const BillingOverview = () => {
       else if (period === 'last_6_months') pointCount = 24; // ~6 months of weeks
       else if (period === 'last_12_months') pointCount = 52; // ~1 year of weeks
       else if (period === 'year_to_date') {
-        const today = new Date();
+    const today = new Date();
         const startOfYear = new Date(today.getFullYear(), 0, 1);
         const diffTime = Math.abs(today - startOfYear);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -1274,21 +1399,21 @@ const BillingOverview = () => {
     }
     
     // Generate date labels based on interval
-    if (interval === 'daily') {
+      if (interval === 'daily') {
       const today = new Date();
       for (let i = pointCount - 1; i >= 0; i--) {
         const date = new Date();
         date.setDate(today.getDate() - i);
         labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
       }
-    } else if (interval === 'weekly') {
+      } else if (interval === 'weekly') {
       const today = new Date();
       for (let i = pointCount - 1; i >= 0; i--) {
         const date = new Date();
         date.setDate(today.getDate() - (i * 7));
         labels.push(`Week of ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
       }
-    } else if (interval === 'monthly') {
+      } else if (interval === 'monthly') {
       const today = new Date();
       for (let i = pointCount - 1; i >= 0; i--) {
         const date = new Date();
@@ -1307,7 +1432,35 @@ const BillingOverview = () => {
     };
     
     // Generate trend data based on metric type with stable random values
-    if (metric.isCurrency) {
+    if (metric.id === 'revenue-per-unit') {
+      // Special handling for revenue per unit to fluctuate around $0.75
+      const baseValue = 0.75;
+      
+      currentData = new Array(pointCount).fill(0).map((_, i) => {
+        // Generate values that fluctuate between $0.65 and $0.85
+        const fluctuation = (generateStableRandomValue(i, metric) * 0.2) - 0.1;
+        return baseValue + fluctuation;
+      });
+      
+      if (includePrevious) {
+        // Previous period data slightly lower
+        previousData = currentData.map((val, i) => val * 0.92 * (1 + ((generateStableRandomValue(i + 50, metric) * 0.06) - 0.03)));
+      }
+    } else if (metric.id === 'net-revenue-retention') {
+      // Special handling for net revenue retention to fluctuate around 104.5%
+      const baseValue = 104.5;
+      
+      currentData = new Array(pointCount).fill(0).map((_, i) => {
+        // Generate values that fluctuate between 102% and 107%
+        const fluctuation = (generateStableRandomValue(i, metric) * 5) - 2.5;
+        return baseValue + fluctuation;
+      });
+      
+      if (includePrevious) {
+        // Previous period data slightly lower
+        previousData = currentData.map((val, i) => val * 0.98 * (1 + ((generateStableRandomValue(i + 50, metric) * 0.04) - 0.02)));
+      }
+    } else if (metric.isCurrency) {
       // Handle currency metrics - general trend with some volatility
       const baseValue = metric.baseCurrencyValue;
       
@@ -1413,7 +1566,32 @@ const BillingOverview = () => {
     standardizedMetrics['mrr'],
     standardizedMetrics['mrr-growth'],
     standardizedMetrics['total-revenue'],
-    standardizedMetrics['net-volume']
+    standardizedMetrics['net-volume'],
+    // Add new hybrid MRR metric
+    {
+      id: 'hybrid-mrr',
+      title: 'Hybrid MRR',
+      description: 'Monthly recurring revenue from hybrid subscriptions',
+      baseCurrencyValue: 32450,
+      baseNumberValue: 32450,
+      isCurrency: true,
+      unit: 'currency',
+      trend: 'up',
+      trendValue: 3.8
+    },
+    // Add overage revenue metric
+    {
+      id: 'overage-revenue',
+      title: 'Overage revenue',
+      description: 'Revenue from usage exceeding included quotas',
+      baseCurrencyValue: 14750,
+      baseNumberValue: 14750,
+      isCurrency: true,
+      unit: 'currency',
+      trend: 'up',
+      trendValue: 14.8, // Updated to match the screenshot
+      hasAnomaly: true // Add flag to identify this metric for anomaly highlighting
+    }
   ], []);
 
   const baseGrowthMetrics = useMemo(() => [
@@ -1425,7 +1603,19 @@ const BillingOverview = () => {
     standardizedMetrics['trial-conversion-rate'],
     standardizedMetrics['new-trials'],
     standardizedMetrics['active-trials'],
-    standardizedMetrics['converted-trials']
+    standardizedMetrics['converted-trials'],
+    // Add net revenue retention metric
+    {
+      id: 'net-revenue-retention',
+      title: 'Net revenue retention',
+      description: 'Revenue from existing customers as a percentage of revenue 12 months ago',
+      baseCurrencyValue: 0,
+      baseNumberValue: 104.5,
+      isCurrency: false,
+      unit: 'percentage',
+      trend: 'up',
+      trendValue: 1.8
+    }
   ], []);
 
   const baseSubscribersMetrics = useMemo(() => [
@@ -1446,7 +1636,33 @@ const BillingOverview = () => {
 
   const baseUsageMetrics = useMemo(() => [
     standardizedMetrics['usage-revenue'],
-    standardizedMetrics['usage-count']
+    standardizedMetrics['usage-count'],
+    // Add overage revenue metric
+    {
+      id: 'usage-overage-revenue',
+      title: 'Overage revenue',
+      description: 'Revenue from usage exceeding included quotas',
+      baseCurrencyValue: 14750,
+      baseNumberValue: 14750,
+      isCurrency: true,
+      unit: 'currency',
+      trend: 'up',
+      trendValue: 14.8, // Updated to match the screenshot
+      hasAnomaly: true // Add flag to identify this metric for anomaly highlighting
+    },
+    // Add revenue per unit metric
+    {
+      id: 'revenue-per-unit',
+      title: 'Revenue per unit',
+      description: 'Average revenue generated per usage unit',
+      baseCurrencyValue: 0.75,
+      baseNumberValue: 0.75,
+      isCurrency: true,
+      unit: 'currency',
+      showCents: true,
+      trend: 'up',
+      trendValue: 2.1
+    }
   ], []);
 
   // Check for tab parameter in URL on component mount or when URL changes
@@ -1490,11 +1706,14 @@ const BillingOverview = () => {
         const chartData = generateMetricChartData(metric, activePeriod, activeInterval, activeComparison !== 'no-comparison');
         
         // Format the display value
-        const displayValue = metric.isCurrency
-          ? formatCurrency(metric.baseCurrencyValue)
-          : metric.unit === 'percentage'
-            ? formatPercentage(metric.baseNumberValue)
-            : formatNumber(metric.baseNumberValue);
+        let displayValue;
+        if (metric.isCurrency) {
+          displayValue = formatCurrency(metric.baseCurrencyValue);
+        } else if (metric.unit === 'percentage') {
+          displayValue = formatPercentage(metric.baseNumberValue);
+        } else {
+          displayValue = formatNumber(metric.baseNumberValue);
+        }
         
         return {
           ...metric,
@@ -1537,10 +1756,66 @@ const BillingOverview = () => {
     });
   }, [navigate, activeTab]);
 
+  // Add handler for Configure metrics button
+  const handleConfigureMetrics = useCallback(() => {
+    setIsConfigureMetricsOpen(true);
+  }, []);
+
+  // Handle saving metrics configuration
+  const handleSaveMetricsSettings = useCallback((newSettings) => {
+    setMetricsSettings(newSettings);
+    console.log('Updated metrics settings:', newSettings);
+    // In a real app, this would make a backend call to update settings
+  }, []);
+
+  // Handle opening section options popover
+  const handleSectionOptionsClick = useCallback((sectionId, event) => {
+    event.stopPropagation();
+    setActiveSectionOptions(prev => prev === sectionId ? null : sectionId);
+  }, []);
+
+  // Handle section actions
+  const handleSectionAction = useCallback((sectionId, action, event) => {
+    event.stopPropagation();
+    console.log(`Section ${sectionId}: ${action}`);
+    
+    // Close the popover after action
+    setActiveSectionOptions(null);
+    
+    // Implementation would handle actual section movement or hiding
+    // For now, just log the action
+  }, []);
+
+  // Close popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sectionOptionsRef.current && !sectionOptionsRef.current.contains(event.target)) {
+        setActiveSectionOptions(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   // Generate trending metrics for the summary tab
   useEffect(() => {
     // Use specific metrics as requested
-    const mrrGrowthRateMetric = standardizedMetrics['mrr-growth-rate'];
+    // const mrrGrowthRateMetric = standardizedMetrics['mrr-growth-rate'];
+    const overageRevenueMetric = {
+      id: 'overage-revenue',
+      title: 'Overage revenue',
+      description: 'Revenue from usage exceeding included quotas',
+      baseCurrencyValue: 14750,
+      baseNumberValue: 14750,
+      isCurrency: true,
+      unit: 'currency',
+      trend: 'up',
+      trendValue: 14.8, // Updated from 5.2 to match the screenshot
+      hasAnomaly: true // Add flag for anomaly detection
+    };
     const subscriberChurnRateMetric = standardizedMetrics['subscriber-churn-rate'];
     const usageRevenueMetric = standardizedMetrics['usage-revenue'];
     
@@ -1561,8 +1836,8 @@ const BillingOverview = () => {
       let prevData = [];
       const baseValue = metric.isCurrency ? metric.baseCurrencyValue : metric.baseNumberValue;
       
-      if (metric === mrrGrowthRateMetric) {
-        // Shape pattern: starts medium, drops, gradual rise with a final spike (like the example)
+      if (metric === overageRevenueMetric) {
+        // Shape pattern: starts medium, drops, gradual rise with a final spike
         const pattern = [1.0, 0.7, 0.5, 0.65, 0.8, 0.9, 0.85, 0.95, 0.9, 1.05, 1.1, 1.4];
         data = pattern.map(factor => baseValue * factor);
         // Previous period data (slightly lower values)
@@ -1610,13 +1885,12 @@ const BillingOverview = () => {
     };
     
     // Create metrics with stable chart data
-    const stableMetrics = [mrrGrowthRateMetric, subscriberChurnRateMetric, usageRevenueMetric].map(metric => {
+    const stableMetrics = [overageRevenueMetric, subscriberChurnRateMetric, usageRevenueMetric].map(metric => {
       const chartData = generateStableChartData(metric);
       
-      let displayValue, displayValueWithCents;
+      let displayValue;
       if (metric.isCurrency) {
         displayValue = formatCurrency(metric.baseCurrencyValue);
-        displayValueWithCents = formatCurrencyWithCents(metric.baseCurrencyValue);
       } else if (metric.unit === 'percentage') {
         displayValue = formatPercentage(metric.baseNumberValue);
       } else {
@@ -1629,60 +1903,85 @@ const BillingOverview = () => {
       return {
         ...metric,
         displayValue,
-        displayValueWithCents,
         trendDisplay,
         chartData
       };
     });
     
+    
     setTrendingMetrics(stableMetrics);
-  }, [formatCurrency, formatCurrencyWithCents, formatPercentage, formatNumber]);
+  }, [formatCurrency, formatPercentage, formatNumber]);
 
   // Render metric cards for each tab
   const renderMetricCards = useCallback(() => {
-    return metricData.map(metric => (
-      <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
-        <ExploreAction className="explore-action">
-          Explore
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </ExploreAction>
-        
-        <MetricHeader>
-          <MetricTitle>{metric.title}</MetricTitle>
-          <MetricValueRow>
-            <MetricValue>
-              {metric.value}
-              {metric.trend && (
-                <MetricTrend trend={metric.trend}>
-                  {metric.trend === 'up' ? '+' : '-'}{Math.abs(metric.trendValue).toFixed(2)}%
-                </MetricTrend>
-              )}
-            </MetricValue>
-          </MetricValueRow>
-        </MetricHeader>
-        
-        <MetricChartContainer
-          onMouseMove={(e) => throttledShowTooltip(e, metric.id, metric.chartData)}
-          onMouseLeave={hideTooltip}
-        >
-          <LineChart 
-            data={metric.chartData} 
-            height={160} 
-            showLegend={false}
-            unit={metric.unit}
-          />
-        </MetricChartContainer>
-      </MetricCard>
-    ));
-  }, [metricData, handleMetricClick, throttledShowTooltip, hideTooltip]);
+    return metricData.map(metric => {
+      const showAnomaly = hasAnomaly(metric.id);
+      
+      // Apply anomaly highlighting to the chart data if needed
+      const chartDataWithAnomaly = showAnomaly 
+        ? generateAnomalyHighlight(metric.chartData, metric.id)
+        : metric.chartData;
+      
+      return (
+        <MetricCard key={metric.id} onClick={() => handleMetricClick(metric)}>
+          {showAnomaly && (
+            <AnomalyIndicator>
+              <SparkleIcon>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 17L9 11L13 15L21 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M15 7H21V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </SparkleIcon>
+              Spiking
+            </AnomalyIndicator>
+          )}
+          <ExploreAction className="explore-action">
+            Explore
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </ExploreAction>
+          
+          <MetricHeader>
+            <MetricTitle>{metric.title}</MetricTitle>
+            <MetricValueRow>
+              <MetricValue>
+                {metric.value}
+                {metric.trend && (
+                  <MetricTrend trend={metric.trend}>
+                    {metric.trend === 'up' ? '+' : '-'}{Math.abs(metric.trendValue).toFixed(1)}%
+                  </MetricTrend>
+                )}
+              </MetricValue>
+            </MetricValueRow>
+          </MetricHeader>
+          
+          <MetricChartContainer
+            onMouseMove={(e) => throttledShowTooltip(e, metric.id, chartDataWithAnomaly)}
+            onMouseLeave={hideTooltip}
+          >
+            <LineChart 
+              data={chartDataWithAnomaly}
+              height={160} 
+              showLegend={false}
+              unit={metric.unit}
+              disableAnimation={true}
+            />
+          </MetricChartContainer>
+        </MetricCard>
+      );
+    });
+  }, [metricData, handleMetricClick, throttledShowTooltip, hideTooltip, generateAnomalyHighlight]);
 
   // Render trending metrics for summary tab
   const renderTrendingMetrics = useCallback(() => {
     return trendingMetrics.map(metric => {
       const metricKey = `trending-${metric.id}`;
+      const showAnomaly = hasAnomaly(metric.id);
+      
+      // Don't apply anomaly highlighting to chart data (remove area fill)
+      const chartData = metric.chartData;
       
       return (
         <TrendingCard key={metricKey} onClick={() => handleMetricClick(metric)}>
@@ -1694,18 +1993,28 @@ const BillingOverview = () => {
             </svg>
           </ExploreAction>
           
-          <TrendingTitle>{metric.title}</TrendingTitle>
+          <TrendingTitle>
+            {metric.title}
+            {showAnomaly && (
+              <SmallAnomalyIcon>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 17L9 11L13 15L21 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Spiking
+              </SmallAnomalyIcon>
+            )}
+          </TrendingTitle>
           <TrendingContent>
             <TrendingValueSection>
-              <TrendingValue>{metric.id === 'usage-revenue' ? metric.displayValueWithCents : metric.displayValue}</TrendingValue>
+              <TrendingValue>{metric.displayValue}</TrendingValue>
               <TrendingTrend trend={metric.trend}>{metric.trendDisplay}</TrendingTrend>
             </TrendingValueSection>
             <SparklineContainer
-              onMouseMove={(e) => throttledShowTooltip(e, metric.id, metric.chartData)}
+              onMouseMove={(e) => throttledShowTooltip(e, metric.id, chartData)}
               onMouseLeave={hideTooltip}
             >
               <LineChart 
-                data={metric.chartData} 
+                data={chartData} 
                 height={50} 
                 showLegend={false}
                 showAxes={false}
@@ -1717,7 +2026,7 @@ const BillingOverview = () => {
         </TrendingCard>
       );
     });
-  }, [trendingMetrics, handleMetricClick, throttledShowTooltip, hideTooltip]);
+  }, [trendingMetrics, handleMetricClick, throttledShowTooltip, hideTooltip, hasAnomaly]);
 
   // In the return statement, ensure chart data is properly structured for rendering
   const activityData = useMemo(() => ({
@@ -1739,8 +2048,8 @@ const BillingOverview = () => {
         const random = Math.abs(Math.sin(seed) * 10000);
         const factor = 0.85 + ((random % 0.3) * 0.3);
         return baseValue * factor;
-      });
-    };
+    });
+  };
 
     const mrrValue = 42500;
     const usageValue = 15800;
@@ -1969,29 +2278,24 @@ const BillingOverview = () => {
   
   // Enhanced tooltip handler for expanded benchmark charts
   const handleBenchmarkTooltip = useCallback((event, metricId, chartData) => {
-    // Skip processing if we don't have valid chart data
-    if (!chartData || !chartData.labels || !chartData.datasets || !chartData.datasets.length) {
-      return;
-    }
-
-    // Static ref for throttling that won't cause re-renders
-    if (!event.currentTarget) return;
-    
-    if (event.currentTarget._tooltipThrottleTimestamp && 
-        Date.now() - event.currentTarget._tooltipThrottleTimestamp < 100) {
-      return;
+    let yPosition = event.clientY;
+    if (event.clientY > window.innerHeight - 250) {
+      yPosition = window.innerHeight - 250;
     }
     
-    // Update timestamp instead of using a timeout
-    event.currentTarget._tooltipThrottleTimestamp = Date.now();
+    // Find the closest data point to the mouse position
+    const chartBounds = event.currentTarget.getBoundingClientRect();
+    const mouseX = event.clientX - chartBounds.left;
+    const chartWidth = chartBounds.width;
     
-    const chartRect = event.currentTarget.getBoundingClientRect();
-    const xPosition = event.clientX - chartRect.left;
-    const yPosition = event.clientY;
-    const xRatio = xPosition / chartRect.width;
-    const dataIndex = Math.floor(xRatio * chartData.labels.length);
+    // Calculate which data point is closest
+    const dataPointWidth = chartWidth / chartData.labels.length;
+    const dataIndex = Math.min(
+      Math.floor(mouseX / dataPointWidth),
+      chartData.labels.length - 1
+    );
     
-    if (dataIndex < 0 || dataIndex >= chartData.labels.length) {
+    if (dataIndex < 0) {
       return;
     }
     
@@ -2009,18 +2313,10 @@ const BillingOverview = () => {
     let formattedCompany, formattedTop, formattedMedian, formattedBottom;
     
     if (metric.isCurrency) {
-      // Use cents for ARPU
-      if (metric.id === 'arpu') {
-        formattedCompany = formatCurrencyWithCents(companyData);
-        formattedTop = formatCurrencyWithCents(topQuartileData);
-        formattedMedian = formatCurrencyWithCents(medianData);
-        formattedBottom = formatCurrencyWithCents(bottomQuartileData);
-      } else {
-        formattedCompany = formatCurrency(companyData);
-        formattedTop = formatCurrency(topQuartileData);
-        formattedMedian = formatCurrency(medianData);
-        formattedBottom = formatCurrency(bottomQuartileData);
-      }
+      formattedCompany = formatCurrency(companyData);
+      formattedTop = formatCurrency(topQuartileData);
+      formattedMedian = formatCurrency(medianData);
+      formattedBottom = formatCurrency(bottomQuartileData);
     } else if (metric.unit === 'percentage') {
       formattedCompany = formatPercentage(companyData);
       formattedTop = formatPercentage(topQuartileData);
@@ -2061,7 +2357,7 @@ const BillingOverview = () => {
     `;
     
     showTooltip(event.clientX, yPosition, tooltipContent, metricId);
-  }, [formatCurrency, formatCurrencyWithCents, formatPercentage, formatNumber, metricData, showTooltip, getPercentileForMetric]);
+  }, [formatCurrency, formatPercentage, formatNumber, metricData, showTooltip, getPercentileForMetric]);
   
   // Prepare benchmark metrics with sparkline and expanded chart data
   const benchmarkMetricsWithData = useMemo(() => {
@@ -2071,12 +2367,7 @@ const BillingOverview = () => {
       
       let displayValue;
       if (metric.isCurrency) {
-        // Use cents for ARPU
-        if (metric.id === 'arpu') {
-          displayValue = formatCurrencyWithCents(metric.baseCurrencyValue);
-        } else {
-          displayValue = formatCurrency(metric.baseCurrencyValue);
-        }
+        displayValue = formatCurrency(metric.baseCurrencyValue);
       } else if (metric.unit === 'percentage') {
         displayValue = formatPercentage(metric.baseNumberValue);
       } else {
@@ -2094,15 +2385,15 @@ const BillingOverview = () => {
         expandedChartData
       };
     });
-  }, [benchmarkMetrics, generateBenchmarkSparklineData, generateExpandedChartData, formatCurrency, formatCurrencyWithCents, formatPercentage, formatNumber, getPercentileForMetric]);
+  }, [benchmarkMetrics, generateBenchmarkSparklineData, generateExpandedChartData, formatCurrency, formatPercentage, formatNumber, getPercentileForMetric]);
   
   // Render benchmark sparklines - update to use new styled components
   const renderBenchmarkSparklines = useCallback(() => {
     return benchmarkMetricsWithData.map((metric, index) => {
       const isActive = activeBenchmark === metric.id;
       const isLast = index === benchmarkMetricsWithData.length - 1;
-      
-      return (
+
+          return (
         <BenchmarkSparklineCard 
           key={metric.id} 
           active={isActive}
@@ -2140,34 +2431,458 @@ const BillingOverview = () => {
     
     return (
       <ExpandedMetricContainer>
-        <MetricChartContainer
+          <MetricChartContainer 
           onMouseMove={(e) => handleBenchmarkTooltip(e, selectedMetric.id, selectedMetric.expandedChartData)}
           onMouseLeave={hideTooltip}
-        >
-          <LineChart 
+          >
+            <LineChart 
             data={selectedMetric.expandedChartData} 
             height={270} // Increased by 50% from 180px
-            showLegend={false}
+              showLegend={false}
             unit={selectedMetric.unit}
-          />
-        </MetricChartContainer>
+            />
+          </MetricChartContainer>
       </ExpandedMetricContainer>
     );
   }, [activeBenchmark, benchmarkMetricsWithData, handleBenchmarkTooltip, hideTooltip]);
+
+  // Create modal components for the Configure Metrics dialog
+  const ModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    z-index: 1000;
+    padding-top: 100px;
+  `;
+
+  const ModalDialog = styled.div`
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    max-width: 650px;
+    padding: 24px;
+    position: relative;
+  `;
+
+  const ModalHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  `;
+
+  const ModalTitle = styled.h2`
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+  `;
+
+  const CloseButton = styled.button`
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+    }
+  `;
+
+  const ModalSection = styled.div`
+    margin-bottom: 32px;
+  `;
+
+  const SectionTitle = styled.h3`
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+  `;
+
+  const SectionDescription = styled.p`
+    font-size: 14px;
+    color: #666;
+    margin: 0 0 16px 0;
+  `;
+
+  const LearnMoreLink = styled.a`
+    color: ${STRIPE_PURPLE};
+    text-decoration: none;
+    font-weight: 500;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  `;
+
+  const ToggleOption = styled.div`
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+  `;
+
+  const ToggleSwitch = styled.label`
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    margin-right: 12px;
+    
+    input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    span {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #e3e8ee;
+      transition: .3s;
+      border-radius: 34px;
+      
+      &:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+      }
+    }
+    
+    input:checked + span {
+      background-color: ${STRIPE_PURPLE};
+    }
+    
+    input:checked + span:before {
+      transform: translateX(20px);
+    }
+  `;
+
+  const ToggleLabel = styled.span`
+    font-size: 15px;
+  `;
+
+  const InfoIcon = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid #aaa;
+    color: #666;
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 8px;
+    cursor: help;
+  `;
+
+  // Update the SelectWrapper and related components for inline layout
+  const SelectWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+  `;
+
+  const SelectLabel = styled.div`
+    font-size: 15px;
+    margin-right: 16px;
+    white-space: nowrap;
+  `;
+
+  const StyledSelect = styled.div`
+    position: relative;
+    width: auto;
+    min-width: 180px;
+    flex-shrink: 0;
+  `;
+
+  const SelectButton = styled.button`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid #e3e8ee;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    
+    svg {
+      margin-left: 8px;
+    }
+  `;
+
+  const ModalFooter = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 24px;
+    gap: 12px;
+  `;
+
+  const CancelButton = styled.button`
+    padding: 10px 16px;
+    border: 1px solid #e3e8ee;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 14px;
+    cursor: pointer;
+    
+    &:hover {
+      background-color: #f7f9fc;
+    }
+  `;
+
+  // Update the ApplyButton styling
+  const ApplyButton = styled.button`
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    background-color: ${STRIPE_PURPLE};
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    
+    &:hover {
+      filter: brightness(0.95);
+    }
+  `;
+
+  // Add dropdown menu component for selects
+  const SelectDropdown = styled.div`
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    overflow: hidden;
+    border: 1px solid #e3e8ee;
+    display: ${props => props.isOpen ? 'block' : 'none'};
+  `;
+
+  const DropdownItem = styled.div`
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background-color: #f5f7fa;
+    }
+    
+    ${props => props.selected && `
+      background-color: ${STRIPE_PURPLE_LIGHT};
+      color: ${STRIPE_PURPLE};
+      font-weight: 500;
+    `}
+  `;
+
+  // ConfigureMetricsModal component
+  const ConfigureMetricsModal = ({ isOpen, onClose, settings, onSave }) => {
+    // Local state for form fields - move this BEFORE the conditional return
+    const [localSettings, setLocalSettings] = useState({ ...settings });
+    // State for tracking which dropdown is open
+    const [openDropdown, setOpenDropdown] = useState(null);
+    
+    // Close dropdowns when clicking outside - MOVE BEFORE THE CONDITIONAL RETURN
+    useEffect(() => {
+      if (!isOpen) return;
+      
+      const handleClickOutside = (event) => {
+        if (openDropdown && !event.target.closest('.select-container')) {
+          setOpenDropdown(null);
+        }
+      };
+      
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, [isOpen, openDropdown]);
+    
+    if (!isOpen) return null;
+    
+    const handleToggleChange = (field) => {
+      setLocalSettings({
+        ...localSettings,
+        [field]: !localSettings[field]
+      });
+    };
+    
+    const handleDropdownToggle = (dropdownName) => {
+      setOpenDropdown(openDropdown === dropdownName ? null : dropdownName);
+    };
+    
+    const handleDropdownSelect = (field, value) => {
+      setLocalSettings({
+        ...localSettings,
+        [field]: value
+      });
+      setOpenDropdown(null);
+    };
+    
+    const handleApply = () => {
+      onSave(localSettings);
+      onClose();
+    };
+    
+    // Define dropdown options
+    const canceledSubscriptionsOptions = [
+      { value: 'immediately', label: 'Immediately' },
+      { value: 'billing_period_end', label: 'At the billing period end' }
+    ];
+    
+    const subscriptionsActiveOptions = [
+      { value: 'at_subscription_start', label: 'At the subscription start' },
+      { value: 'first_payment_received', label: 'When the first payment is received' }
+    ];
+
+        return (
+      <ModalOverlay onClick={onClose}>
+        <ModalDialog onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalTitle>Configure metric calculations</ModalTitle>
+            <CloseButton onClick={onClose}>×</CloseButton>
+          </ModalHeader>
+          
+          <ModalSection>
+            <SectionTitle>Metrics calculation</SectionTitle>
+            <SectionDescription>
+              Changes will only affect MRR and churn metrics, and will reflect in 24-48 hours. <LearnMoreLink href="#">Learn More</LearnMoreLink>
+            </SectionDescription>
+            
+            <ToggleOption>
+              <ToggleSwitch>
+                <input 
+                  type="checkbox" 
+                  checked={localSettings.subtractRecurringDiscounts} 
+                  onChange={() => handleToggleChange('subtractRecurringDiscounts')}
+                />
+                <span></span>
+              </ToggleSwitch>
+              <ToggleLabel>Subtract recurring discounts from MRR</ToggleLabel>
+              <InfoIcon>?</InfoIcon>
+            </ToggleOption>
+            
+            <ToggleOption>
+              <ToggleSwitch>
+                <input 
+                  type="checkbox" 
+                  checked={localSettings.subtractOneTimeDiscounts} 
+                  onChange={() => handleToggleChange('subtractOneTimeDiscounts')}
+                />
+                <span></span>
+              </ToggleSwitch>
+              <ToggleLabel>Subtract one-time discounts from MRR</ToggleLabel>
+            </ToggleOption>
+            
+            <SelectWrapper>
+              <SelectLabel>Count canceled subscriptions as churn</SelectLabel>
+              <StyledSelect className="select-container">
+                <SelectButton onClick={() => handleDropdownToggle('canceled')}>
+                  {canceledSubscriptionsOptions.find(opt => opt.value === localSettings.countCanceledSubscriptions)?.label || 'Immediately'}
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6L8 10L12 6" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </SelectButton>
+                <SelectDropdown isOpen={openDropdown === 'canceled'}>
+                  {canceledSubscriptionsOptions.map(option => (
+                    <DropdownItem 
+                      key={option.value}
+                      selected={localSettings.countCanceledSubscriptions === option.value}
+                      onClick={() => handleDropdownSelect('countCanceledSubscriptions', option.value)}
+                    >
+                      {option.label}
+                    </DropdownItem>
+                  ))}
+                </SelectDropdown>
+              </StyledSelect>
+            </SelectWrapper>
+            
+            <SelectWrapper>
+              <SelectLabel>Count subscriptions as active</SelectLabel>
+              <StyledSelect className="select-container">
+                <SelectButton onClick={() => handleDropdownToggle('active')}>
+                  {subscriptionsActiveOptions.find(opt => opt.value === localSettings.countSubscriptionsActive)?.label || 'At the subscription start'}
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6L8 10L12 6" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </SelectButton>
+                <SelectDropdown isOpen={openDropdown === 'active'}>
+                  {subscriptionsActiveOptions.map(option => (
+                    <DropdownItem 
+                      key={option.value}
+                      selected={localSettings.countSubscriptionsActive === option.value}
+                      onClick={() => handleDropdownSelect('countSubscriptionsActive', option.value)}
+                    >
+                      {option.label}
+                    </DropdownItem>
+                  ))}
+                </SelectDropdown>
+              </StyledSelect>
+            </SelectWrapper>
+          </ModalSection>
+          
+          <ModalFooter>
+            <CancelButton onClick={onClose}>Cancel</CancelButton>
+            <ApplyButton onClick={handleApply}>Apply</ApplyButton>
+          </ModalFooter>
+        </ModalDialog>
+      </ModalOverlay>
+    );
+  };
+
+  const SparkleIcon = styled.span`
+    display: inline-flex;
+    margin-right: 6px;
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  `;
 
   return (
     <PageContainer>
       <HeaderContainer>
         <Title>Billing Overview</Title>
-        <EditLayoutButton>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="5" height="5" fill="#474E5A" />
-            <rect x="9" y="2" width="5" height="5" fill="#474E5A" />
-            <rect x="2" y="9" width="5" height="5" fill="#474E5A" />
-            <rect x="9" y="9" width="5" height="5" fill="#474E5A" />
-          </svg>
-          Edit layout
-        </EditLayoutButton>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <ConfigureMetricsButton onClick={handleConfigureMetrics}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7.25 1C7.25 0.586 7.586 0.25 8 0.25C8.414 0.25 8.75 0.586 8.75 1V1.634C9.704 1.748 10.608 2.079 11.408 2.592L11.834 2.166C12.129 1.871 12.605 1.871 12.9 2.166C13.196 2.462 13.196 2.937 12.9 3.232L12.475 3.658C12.988 4.458 13.319 5.362 13.433 6.316L14 6.316C14.414 6.316 14.75 6.652 14.75 7.066C14.75 7.48 14.414 7.816 14 7.816H13.433C13.319 8.77 12.988 9.674 12.475 10.474L12.9 10.9C13.196 11.196 13.196 11.671 12.9 11.966C12.605 12.262 12.129 12.262 11.834 11.966L11.408 11.54C10.608 12.054 9.704 12.384 8.75 12.498V13.132C8.75 13.546 8.414 13.882 8 13.882C7.586 13.882 7.25 13.546 7.25 13.132V12.498C6.296 12.384 5.392 12.054 4.592 11.54L4.166 11.966C3.871 12.262 3.395 12.262 3.1 11.966C2.804 11.671 2.804 11.196 3.1 10.9L3.525 10.474C3.012 9.674 2.681 8.77 2.567 7.816H2C1.586 7.816 1.25 7.48 1.25 7.066C1.25 6.652 1.586 6.316 2 6.316H2.567C2.681 5.362 3.012 4.458 3.525 3.658L3.1 3.232C2.804 2.937 2.804 2.462 3.1 2.166C3.395 1.871 3.871 1.871 4.166 2.166L4.592 2.592C5.392 2.079 6.296 1.748 7.25 1.634V1Z" stroke="#474E5A" stroke-width="1.3"/>
+              <circle cx="8" cy="7" r="2" stroke="#474E5A" stroke-width="1.3"/>
+            </svg>
+            Configure metrics
+          </ConfigureMetricsButton>
+          </div>
       </HeaderContainer>
 
       <TabsContainer>
@@ -2209,82 +2924,38 @@ const BillingOverview = () => {
         </Tab>
       </TabsContainer>
 
+      {/* Configure Metrics Modal */}
+      <ConfigureMetricsModal 
+        isOpen={isConfigureMetricsOpen}
+        onClose={() => setIsConfigureMetricsOpen(false)}
+        settings={metricsSettings}
+        onSave={handleSaveMetricsSettings}
+      />
+
       {/* Only show controls when not on summary tab */}
       {activeTab !== 'summary' && (
         <ControlsContainer>
-          <ControlsRow>
-            <ControlGroup>
-              <ControlLabel>Period</ControlLabel>
-              <ButtonGroup>
-                <ControlButton 
-                  active={activePeriod === 'last_3_months'} 
-                  onClick={() => handlePeriodChange('last_3_months')}
-                >
-                  Last 3 months
-                </ControlButton>
-                <ControlButton 
-                  active={activePeriod === 'last_6_months'} 
-                  onClick={() => handlePeriodChange('last_6_months')}
-                >
-                  Last 6 months
-                </ControlButton>
-                <ControlButton 
-                  active={activePeriod === 'last_12_months'} 
-                  onClick={() => handlePeriodChange('last_12_months')}
-                >
-                  Last 12 months
-                </ControlButton>
-                <ControlButton 
-                  active={activePeriod === 'year_to_date'} 
-                  onClick={() => handlePeriodChange('year_to_date')}
-                >
-                  Year to date
-                </ControlButton>
-              </ButtonGroup>
-            </ControlGroup>
-            
-            <ControlGroup>
-              <ControlLabel>Interval</ControlLabel>
-              <ButtonGroup>
-                <ControlButton 
-                  active={activeInterval === 'daily'} 
-                  onClick={() => handleIntervalChange('daily')}
-                >
-                  Daily
-                </ControlButton>
-                <ControlButton 
-                  active={activeInterval === 'weekly'} 
-                  onClick={() => handleIntervalChange('weekly')}
-                >
-                  Weekly
-                </ControlButton>
-                <ControlButton 
-                  active={activeInterval === 'monthly'} 
-                  onClick={() => handleIntervalChange('monthly')}
-                >
-                  Monthly
-                </ControlButton>
-              </ButtonGroup>
-            </ControlGroup>
-            
-            <ControlGroup>
-              <ControlLabel>Compare to</ControlLabel>
-              <ComparisonSelect 
-                value={activeComparison} 
-                onChange={(e) => handleComparisonChange(e.target.value)}
-              >
-                <option value="previous_period">Previous period</option>
-                <option value="previous_year">Previous year</option>
-                <option value="no-comparison">No comparison</option>
-              </ComparisonSelect>
-            </ControlGroup>
-          </ControlsRow>
+          <ReportingControls 
+            initialPeriod={activePeriod}
+            initialInterval={activeInterval}
+            initialComparison={activeComparison}
+            onPeriodChange={handlePeriodChange}
+            onIntervalChange={handleIntervalChange}
+            onComparisonChange={handleComparisonChange}
+          />
         </ControlsContainer>
       )}
       
       {activeTab === 'summary' && (
         <>
-          <SectionTitle>Trending metrics</SectionTitle>
+          <SectionHeader 
+            id="trending-metrics"
+            title="Trending metrics"
+            isActive={activeSectionOptions === 'trending-metrics'}
+            onOptionsClick={handleSectionOptionsClick}
+            onActionClick={handleSectionAction}
+            optionsRef={sectionOptionsRef}
+          />
           {trendingMetrics.length > 0 ? (
             <TrendingGrid>
               {renderTrendingMetrics()}
@@ -2297,61 +2968,84 @@ const BillingOverview = () => {
             </EmptySection>
           )}
           
-          <SectionTitle>Forecasting</SectionTitle>
+          <SectionHeader 
+            id="benchmarks"
+            title="Benchmarks"
+            isActive={activeSectionOptions === 'benchmarks'}
+            onOptionsClick={handleSectionOptionsClick}
+            onActionClick={handleSectionAction}
+            optionsRef={sectionOptionsRef}
+          />
+          <BenchmarkContainer>
+            <BenchmarkSparklineGrid>
+              {renderBenchmarkSparklines()}
+            </BenchmarkSparklineGrid>
+            
+            {activeBenchmark && renderExpandedBenchmarkChart()}
+          </BenchmarkContainer>
+          
+          <SectionHeader 
+            id="forecasting"
+            title="Forecasting revenue"
+            isActive={activeSectionOptions === 'forecasting'}
+            onOptionsClick={handleSectionOptionsClick}
+            onActionClick={handleSectionAction}
+            optionsRef={sectionOptionsRef}
+          />
           <TwoColumnLayout>
             <div>
               <StaticMetricCard>
                 <MetricHeader>
                   <MetricTitle>Total revenue</MetricTitle>
                   <MetricValue>
-                    {formatCurrencyWithCents(stableRevenueBarData.totalRevenue)}
+                    {formatCurrency(stableRevenueBarData.totalRevenue)}
                     <MetricTrend trend="up">+{stableRevenueBarData.totalTrendPercentage.toFixed(2)}%</MetricTrend>
                   </MetricValue>
                 </MetricHeader>
-                <ChartContainer
+        <ChartContainer
                   onMouseMove={(e) => throttledShowTooltip(e, 'total-revenue', stableRevenueBarData)}
-                  onMouseLeave={hideTooltip}
-                >
-                  <BarChart 
+          onMouseLeave={hideTooltip}
+        >
+          <BarChart
                     data={stableRevenueBarData} 
-                    height={180}
-                    options={{
-                      maintainAspectRatio: false,
-                      scales: {
-                        x: {
-                          grid: {
-                            display: false
-                          }
-                        },
-                        y: {
-                          beginAtZero: true,
-                          grid: {
-                            borderDash: [3, 3]
-                          },
-                          ticks: {
-                            callback: function(value) {
-                              return '$' + (value >= 1000 ? (value / 1000) + 'k' : value);
-                            }
-                          }
-                        }
-                      },
-                      plugins: {
-                        legend: {
-                          display: false
-                        },
-                        tooltip: {
-                          enabled: false
-                        }
-                      }
-                    }}
-                  />
-                </ChartContainer>
+            height={180}
+            options={{
+              maintainAspectRatio: false,
+              scales: {
+                x: {
+                  grid: {
+                    display: false
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  grid: {
+                    borderDash: [3, 3]
+                  },
+                  ticks: {
+                    callback: function(value) {
+                        return '$' + (value >= 1000 ? (value / 1000) + 'k' : value);
+                    }
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  enabled: false
+                }
+              }
+            }}
+          />
+        </ChartContainer>
                 {/* Add the legend */}
-                <Legend>
+        <Legend>
                   <LegendItem>
                     <LegendColor style={{ backgroundColor: STRIPE_PURPLE }} />
                     <LegendLabel>MRR</LegendLabel>
-                  </LegendItem>
+            </LegendItem>
                   <LegendItem>
                     <LegendColor style={{ backgroundColor: USAGE_BLUE }} />
                     <LegendLabel>Usage revenue</LegendLabel>
@@ -2360,7 +3054,7 @@ const BillingOverview = () => {
                     <LegendColor style={{ backgroundColor: 'white', border: `1px solid ${USAGE_BLUE}` }} />
                     <LegendLabel>Forecasted usage revenue</LegendLabel>
                   </LegendItem>
-                </Legend>
+        </Legend>
               </StaticMetricCard>
             </div>
             <div>
@@ -2370,15 +3064,6 @@ const BillingOverview = () => {
               />
             </div>
           </TwoColumnLayout>
-          
-          <SectionTitle>Benchmarks</SectionTitle>
-          <BenchmarkContainer>
-            <BenchmarkSparklineGrid>
-              {renderBenchmarkSparklines()}
-            </BenchmarkSparklineGrid>
-            
-            {activeBenchmark && renderExpandedBenchmarkChart()}
-          </BenchmarkContainer>
         </>
       )}
       

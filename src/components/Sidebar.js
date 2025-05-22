@@ -208,10 +208,9 @@ const Sidebar = () => {
         
         <NavItem to="/transactions" data-tooltip="Transactions">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17 3.99994L21 7.99994L17 11.9999" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M3 11.9999L21 11.9999" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M7 19.9999L3 15.9999L7 11.9999" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M21 15.9999L3 15.9999" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M18 8L22 12L18 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M6 16L2 12L6 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 12H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </NavItem>
         
@@ -263,22 +262,27 @@ const Sidebar = () => {
             <SubmenuItem to="/billing/overview">Overview</SubmenuItem>
             <SubmenuItem to="/billing/subscriptions">Subscriptions</SubmenuItem>
             <SubmenuItem to="/billing/invoices">Invoices</SubmenuItem>
-            <SubmenuItem to="/billing/usage-based">Usage-based</SubmenuItem>
+            <SubmenuItem to="/billing/usage-based">Usage</SubmenuItem>
             <SubmenuItem to="/billing/revenue-recovery">Revenue recovery</SubmenuItem>
           </Submenu>
         </NavItemWithSubmenu>
         
-        <NavItem 
-          to="/reporting" 
-          data-tooltip="Reporting" 
-          className={location.pathname.includes('/metrics') ? 'active' : ''}
+        <NavItemWithSubmenu 
+          className={location.pathname.includes('/reporting') || location.pathname.includes('/metrics') || location.pathname.includes('/reports') || location.pathname.includes('/data') ? 'active' : ''}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 20V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M12 20V4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M6 20V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-        </NavItem>
+          <SubmenuHoverArea />
+          <Submenu className="submenu">
+            <SubmenuTitle>Reporting</SubmenuTitle>
+            <SubmenuItem to="/reports">Reports</SubmenuItem>
+            <SubmenuItem to="/metrics">Metrics</SubmenuItem>
+            <SubmenuItem to="/data">Data</SubmenuItem>
+          </Submenu>
+        </NavItemWithSubmenu>
         
         <NavItem to="/more" data-tooltip="More">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

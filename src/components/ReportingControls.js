@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import { PERIODS } from '../data/companyData';
 
 const ControlsWrapper = styled.div`
   display: flex;
-  gap: 16px;
-  align-items: center;
   flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 `;
 
 const ChipLabel = styled.span`
@@ -44,12 +45,28 @@ const Chip = styled.div`
     border: 1px dashed #e3e8ee;
     background-color: transparent;
   `}
+  
+  ${props => props.isActiveFilter && `
+    background-color: #f0f0ff;
+    border: 1px solid rgba(99, 91, 255, 0.2);
+  `}
 `;
 
 const IconWrapper = styled.span`
   display: flex;
   align-items: center;
   margin-left: 6px;
+`;
+
+const RemoveIconWrapper = styled.span`
+  display: flex;
+  align-items: center;
+  margin-left: 6px;
+  cursor: pointer;
+  
+  &:hover {
+    color: var(--danger-color);
+  }
 `;
 
 const Popover = styled.div`
@@ -83,39 +100,36 @@ const PopoverItem = styled.div`
 
 // Period options
 const periodOptions = [
-  { value: 'last_7_days', label: 'Last 7 days' },
-  { value: 'last_30_days', label: 'Last 30 days' },
-  { value: 'last_3_months', label: 'Last 3 months' },
-  { value: 'last_6_months', label: 'Last 6 months' },
-  { value: 'last_12_months', label: 'Last 12 months' },
-  { value: 'year_to_date', label: 'Year to date' },
-  { value: 'all_time', label: 'All time' },
+  { value: 'last7days', label: 'Last 7 days' },
+  { value: 'last30days', label: 'Last 30 days' },
+  { value: 'last90days', label: 'Last 3 months' },
+  { value: 'thisYear', label: 'Year to date' },
+  { value: 'custom', label: 'Custom' }
 ];
 
 // Interval options
 const intervalOptions = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'yearly', label: 'Yearly' },
+  { value: PERIODS.DAILY, label: 'Daily' },
+  { value: PERIODS.WEEKLY, label: 'Weekly' },
+  { value: PERIODS.MONTHLY, label: 'Monthly' }
 ];
 
 // Comparison options
 const comparisonOptions = [
-  { value: 'none', label: 'No comparison' },
-  { value: 'previous_period', label: 'Previous period' },
-  { value: 'previous_year', label: 'Previous year' },
-  { value: 'custom', label: 'Custom period' },
+  { value: 'previous-period', label: 'Previous period' },
+  { value: 'previous-year', label: 'Previous year' },
+  { value: 'no-comparison', label: 'No comparison' }
 ];
 
 const ReportingControls = ({ 
-  initialPeriod = 'last_3_months',
+  initialPeriod = 'last7days', 
   initialInterval = 'daily', 
-  initialComparison = 'previous_period',
+  initialComparison = 'previous-period',
   onPeriodChange, 
-  onIntervalChange,
-  onComparisonChange
+  onIntervalChange, 
+  onComparisonChange,
+  filters = [],
+  onRemoveFilter
 }) => {
   // Find initial option objects
   const initialPeriodOption = periodOptions.find(option => option.value === initialPeriod) || periodOptions[0];
@@ -176,6 +190,26 @@ const ReportingControls = ({
     setComparison(option);
     setComparisonPopoverOpen(false);
     if (onComparisonChange) onComparisonChange(option.value);
+  };
+  
+  // Convert filter IDs to readable names
+  const getFilterDisplayName = (filterId) => {
+    switch (filterId) {
+      case 'developer-plan':
+        return 'Developer';
+      default:
+        return filterId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+  };
+  
+  // Get label for active filter
+  const getFilterLabel = (filterId) => {
+    switch (filterId) {
+      case 'developer-plan':
+        return 'Plan';
+      default:
+        return filterId.split('-')[0].charAt(0).toUpperCase() + filterId.split('-')[0].slice(1);
+    }
   };
   
   return (
@@ -245,7 +279,21 @@ const ReportingControls = ({
         </Popover>
       </Chip>
       
-      {/* Filter Chip */}
+      {/* Active Filter Chips */}
+      {filters.map(filter => (
+        <Chip key={filter} isActiveFilter={true}>
+          <ChipLabel>{getFilterLabel(filter)}</ChipLabel>
+          <ChipValue>{getFilterDisplayName(filter)}</ChipValue>
+          <RemoveIconWrapper onClick={() => onRemoveFilter(filter)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </RemoveIconWrapper>
+        </Chip>
+      ))}
+      
+      {/* Add Filter Chip */}
       <Chip isFilterChip={true}>
         <IconWrapper style={{ marginRight: '8px' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
