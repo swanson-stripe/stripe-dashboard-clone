@@ -2151,20 +2151,20 @@ const BillingOverview = () => {
           stack: 'stack1'
         },
         {
-          label: 'Forecasted usage revenue',
-          data: forecastedData,
+          label: 'Forecasted MRR',
+          data: forecastedMRR,
           backgroundColor: 'white',
-          borderColor: USAGE_BLUE,
+          borderColor: STRIPE_PURPLE,
           borderWidth: 1,
           barPercentage: 0.6,
           categoryPercentage: 0.8,
           stack: 'stack1'
         },
         {
-          label: 'Forecasted MRR',
-          data: forecastedMRR,
+          label: 'Forecasted usage revenue',
+          data: forecastedData,
           backgroundColor: 'white',
-          borderColor: STRIPE_PURPLE,
+          borderColor: USAGE_BLUE,
           borderWidth: 1,
           barPercentage: 0.6,
           categoryPercentage: 0.8,
@@ -3080,18 +3080,18 @@ const BillingOverview = () => {
                   <LegendItem>
                     <LegendColor style={{ backgroundColor: STRIPE_PURPLE }} />
                     <LegendLabel>MRR</LegendLabel>
-            </LegendItem>
+                  </LegendItem>
                   <LegendItem>
                     <LegendColor style={{ backgroundColor: USAGE_BLUE }} />
                     <LegendLabel>Usage revenue</LegendLabel>
                   </LegendItem>
                   <LegendItem>
-                    <LegendColor style={{ backgroundColor: 'white', border: `1px solid ${USAGE_BLUE}` }} />
-                    <LegendLabel>Forecasted usage revenue</LegendLabel>
-                  </LegendItem>
-                  <LegendItem>
                     <LegendColor style={{ backgroundColor: 'white', border: `1px solid ${STRIPE_PURPLE}` }} />
                     <LegendLabel>Forecasted MRR</LegendLabel>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendColor style={{ backgroundColor: 'white', border: `1px solid ${USAGE_BLUE}` }} />
+                    <LegendLabel>Forecasted usage revenue</LegendLabel>
                   </LegendItem>
         </Legend>
               </StaticMetricCard>
