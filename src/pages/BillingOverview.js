@@ -2109,14 +2109,22 @@ const BillingOverview = () => {
         forecastMultiplier += 0.08; // 8% for discounts
       }
       
-      forecastedData[5] = usageData[5] * forecastMultiplier;
+      // For June, set the forecasted usage to the same value as regular usage would be
+      // but assign it to forecasted instead
+      forecastedData[5] = usageData[5] * (1 + forecastMultiplier);
       
-      // For June, also forecast MRR (about 5% of June MRR)
-      forecastedMRR[5] = mrrData[5] * 0.05;
+      // For June, also move MRR to forecasted MRR plus add a growth factor
+      forecastedMRR[5] = mrrData[5] * 1.05; // 5% growth over the would-be MRR value
     }
     
+    // For June (index 5), zero out the regular MRR and usage since it hasn't happened yet
+    const finalMrrData = [...mrrData];
+    const finalUsageData = [...usageData];
+    finalMrrData[5] = 0;
+    finalUsageData[5] = 0;
+    
     // Calculate total revenue for display in the header (using the last month)
-    const totalRevenue = mrrData[5] + usageData[5] + forecastedData[5] + forecastedMRR[5];
+    const totalRevenue = forecastedMRR[5] + forecastedData[5]; // Only forecasted values for June
     const totalTrendPercentage = 5.2 + (forecastSettings.creditsEnabled ? 1.2 : 0) + (forecastSettings.discountsEnabled ? 0.8 : 0);
     
     return {
@@ -2124,7 +2132,7 @@ const BillingOverview = () => {
       datasets: [
         {
           label: 'MRR',
-          data: mrrData,
+          data: finalMrrData,
           backgroundColor: STRIPE_PURPLE,
           borderColor: STRIPE_PURPLE,
           borderWidth: 1,
@@ -2134,7 +2142,7 @@ const BillingOverview = () => {
         },
         {
           label: 'Usage revenue',
-          data: usageData,
+          data: finalUsageData,
           backgroundColor: USAGE_BLUE,
           borderColor: USAGE_BLUE,
           borderWidth: 1,
