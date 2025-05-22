@@ -4,6 +4,8 @@ import Modal, { ModalButton } from './Modal';
 
 const FormGroup = styled.div`
   margin-bottom: 24px;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const Label = styled.label`
@@ -33,6 +35,7 @@ const Input = styled.input`
   border-radius: 8px;
   outline: none;
   transition: border-color 0.2s;
+  box-sizing: border-box;
   
   &:focus {
     border-color: #635bff;
@@ -45,6 +48,8 @@ const ToggleContainer = styled.div`
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const ToggleButton = styled.button`
@@ -76,6 +81,7 @@ const Select = styled.select`
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 16px;
+  box-sizing: border-box;
   
   &:focus {
     border-color: #635bff;
@@ -89,6 +95,8 @@ const FrequencyOption = styled.div`
   cursor: pointer;
   margin-bottom: 8px;
   transition: all 0.2s;
+  width: 100%;
+  box-sizing: border-box;
   
   &:hover {
     border-color: #635bff;

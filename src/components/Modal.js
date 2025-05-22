@@ -19,9 +19,10 @@ const ModalContainer = styled(motion.div)`
   background-color: white;
   border-radius: 8px;
   width: 100%;
-  max-width: 560px;
+  max-width: 680px;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 `;
 
@@ -59,6 +60,8 @@ const CloseButton = styled.button`
 
 const ModalContent = styled.div`
   padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
 `;
 
 const ModalFooter = styled.div`
