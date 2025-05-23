@@ -5,7 +5,8 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import LineChart from '../components/LineChart';
 import BubbleChart from '../components/BubbleChart';
 import ReportingControls from '../components/ReportingControls';
-import { standardizedMetrics, CURRENT_KEY_METRICS } from '../data/companyData';
+import { CURRENT_KEY_METRICS } from '../data/companyData';
+import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
 import MerchantSegmentation from '../components/MerchantSegmentation';
 import BarChart from '../components/BarChart';
@@ -1118,6 +1119,7 @@ const BillingOverview = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { metrics: standardizedMetrics, getMetricById, getMetricChartData } = useMetrics();
   const [activeTab, setActiveTab] = useState('summary');
   const [activePeriod, setActivePeriod] = useState('last_3_months');
   const [activeInterval, setActiveInterval] = useState('daily');
@@ -1267,7 +1269,7 @@ const BillingOverview = () => {
         showCents: true
       };
     } else {
-      metric = metricData.find(m => m.id === metricId) || 
+      metric = getMetricById(metricId) || 
                standardizedMetrics[metricId] || 
                { id: metricId, title: 'Metric' };
     }
@@ -1352,7 +1354,7 @@ const BillingOverview = () => {
       
       showTooltip(event.clientX, yPosition, tooltipContent, metricId);
     }
-  }, [formatCurrency, formatPercentage, formatNumber, metricData, showTooltip]);
+  }, [formatCurrency, formatPercentage, formatNumber, getMetricById, showTooltip]);
 
   // Create a shared throttled tooltip handler for trending metrics
   const throttledShowTooltip = useCallback((e, metricId, chartData) => {
@@ -1821,67 +1823,8 @@ const BillingOverview = () => {
     
     // Create a stable set of data points with realistic shapes
     const generateStableChartData = (metric) => {
-      // Number of data points for the sparkline
-      const pointCount = 12;
-      const labels = [];
-      
-      // Create labels (these won't be shown but needed for chart.js)
-      for (let i = 0; i < pointCount; i++) {
-        labels.push(`P${i+1}`);
-      }
-      
-      // Generate realistic shapes that mimic the example image
-      // We'll use different patterns for each metric to simulate real-world data
-      let data = [];
-      let prevData = [];
-      const baseValue = metric.isCurrency ? metric.baseCurrencyValue : metric.baseNumberValue;
-      
-      if (metric === overageRevenueMetric) {
-        // Shape pattern: starts medium, drops, gradual rise with a final spike
-        const pattern = [1.0, 0.7, 0.5, 0.65, 0.8, 0.9, 0.85, 0.95, 0.9, 1.05, 1.1, 1.4];
-        data = pattern.map(factor => baseValue * factor);
-        // Previous period data (slightly lower values)
-        prevData = pattern.map(factor => baseValue * factor * 0.85);
-      } 
-      else if (metric === subscriberChurnRateMetric) {
-        // Shape pattern: starts low, spike in middle, drop, then gradual increase
-        const pattern = [0.8, 0.9, 1.0, 1.2, 1.3, 1.1, 0.9, 0.85, 0.95, 1.0, 1.05, 1.1];
-        data = pattern.map(factor => baseValue * factor);
-        // Previous period data (slightly higher values for churn - worse performance)
-        prevData = pattern.map(factor => baseValue * factor * 1.15);
-      }
-      else if (metric === usageRevenueMetric) {
-        // Shape pattern: zigzag with overall upward trend
-        const pattern = [0.85, 1.0, 0.9, 1.05, 0.95, 1.1, 1.0, 1.15, 1.05, 1.2, 1.1, 1.25];
-        data = pattern.map(factor => baseValue * factor);
-        // Previous period data (slightly lower values)
-        prevData = pattern.map(factor => baseValue * factor * 0.8);
-      }
-      
-      return {
-        labels,
-        datasets: [
-          {
-            data,
-            borderColor: STRIPE_PURPLE, // Use Stripe purple for all sparklines
-            backgroundColor: 'transparent',
-            tension: 0.2, // Less tension for more pronounced angles like in the example
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            borderWidth: 2
-          },
-          {
-            data: prevData,
-            borderColor: GRAY, // Gray for comparison line
-            backgroundColor: 'transparent',
-            tension: 0.2,
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            borderWidth: 1.5,
-            borderDash: [5, 5]
-          }
-        ]
-      };
+      // Use the consistent metric data from the context
+      return getMetricChartData(metric.id, activePeriod, activeInterval, activeComparison !== 'no-comparison');
     };
     
     // Create metrics with stable chart data
@@ -1910,7 +1853,7 @@ const BillingOverview = () => {
     
     
     setTrendingMetrics(stableMetrics);
-  }, [formatCurrency, formatPercentage, formatNumber]);
+  }, [formatCurrency, formatPercentage, formatNumber, activePeriod, activeInterval, activeComparison, getMetricChartData]);
 
   // Render metric cards for each tab
   const renderMetricCards = useCallback(() => {
@@ -2334,7 +2277,7 @@ const BillingOverview = () => {
       return;
     }
     
-    const metric = metricData.find(m => m.id === metricId) || 
+    const metric = getMetricById(metricId) || 
                   standardizedMetrics[metricId] || 
                   { id: metricId, title: 'Metric' };
     
@@ -2392,7 +2335,7 @@ const BillingOverview = () => {
     `;
     
     showTooltip(event.clientX, yPosition, tooltipContent, metricId);
-  }, [formatCurrency, formatPercentage, formatNumber, metricData, showTooltip, getPercentileForMetric]);
+  }, [formatCurrency, formatPercentage, formatNumber, getMetricById, showTooltip, getPercentileForMetric]);
   
   // Prepare benchmark metrics with sparkline and expanded chart data
   const benchmarkMetricsWithData = useMemo(() => {

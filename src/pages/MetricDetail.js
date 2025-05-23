@@ -4,7 +4,8 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
-import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData';
+import { PERIODS } from '../data/companyData';
+import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
 import MeterChart from '../components/MeterChart';
 import StackedBarChart from '../components/StackedBarChart';
@@ -639,6 +640,7 @@ const MetricDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { showTooltip, hideTooltip } = useTooltip();
+  const { metrics: standardizedMetrics, getMetricById, getMetricChartData } = useMetrics();
   
   // Get initial metric data - compute once with useMemo to prevent re-renders
   const baseMetric = useMemo(() => {
@@ -663,7 +665,7 @@ const MetricDetail = () => {
       source: 'dashboard',
       hasAnomaly: foundMetric.hasAnomaly || false
     };
-  }, [location.state, metricId]);
+  }, [location.state, metricId, standardizedMetrics]);
   
   // Function to check if metric has anomaly
   const hasAnomaly = useCallback(() => {
@@ -758,7 +760,7 @@ const MetricDetail = () => {
         ? 'overagerevenue' 
         : baseMetric.id.replace(/-/g, '');
       
-      const metricData = getMetricData(metricIdForData, reportingControls.period, reportingControls.interval);
+      const metricData = getMetricChartData(metricIdForData, reportingControls.period, reportingControls.interval);
       
       // Apply filters if any exist
       let filteredCurrentData = [...metricData.currentData];
@@ -836,24 +838,11 @@ const MetricDetail = () => {
     } catch (error) {
       console.error("Error generating chart data:", error);
       return { 
-        chartData: {
-          labels: [],
-          datasets: [
-            {
-              label: "No data",
-              data: [],
-              borderColor: '#635bff'
-            }
-          ]
-        },
-        metricValuesData: {
-          value: baseMetric.isCurrency ? baseMetric.baseCurrencyValue : baseMetric.baseNumberValue,
-          trendValue: baseMetric.trendValue || 0,
-          trend: baseMetric.trend || 'up'
-        }
+        chartData: { labels: [], datasets: [] }, 
+        metricValuesData: { value: 0, trendValue: 0, trend: 'up' } 
       };
     }
-  }, [baseMetric, reportingControls.period, reportingControls.interval, reportingControls.comparison, reportingControls.filters, hasAnomaly, generateAnomalyHighlight]);
+  }, [baseMetric, reportingControls, hasAnomaly, generateAnomalyHighlight, standardizedMetrics, getMetricChartData]);
   
   // Set the latestValues state once from the memoized data
   const [latestValues, setLatestValues] = useState(metricValuesData);

@@ -4,7 +4,8 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
-import { standardizedMetrics, getMetricData, PERIODS, metricCategories, defaultMetricIds } from '../data/companyData';
+import { PERIODS, metricCategories, defaultMetricIds } from '../data/companyData';
+import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
 import MeterChart from '../components/MeterChart';
 
@@ -592,6 +593,7 @@ const ExploreLink = styled.div`
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { metrics: standardizedMetrics, getMetricById, getMetricChartData } = useMetrics();
   const [dateRange, setDateRange] = useState({ 
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 
     endDate: new Date() 
@@ -770,7 +772,7 @@ const Dashboard = () => {
       }
       
       // Use the centralized data source
-      const metricData = getMetricData(metricId, period, interval);
+      const metricData = getMetricChartData(metricId, period, interval);
       
       if (!metricData || !metricData.labels || !metricData.currentData) {
         console.error("Invalid metric data for", metricId);
