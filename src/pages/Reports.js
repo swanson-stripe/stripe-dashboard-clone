@@ -2,13 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler } from 'chart.js';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
 // Styled components
 const PageContainer = styled(motion.div)`
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 24px 24px 24px 44px;
 `;
 
 const HeaderRow = styled.div`
@@ -60,6 +65,19 @@ const SectionTitle = styled.h2`
   font-size: 16px;
   font-weight: 600;
   margin: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+`;
+
+const ChevronIcon = styled.span`
+  display: inline-flex;
+  margin-right: 8px;
+  transition: transform 0.2s ease;
+  transform: ${props => props.expanded ? 'rotate(0deg)' : 'rotate(-90deg)'};
+  position: absolute;
+  left: -20px;
 `;
 
 const CarouselControls = styled.div`
@@ -83,7 +101,7 @@ const CarouselButton = styled.button`
   }
 `;
 
-const HighlightedGrid = styled.div`
+const TrendingGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
@@ -232,6 +250,11 @@ const TableHeaderCell = styled.th`
   }
 `;
 
+const SparklineHeaderCell = styled(TableHeaderCell)`
+  max-width: 120px;
+  width: 120px;
+`;
+
 const TableCell = styled.td`
   padding: 16px;
   font-size: 14px;
@@ -243,6 +266,27 @@ const ActionColumn = styled.td`
   padding: 16px;
   text-align: right;
   border-bottom: 1px solid #e3e8ee;
+`;
+
+const PinColumn = styled.td`
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid #e3e8ee;
+  width: 40px;
+`;
+
+const PinButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: ${props => props.pinned ? '#635bff' : '#6b7c93'};
+  
+  &:hover {
+    color: ${props => props.pinned ? '#5a51e5' : '#4f5e7b'};
+    background-color: #f7f9fc;
+  }
 `;
 
 const OptionsDots = styled.button`
@@ -293,8 +337,17 @@ const PaginationButton = styled.button`
   }
 `;
 
+// New styled component for sparkline
+const SparklineCell = styled(TableCell)`
+  max-width: 120px;
+  width: 120px;
+  height: 40px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+`;
+
 // Sample data
-const highlightedReports = [
+const trendingReports = [
   { id: 'churn-risk', title: 'Churn risk', value: '413', trend: 3.5, isNegative: true },
   { id: 'upsell-opportunities', title: 'Upsell opportunities', value: '875', trend: 6.7, isNegative: false },
   { id: 'revenue-composition', title: 'Revenue composition', value: '$56.4K', trend: 0.4, isNegative: false },
@@ -302,16 +355,16 @@ const highlightedReports = [
 ];
 
 const reportsList = [
-  { id: 'high-usage-growth', title: 'High usage growth', creator: 'You', dateCreated: 'Apr 17, 2025', lastUpdated: 'Today' },
-  { id: 'monthly-sales', title: 'Monthly sales', creator: 'kate@example.com', dateCreated: 'Mar 7, 2025', lastUpdated: 'Yesterday' },
-  { id: 'new-subscribers', title: 'New subscribers past 7 days', creator: 'You', dateCreated: 'Mar 6, 2025', lastUpdated: 'Today' },
-  { id: 'revenue-composition', title: 'Revenue composition', creator: 'Stripe', dateCreated: 'Jan 19, 2025', lastUpdated: 'Today' },
-  { id: 'weekly-churned', title: 'Weekly churned subscribers', creator: 'You', dateCreated: 'Nov 22, 2024', lastUpdated: 'May 5, 2025' },
-  { id: 'top-selling', title: 'Top selling products of the week', creator: 'kate@example.com', dateCreated: 'Nov 22, 2024', lastUpdated: 'May 1, 2025' },
-  { id: 'high-value', title: 'High value customers', creator: 'You', dateCreated: 'Oct 19, 2024', lastUpdated: 'Today' },
-  { id: 'new-products', title: 'New products adoption', creator: 'You', dateCreated: 'Jun 3, 2024', lastUpdated: 'May 1, 2025' },
-  { id: 'churn-risk', title: 'Churn risk', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025' },
-  { id: 'mrr-growth', title: 'MRR growth drivers', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025' },
+  { id: 'high-usage-growth', title: 'High usage growth', creator: 'You', dateCreated: 'Apr 17, 2025', lastUpdated: 'Today', sparklineData: [12, 19, 13, 15, 20, 18, 25] },
+  { id: 'monthly-sales', title: 'Monthly sales', creator: 'kate@example.com', dateCreated: 'Mar 7, 2025', lastUpdated: 'Yesterday', sparklineData: [24, 20, 25, 22, 21, 18, 19] },
+  { id: 'new-subscribers', title: 'New subscribers past 7 days', creator: 'You', dateCreated: 'Mar 6, 2025', lastUpdated: 'Today', sparklineData: [8, 9, 12, 14, 15, 18, 21] },
+  { id: 'revenue-composition', title: 'Revenue composition', creator: 'Stripe', dateCreated: 'Jan 19, 2025', lastUpdated: 'Today', sparklineData: [15, 17, 15, 14, 13, 15, 16] },
+  { id: 'weekly-churned', title: 'Weekly churned subscribers', creator: 'You', dateCreated: 'Nov 22, 2024', lastUpdated: 'May 5, 2025', sparklineData: [22, 19, 18, 16, 14, 12, 10] },
+  { id: 'top-selling', title: 'Top selling products of the week', creator: 'kate@example.com', dateCreated: 'Nov 22, 2024', lastUpdated: 'May 1, 2025', sparklineData: [10, 12, 14, 16, 18, 20, 22] },
+  { id: 'high-value', title: 'High value customers', creator: 'You', dateCreated: 'Oct 19, 2024', lastUpdated: 'Today', sparklineData: [30, 28, 30, 32, 30, 28, 30] },
+  { id: 'new-products', title: 'New products adoption', creator: 'You', dateCreated: 'Jun 3, 2024', lastUpdated: 'May 1, 2025', sparklineData: [5, 8, 10, 15, 20, 25, 30] },
+  { id: 'churn-risk', title: 'Churn risk', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025', sparklineData: [25, 22, 20, 18, 16, 15, 14] },
+  { id: 'mrr-growth', title: 'MRR growth drivers', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025', sparklineData: [10, 15, 20, 25, 30, 35, 40] },
 ];
 
 // Filter options
@@ -326,9 +379,23 @@ const Reports = () => {
   const [sortDirection, setSortDirection] = useState('desc');
   const [creatorFilter, setCreatorFilter] = useState('anyone');
   const [creatorPopoverOpen, setCreatorPopoverOpen] = useState(false);
+  const [pinnedReports, setPinnedReports] = useState([0, 1, 2]); // Store indices of pinned reports
+  const [expandedSections, setExpandedSections] = useState({
+    trending: true,
+    pinned: true,
+    all: true
+  });
   
   const creatorRef = useRef(null);
   const navigate = useNavigate();
+  
+  // Toggle section expansion
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
   
   // Close popovers when clicking outside
   useEffect(() => {
@@ -383,6 +450,52 @@ const Reports = () => {
     return 0;
   });
   
+  // Sparkline chart configuration
+  const getSparklineOptions = () => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: { enabled: false },
+        legend: { display: false }
+      },
+      scales: {
+        x: { display: false },
+        y: { display: false }
+      },
+      elements: {
+        point: { radius: 0 },
+        line: { tension: 0.4, borderWidth: 1.5 }
+      }
+    };
+  };
+  
+  const getSparklineData = (data) => {
+    return {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [
+        {
+          data: data,
+          borderColor: '#635bff',
+          backgroundColor: 'rgba(99, 91, 255, 0.1)',
+          fill: true
+        }
+      ]
+    };
+  };
+  
+  const handlePinToggle = (index, e) => {
+    e.stopPropagation(); // Prevent row click navigation
+    
+    setPinnedReports(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
+  };
+  
   return (
     <PageContainer
       initial={{ opacity: 0 }}
@@ -402,7 +515,14 @@ const Reports = () => {
       </HeaderRow>
       
       <SectionTitleRow>
-        <SectionTitle>Highlighted</SectionTitle>
+        <SectionTitle onClick={() => toggleSection('trending')}>
+          <ChevronIcon expanded={expandedSections.trending}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </ChevronIcon>
+          Trending
+        </SectionTitle>
         <CarouselControls>
           <CarouselButton>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -417,111 +537,231 @@ const Reports = () => {
         </CarouselControls>
       </SectionTitleRow>
       
-      <HighlightedGrid>
-        {highlightedReports.map(report => (
-          <HighlightCard key={report.id} as={Link} to={`/reports/${report.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <CardTitle>{report.title}</CardTitle>
-            <MetricValue>
-              {report.value}
-              <TrendIndicator trend={report.trend} isNegative={report.isNegative}>
-                {report.trend > 0 ? '+' : ''}{report.trend}%
-              </TrendIndicator>
-            </MetricValue>
-          </HighlightCard>
-        ))}
-      </HighlightedGrid>
+      {expandedSections.trending && (
+        <TrendingGrid>
+          {trendingReports.map(report => (
+            <HighlightCard key={report.id} as={Link} to={`/reports/${report.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <CardTitle>{report.title}</CardTitle>
+              <MetricValue>
+                {report.value}
+                <TrendIndicator trend={report.trend} isNegative={report.isNegative}>
+                  {report.trend > 0 ? '+' : ''}{report.trend}%
+                </TrendIndicator>
+              </MetricValue>
+            </HighlightCard>
+          ))}
+        </TrendingGrid>
+      )}
       
-      <SectionTitle>All reports</SectionTitle>
+      <SectionTitle onClick={() => toggleSection('pinned')}>
+        <ChevronIcon expanded={expandedSections.pinned}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ChevronIcon>
+        Pinned reports
+      </SectionTitle>
+      <div style={{ marginBottom: '12px' }}></div>
       
-      <FiltersRow>
-        <FilterChip 
-          ref={creatorRef} 
-          active={true} 
-          onClick={() => setCreatorPopoverOpen(!creatorPopoverOpen)}
-        >
-          {getCreatorLabel()}
-          <IconWrapper active={true}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {expandedSections.pinned && (
+        <ReportsTable>
+          <TableHead>
+            <tr>
+              <TableHeaderCell style={{ width: '40px' }}></TableHeaderCell>
+              <TableHeaderCell onClick={() => handleSort('title')}>
+                Title {getSortIcon('title')}
+              </TableHeaderCell>
+              <SparklineHeaderCell>
+                Last 7 days
+              </SparklineHeaderCell>
+              <TableHeaderCell onClick={() => handleSort('creator')}>
+                Created by {getSortIcon('creator')}
+              </TableHeaderCell>
+              <TableHeaderCell onClick={() => handleSort('dateCreated')}>
+                Date created {getSortIcon('dateCreated')}
+              </TableHeaderCell>
+              <TableHeaderCell onClick={() => handleSort('lastUpdated')}>
+                Last updated date {getSortIcon('lastUpdated')}
+              </TableHeaderCell>
+              <TableHeaderCell></TableHeaderCell>
+            </tr>
+          </TableHead>
+          <tbody>
+            {sortedReports
+              .filter((_, index) => pinnedReports.includes(index))
+              .map((report, idx) => {
+                const originalIndex = sortedReports.findIndex(r => r.id === report.id);
+                return (
+                  <tr 
+                    key={report.id} 
+                    onClick={() => navigate(`/reports/${report.id}`)}
+                  >
+                    <PinColumn onClick={(e) => e.stopPropagation()}>
+                      <PinButton 
+                        pinned={true}
+                        onClick={(e) => handlePinToggle(originalIndex, e)}
+                      >
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
+  </svg>
+                      </PinButton>
+                    </PinColumn>
+                    <TableCell>
+                      {report.title}
+                    </TableCell>
+                    <SparklineCell onClick={(e) => e.stopPropagation()}>
+                      <div style={{ width: '100%', height: '30px' }}>
+                        <Line
+                          data={getSparklineData(report.sparklineData)}
+                          options={getSparklineOptions()}
+                        />
+                      </div>
+                    </SparklineCell>
+                    <TableCell>{report.creator}</TableCell>
+                    <DateColumn>{report.dateCreated}</DateColumn>
+                    <DateColumn>{report.lastUpdated}</DateColumn>
+                    <ActionColumn onClick={(e) => e.stopPropagation()}>
+                      <OptionsDots>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                          <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
+                          <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+                        </svg>
+                      </OptionsDots>
+                    </ActionColumn>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </ReportsTable>
+      )}
+      
+      <div style={{ marginTop: '40px', marginBottom: '16px' }}>
+        <SectionTitle onClick={() => toggleSection('all')}>
+          <ChevronIcon expanded={expandedSections.all}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-          </IconWrapper>
-          <Popover isOpen={creatorPopoverOpen}>
-            {creatorOptions.map((option) => (
-              <PopoverItem
-                key={option.value}
-                className={creatorFilter === option.value ? 'active' : ''}
-                onClick={() => handleCreatorChange(option.value)}
-              >
-                {option.label}
-              </PopoverItem>
-            ))}
-          </Popover>
-        </FilterChip>
-        
-        <FilterChip outlined={true}>
-          <PlusIcon>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-              <path d="M12 8V16M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </PlusIcon>
-          Created date
-        </FilterChip>
-        
-        <FilterChip outlined={true}>
-          <PlusIcon>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-              <path d="M12 8V16M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </PlusIcon>
-          Filter
-        </FilterChip>
-      </FiltersRow>
+          </ChevronIcon>
+          All reports
+        </SectionTitle>
+      </div>
       
-      <ReportsTable>
-        <TableHead>
-          <tr>
-            <TableHeaderCell onClick={() => handleSort('title')}>
-              Title {getSortIcon('title')}
-            </TableHeaderCell>
-            <TableHeaderCell onClick={() => handleSort('creator')}>
-              Created by {getSortIcon('creator')}
-            </TableHeaderCell>
-            <TableHeaderCell onClick={() => handleSort('dateCreated')}>
-              Date created {getSortIcon('dateCreated')}
-            </TableHeaderCell>
-            <TableHeaderCell onClick={() => handleSort('lastUpdated')}>
-              Last updated date {getSortIcon('lastUpdated')}
-            </TableHeaderCell>
-            <TableHeaderCell></TableHeaderCell>
-          </tr>
-        </TableHead>
-        <tbody>
-          {sortedReports.map(report => (
-            <tr 
-              key={report.id} 
-              onClick={() => navigate(`/reports/${report.id}`)}
+      {expandedSections.all && (
+        <>
+          <FiltersRow>
+            <FilterChip 
+              ref={creatorRef} 
+              active={true} 
+              onClick={() => setCreatorPopoverOpen(!creatorPopoverOpen)}
             >
-              <TableCell>
-                {report.title}
-              </TableCell>
-              <TableCell>{report.creator}</TableCell>
-              <DateColumn>{report.dateCreated}</DateColumn>
-              <DateColumn>{report.lastUpdated}</DateColumn>
-              <ActionColumn onClick={(e) => e.stopPropagation()}>
-                <OptionsDots>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-                    <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
-                    <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
-                  </svg>
-                </OptionsDots>
-              </ActionColumn>
-            </tr>
-          ))}
-        </tbody>
-      </ReportsTable>
+              {getCreatorLabel()}
+              <IconWrapper active={true}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </IconWrapper>
+              <Popover isOpen={creatorPopoverOpen}>
+                {creatorOptions.map((option) => (
+                  <PopoverItem
+                    key={option.value}
+                    className={creatorFilter === option.value ? 'active' : ''}
+                    onClick={() => handleCreatorChange(option.value)}
+                  >
+                    {option.label}
+                  </PopoverItem>
+                ))}
+              </Popover>
+            </FilterChip>
+            
+            <FilterChip outlined={true}>
+              <PlusIcon>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <path d="M12 8V16M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </PlusIcon>
+              Created date
+            </FilterChip>
+            
+            <FilterChip outlined={true}>
+              <PlusIcon>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <path d="M12 8V16M8 12H16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </PlusIcon>
+              Filter
+            </FilterChip>
+          </FiltersRow>
+          
+          <ReportsTable>
+            <TableHead>
+              <tr>
+                <TableHeaderCell style={{ width: '40px' }}></TableHeaderCell>
+                <TableHeaderCell onClick={() => handleSort('title')}>
+                  Title {getSortIcon('title')}
+                </TableHeaderCell>
+                <SparklineHeaderCell>
+                  Last 7 days
+                </SparklineHeaderCell>
+                <TableHeaderCell onClick={() => handleSort('creator')}>
+                  Created by {getSortIcon('creator')}
+                </TableHeaderCell>
+                <TableHeaderCell onClick={() => handleSort('dateCreated')}>
+                  Date created {getSortIcon('dateCreated')}
+                </TableHeaderCell>
+                <TableHeaderCell onClick={() => handleSort('lastUpdated')}>
+                  Last updated date {getSortIcon('lastUpdated')}
+                </TableHeaderCell>
+                <TableHeaderCell></TableHeaderCell>
+              </tr>
+            </TableHead>
+            <tbody>
+              {sortedReports.map((report, index) => (
+                <tr 
+                  key={report.id} 
+                  onClick={() => navigate(`/reports/${report.id}`)}
+                >
+                  <PinColumn onClick={(e) => e.stopPropagation()}>
+                    <PinButton 
+                      pinned={pinnedReports.includes(index)}
+                      onClick={(e) => handlePinToggle(index, e)}
+                    >
+                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
+  </svg>
+                    </PinButton>
+                  </PinColumn>
+                  <TableCell>
+                    {report.title}
+                  </TableCell>
+                  <SparklineCell onClick={(e) => e.stopPropagation()}>
+                    <div style={{ width: '100%', height: '30px' }}>
+                      <Line
+                        data={getSparklineData(report.sparklineData)}
+                        options={getSparklineOptions()}
+                      />
+                    </div>
+                  </SparklineCell>
+                  <TableCell>{report.creator}</TableCell>
+                  <DateColumn>{report.dateCreated}</DateColumn>
+                  <DateColumn>{report.lastUpdated}</DateColumn>
+                  <ActionColumn onClick={(e) => e.stopPropagation()}>
+                    <OptionsDots>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                        <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
+                        <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+                      </svg>
+                    </OptionsDots>
+                  </ActionColumn>
+                </tr>
+              ))}
+            </tbody>
+          </ReportsTable>
+        </>
+      )}
       
       <Pagination>
         <div>10 of 52 results</div>

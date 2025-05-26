@@ -41,14 +41,15 @@ const NavItem = styled(NavLink)`
   justify-content: center;
   width: 40px;
   height: 40px;
-  color: var(--text-secondary);
+  color: #697386; /* Medium gray */
   margin: 2px 0;
   border-radius: 6px;
   position: relative;
   
   svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
   }
   
   &:hover {
@@ -74,7 +75,7 @@ const NavItem = styled(NavLink)`
   }
   
   &.active {
-    color: var(--primary-color);
+    color: #635bff; /* Purple */
     background-color: rgba(99, 91, 255, 0.08);
   }
 `;
@@ -85,15 +86,16 @@ const NavItemWithSubmenu = styled.div`
   justify-content: center;
   width: 40px;
   height: 40px;
-  color: var(--text-secondary);
+  color: #697386; /* Medium gray */
   margin: 2px 0;
   border-radius: 6px;
   position: relative;
   cursor: pointer;
   
   svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
   }
   
   &:hover {
@@ -105,7 +107,7 @@ const NavItemWithSubmenu = styled.div`
   }
   
   &.active {
-    color: var(--primary-color);
+    color: #635bff; /* Purple */
     background-color: rgba(99, 91, 255, 0.08);
   }
 `;
@@ -151,7 +153,7 @@ const Submenu = styled.div`
 const SubmenuTitle = styled.div`
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #697386; /* Medium gray */
   padding: 8px 16px;
   margin-bottom: 4px;
 `;
@@ -174,7 +176,7 @@ const ActiveIndicator = styled.div`
   left: 0;
   width: 2px;
   height: 24px;
-  background-color: var(--primary-color);
+  background-color: #635bff; /* Purple */
   border-radius: 0 2px 2px 0;
   transition: transform 0.2s ease;
 `;
@@ -182,6 +184,14 @@ const ActiveIndicator = styled.div`
 const Sidebar = () => {
   const location = useLocation();
   const [activeSubmenu, setActiveSubmenu] = useState(null);
+  
+  // Check if a specific section is active based on the current path
+  const isReportingActive = location.pathname.includes('/reporting') || 
+                           location.pathname.includes('/metrics') || 
+                           location.pathname.includes('/reports') || 
+                           location.pathname.includes('/explorer');
+  
+  const isBillingActive = location.pathname.includes('/billing');
   
   return (
     <SidebarContainer>
@@ -191,70 +201,58 @@ const Sidebar = () => {
       
       <NavigationSection>
         <NavItem to="/" end data-tooltip="Home">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21 19V9.3C21 8.9 20.9 8.6 20.7 8.3L12.7 2.2C12.3 1.9 11.7 1.9 11.3 2.2L3.3 8.3C3.1 8.6 3 8.9 3 9.3V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M3 16a2.5 2.5 0 0 1-2.5-2.5V5.548a2 2 0 0 1 .862-1.644L6.486.356A2 2 0 0 1 7.625 0h.75a2 2 0 0 1 1.139.356l5.124 3.548a2 2 0 0 1 .862 1.644V13.5A2.5 2.5 0 0 1 13 16H3Zm2-1.5H3a1 1 0 0 1-1-1V5.548a.5.5 0 0 1 .215-.411L7.34 1.589a.5.5 0 0 1 .285-.089h.75a.5.5 0 0 1 .285.089l5.125 3.548a.5.5 0 0 1 .215.41V13.5a1 1 0 0 1-1 1h-2V8a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v6.5Zm1.5 0h3v-6h-3v6Z"></path>
           </svg>
         </NavItem>
         
         <NavItem to="/balances" data-tooltip="Balances">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 9H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M7 15H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M11 15H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M15 15H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M1 2a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5A.75.75 0 0 1 1 2Zm0 8a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5A.75.75 0 0 1 1 10Zm2.25-4.75a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5ZM2.5 14a.75.75 0 0 1 .75-.75h4a.75.75 0 0 1 0 1.5h-4A.75.75 0 0 1 2.5 14Z"></path>
+            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M16 11.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Zm-1.5 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"></path>
           </svg>
         </NavItem>
         
         <NavItem to="/transactions" data-tooltip="Transactions">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18 8L22 12L18 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M6 16L2 12L6 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 12H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M9.714 6.693a.75.75 0 1 0 1.106 1.014l2.933-3.2a.75.75 0 0 0 0-1.013L10.82.294a.75.75 0 1 0-1.106 1.013l1.781 1.943H4.6A3.75 3.75 0 0 0 .85 7v.067a.75.75 0 1 0 1.5 0V7A2.25 2.25 0 0 1 4.6 4.75h6.895l-1.78 1.943ZM6.286 9.307A.75.75 0 0 0 5.18 8.293l-2.932 3.2a.75.75 0 0 0 0 1.014l2.932 3.2a.75.75 0 1 0 1.106-1.014l-1.78-1.942H11.4A3.75 3.75 0 0 0 15.15 9v-.067a.75.75 0 0 0-1.5 0V9a2.25 2.25 0 0 1-2.25 2.25H4.505l1.78-1.944Z"></path>
           </svg>
         </NavItem>
         
         <NavItem to="/customers" data-tooltip="Customers">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="8" r="5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M20 21C20 17.134 16.866 14 12 14C7.13401 14 4 17.134 4 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M2.5 14.4h11a.4.4 0 0 0 .4-.4 3.4 3.4 0 0 0-3.4-3.4h-5A3.4 3.4 0 0 0 2.1 14c0 .22.18.4.4.4Zm0 1.6h11a2 2 0 0 0 2-2 5 5 0 0 0-5-5h-5a5 5 0 0 0-5 5 2 2 0 0 0 2 2ZM8 6.4a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8ZM8 8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path>
           </svg>
         </NavItem>
         
         <NavItem to="/products" data-tooltip="Product catalog">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21 16.0001V8.00006C20.9996 7.6493 20.9071 7.30357 20.7315 7.00126C20.556 6.69895 20.3037 6.45066 20 6.30006L12 2.00006C11.696 1.84568 11.3511 1.76636 11 1.76636C10.6489 1.76636 10.304 1.84568 10 2.00006L2 6.30006C1.69626 6.45066 1.44398 6.69895 1.26846 7.00126C1.09294 7.30357 1.00036 7.6493 1 8.00006V16.0001C1.00036 16.3508 1.09294 16.6965 1.26846 16.9989C1.44398 17.3012 1.69626 17.5495 2 17.7001L10 22.0001C10.304 22.1544 10.6489 22.2338 11 22.2338C11.3511 22.2338 11.696 22.1544 12 22.0001L20 17.7001C20.3037 17.5495 20.556 17.3012 20.7315 16.9989C20.9071 16.6965 20.9996 16.3508 21 16.0001Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M7.973 0a2 2 0 0 0-.894.211L1.607 2.947A2 2 0 0 0 .5 4.737v6.568a2 2 0 0 0 1.052 1.761l4.782 2.575A3 3 0 0 0 7.757 16h.488a3 3 0 0 0 1.422-.359l4.781-2.575a2 2 0 0 0 1.052-1.76v-6.57a2 2 0 0 0-1.105-1.789L8.922.211A2 2 0 0 0 8.03 0h-.056ZM14 11.306V5.62L8.75 8.448v5.964c.07-.025.14-.056.206-.091l4.781-2.575a.5.5 0 0 0 .263-.44ZM8.252 1.553l5.257 2.629-2.06 1.109-5.38-2.898 1.68-.84a.5.5 0 0 1 .224-.053h.056a.5.5 0 0 1 .223.053ZM4.756 3.05 2.491 4.182 8 7.148l2.184-1.176L4.756 3.05ZM7.25 8.448 2 5.622v5.683a.5.5 0 0 0 .263.44l4.782 2.576c.066.035.134.066.204.09V8.449Z"></path>
           </svg>
         </NavItem>
       </NavigationSection>
       
       <NavigationSection>
         <NavItem to="/connect" data-tooltip="Connect">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 13C10 13.7956 9.68393 14.5587 9.12132 15.1213C8.55871 15.6839 7.79565 16 7 16C6.20435 16 5.44129 15.6839 4.87868 15.1213C4.31607 14.5587 4 13.7956 4 13C4 12.2044 4.31607 11.4413 4.87868 10.8787C5.44129 10.3161 6.20435 10 7 10C7.79565 10 8.55871 10.3161 9.12132 10.8787C9.68393 11.4413 10 12.2044 10 13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M20 7C20 7.79565 19.6839 8.55871 19.1213 9.12132C18.5587 9.68393 17.7956 10 17 10C16.2044 10 15.4413 9.68393 14.8787 9.12132C14.3161 8.55871 14 7.79565 14 7C14 6.20435 14.3161 5.44129 14.8787 4.87868C15.4413 4.31607 16.2044 4 17 4C17.7956 4 18.5587 4.31607 19.1213 4.87868C19.6839 5.44129 20 6.20435 20 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M20 19C20 19.7956 19.6839 20.5587 19.1213 21.1213C18.5587 21.6839 17.7956 22 17 22C16.2044 22 15.4413 21.6839 14.8787 21.1213C14.3161 20.5587 14 19.7956 14 19C14 18.2044 14.3161 17.4413 14.8787 16.8787C15.4413 16.3161 16.2044 16 17 16C17.7956 16 18.5587 16.3161 19.1213 16.8787C19.6839 17.4413 20 18.2044 20 19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M9.69995 11.45L14.3 8.55005" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M9.69995 14.55L14.3 17.45" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M0 6c0-.31.163-.598.429-.757L7.07 1.257a1.805 1.805 0 0 1 1.858 0l6.642 3.986a.883.883 0 0 1 0 1.514l-6.64 3.986a1.805 1.805 0 0 1-1.858 0L.43 6.757A.883.883 0 0 1 0 6Zm7.894 3.37L2.277 6l5.617-3.37a.205.205 0 0 1 .212 0L13.723 6 8.107 9.37a.205.205 0 0 1-.212 0Z"></path>
+            <path fill="currentColor" d="M1.434 9.828a.8.8 0 0 0-.868 1.344l6.128 3.96a2.3 2.3 0 0 0 1.248.368h.116a2.3 2.3 0 0 0 1.248-.368l6.128-3.96a.8.8 0 1 0-.868-1.344l-6.129 3.96a.7.7 0 0 1-.38.112h-.115a.7.7 0 0 1-.38-.112l-6.128-3.96Z"></path>
           </svg>
         </NavItem>
         
         <NavItem to="/payments" data-tooltip="Payments">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M0 2.25A2.25 2.25 0 0 1 2.25 0h7.5A2.25 2.25 0 0 1 12 2.25v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 0-.75-.75h-7.5a.75.75 0 0 0-.75.75v10.851a.192.192 0 0 0 .277.172l.888-.444a.75.75 0 1 1 .67 1.342l-.887.443A1.69 1.69 0 0 1 0 13.101V2.25Z"></path>
+            <path fill="currentColor" d="M5 10.7a.7.7 0 0 1 .7-.7h4.6a.7.7 0 1 1 0 1.4H7.36l.136.237c.098.17.193.336.284.491.283.483.554.907.855 1.263.572.675 1.249 1.109 2.365 1.109 1.18 0 2.038-.423 2.604-1.039.576-.626.896-1.5.896-2.461 0-.99-.42-1.567-.807-1.998a.75.75 0 1 1 1.115-1.004C15.319 8.568 16 9.49 16 11c0 1.288-.43 2.54-1.292 3.476C13.838 15.423 12.57 16 11 16c-1.634 0-2.706-.691-3.51-1.64-.386-.457-.71-.971-1.004-1.472L6.4 12.74v2.56a.7.7 0 1 1-1.4 0v-4.6ZM2.95 4.25a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1-.75-.75ZM3.7 6.5a.75.75 0 0 0 0 1.5h4.6a.75.75 0 0 0 0-1.5H3.7Z"></path>
           </svg>
         </NavItem>
         
         <NavItemWithSubmenu 
-          className={location.pathname.includes('/billing') ? 'active' : ''}
+          className={isBillingActive ? 'active' : ''}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 4H20V16H4V4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M4 8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M8 12H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M8 16V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M16 16V20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M0 2.25A2.25 2.25 0 0 1 2.25 0h7.5A2.25 2.25 0 0 1 12 2.25v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 0-.75-.75h-7.5a.75.75 0 0 0-.75.75v10.851a.192.192 0 0 0 .277.172l.888-.444a.75.75 0 1 1 .67 1.342l-.887.443A1.69 1.69 0 0 1 0 13.101V2.25Z"></path>
+            <path fill="currentColor" d="M5 10.7a.7.7 0 0 1 .7-.7h4.6a.7.7 0 1 1 0 1.4H7.36l.136.237c.098.17.193.336.284.491.283.483.554.907.855 1.263.572.675 1.249 1.109 2.365 1.109 1.18 0 2.038-.423 2.604-1.039.576-.626.896-1.5.896-2.461 0-.99-.42-1.567-.807-1.998a.75.75 0 1 1 1.115-1.004C15.319 8.568 16 9.49 16 11c0 1.288-.43 2.54-1.292 3.476C13.838 15.423 12.57 16 11 16c-1.634 0-2.706-.691-3.51-1.64-.386-.457-.71-.971-1.004-1.472L6.4 12.74v2.56a.7.7 0 1 1-1.4 0v-4.6ZM2.95 4.25a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1-.75-.75ZM3.7 6.5a.75.75 0 0 0 0 1.5h4.6a.75.75 0 0 0 0-1.5H3.7Z"></path>
           </svg>
           <SubmenuHoverArea />
           <Submenu className="submenu">
@@ -268,27 +266,25 @@ const Sidebar = () => {
         </NavItemWithSubmenu>
         
         <NavItemWithSubmenu 
-          className={location.pathname.includes('/reporting') || location.pathname.includes('/metrics') || location.pathname.includes('/reports') || location.pathname.includes('/data') ? 'active' : ''}
+          className={isReportingActive ? 'active' : ''}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18 20V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 20V4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M6 20V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M14 1.875a.875.875 0 0 0-1.75 0v8.75a.875.875 0 0 0 1.75 0v-8.75Z"></path>
+            <path fill="currentColor" d="M2.6 1.875a.8.8 0 1 0-1.6 0V13.2A1.8 1.8 0 0 0 2.8 15h11.827a.8.8 0 0 0 0-1.6H2.8a.2.2 0 0 1-.2-.2V1.875Z"></path>
+            <path fill="currentColor" d="M9.125 3.5c.483 0 .875.392.875.875v6.25a.875.875 0 0 1-1.75 0v-6.25c0-.483.392-.875.875-.875ZM6 6.875a.875.875 0 1 0-1.75 0v3.75a.875.875 0 0 0 1.75 0v-3.75Z"></path>
           </svg>
           <SubmenuHoverArea />
           <Submenu className="submenu">
             <SubmenuTitle>Reporting</SubmenuTitle>
             <SubmenuItem to="/reports">Reports</SubmenuItem>
             <SubmenuItem to="/metrics">Metrics</SubmenuItem>
-            <SubmenuItem to="/data">Data</SubmenuItem>
+            <SubmenuItem to="/explorer">Explorer</SubmenuItem>
           </Submenu>
         </NavItemWithSubmenu>
         
         <NavItem to="/more" data-tooltip="More">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-            <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
-            <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm5.5 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm-11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
           </svg>
         </NavItem>
       </NavigationSection>
@@ -297,10 +293,9 @@ const Sidebar = () => {
       
       <NavigationSection>
         <NavItem to="/developers" data-tooltip="Developers">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 9L3 14L8 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M16 9L21 14L16 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="9" y1="5" x2="15" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M13 2.5H3A1.5 1.5 0 0 0 1.5 4v8A1.5 1.5 0 0 0 3 13.5h10a1.5 1.5 0 0 0 1.5-1.5V4A1.5 1.5 0 0 0 13 2.5ZM3 1a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V4a3 3 0 0 0-3-3H3Z"></path>
+            <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M3.43 4.512a.75.75 0 0 1 1.058-.081l3.5 3a.75.75 0 0 1 0 1.138l-3.5 3a.75.75 0 1 1-.976-1.138L6.348 8 3.512 5.57a.75.75 0 0 1-.081-1.058ZM8 10.75a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z"></path>
           </svg>
         </NavItem>
       </NavigationSection>

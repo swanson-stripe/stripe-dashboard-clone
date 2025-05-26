@@ -1275,7 +1275,8 @@ const BillingOverview = () => {
     }
 
     // Check if we're dealing with a stacked chart
-    const isStacked = chartData.datasets.some(ds => ds.stack !== undefined);
+    const isStacked = chartData && chartData.datasets && chartData.datasets.length > 0 && 
+                      chartData.datasets.some(ds => ds.stack !== undefined);
     
     if (isStacked && metricId === 'total-revenue') {
       // For stacked bar charts, show all categories in the tooltip
