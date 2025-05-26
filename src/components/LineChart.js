@@ -60,7 +60,10 @@ const LineChart = memo(forwardRef(({
     // Parse the data - handle both formats (data.chartData and direct data)
     const chartData = {
       labels: data.labels || [],
-      datasets: data.datasets || []
+      datasets: (data.datasets || []).map(dataset => ({
+        ...dataset,
+        data: Array.isArray(dataset.data) ? dataset.data : [] // Ensure data is always an array
+      }))
     };
 
     // Check if datasets have stack property, which indicates stacked bar chart

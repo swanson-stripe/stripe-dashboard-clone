@@ -346,25 +346,110 @@ const SparklineCell = styled(TableCell)`
   box-sizing: border-box;
 `;
 
+// Add new styled components for the Value and Change columns
+const ValueCell = styled(TableCell)`
+  font-weight: 600;
+`;
+
+const ChangeCell = styled(TableCell)`
+  color: ${props => props.trend > 0 
+    ? (props.isNegative ? '#B13600' : '#217005') 
+    : '#B13600'};
+  font-weight: 500;
+`;
+
+// New trending components based on BillingOverview
+const TrendingCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  position: relative;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e3e8ee;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+  }
+`;
+
+const TrendingTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #697386;
+`;
+
+const TrendingContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const TrendingValueSection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const TrendingValue = styled.div`
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 4px;
+`;
+
+const TrendingTrend = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+  color: ${props => props.trend > 0 
+    ? (props.isNegative ? '#B13600' : '#217005') 
+    : '#B13600'};
+`;
+
+const SparklineContainer = styled.div`
+  height: 50px;
+  width: 100px;
+  margin-left: 8px;
+`;
+
+const ExploreAction = styled.div`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  color: #635bff;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  svg {
+    margin-left: 4px;
+  }
+`;
+
 // Sample data
 const trendingReports = [
-  { id: 'churn-risk', title: 'Churn risk', value: '413', trend: 3.5, isNegative: true },
-  { id: 'upsell-opportunities', title: 'Upsell opportunities', value: '875', trend: 6.7, isNegative: false },
-  { id: 'revenue-composition', title: 'Revenue composition', value: '$56.4K', trend: 0.4, isNegative: false },
-  { id: 'new-free-trials', title: 'New free trials', value: '1.5K', trend: 2.3, isNegative: false }
+  { id: 'churn-risk', title: 'Churn risk', value: '413', trend: 3.5, isNegative: true, sparklineData: [25, 22, 20, 18, 16, 15, 14] },
+  { id: 'upsell-opportunities', title: 'Upsell opportunities', value: '875', trend: 6.7, isNegative: false, sparklineData: [30, 35, 40, 45, 50, 55, 60] },
+  { id: 'revenue-composition', title: 'Revenue composition', value: '$56.4K', trend: 0.4, isNegative: false, sparklineData: [15, 17, 15, 14, 13, 15, 16] },
+  { id: 'new-free-trials', title: 'New free trials', value: '1.5K', trend: 2.3, isNegative: false, sparklineData: [12, 13, 14, 14, 15, 15, 16] }
 ];
 
 const reportsList = [
-  { id: 'high-usage-growth', title: 'High usage growth', creator: 'You', dateCreated: 'Apr 17, 2025', lastUpdated: 'Today', sparklineData: [12, 19, 13, 15, 20, 18, 25] },
-  { id: 'monthly-sales', title: 'Monthly sales', creator: 'kate@example.com', dateCreated: 'Mar 7, 2025', lastUpdated: 'Yesterday', sparklineData: [24, 20, 25, 22, 21, 18, 19] },
-  { id: 'new-subscribers', title: 'New subscribers past 7 days', creator: 'You', dateCreated: 'Mar 6, 2025', lastUpdated: 'Today', sparklineData: [8, 9, 12, 14, 15, 18, 21] },
-  { id: 'revenue-composition', title: 'Revenue composition', creator: 'Stripe', dateCreated: 'Jan 19, 2025', lastUpdated: 'Today', sparklineData: [15, 17, 15, 14, 13, 15, 16] },
-  { id: 'weekly-churned', title: 'Weekly churned subscribers', creator: 'You', dateCreated: 'Nov 22, 2024', lastUpdated: 'May 5, 2025', sparklineData: [22, 19, 18, 16, 14, 12, 10] },
-  { id: 'top-selling', title: 'Top selling products of the week', creator: 'kate@example.com', dateCreated: 'Nov 22, 2024', lastUpdated: 'May 1, 2025', sparklineData: [10, 12, 14, 16, 18, 20, 22] },
-  { id: 'high-value', title: 'High value customers', creator: 'You', dateCreated: 'Oct 19, 2024', lastUpdated: 'Today', sparklineData: [30, 28, 30, 32, 30, 28, 30] },
-  { id: 'new-products', title: 'New products adoption', creator: 'You', dateCreated: 'Jun 3, 2024', lastUpdated: 'May 1, 2025', sparklineData: [5, 8, 10, 15, 20, 25, 30] },
-  { id: 'churn-risk', title: 'Churn risk', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025', sparklineData: [25, 22, 20, 18, 16, 15, 14] },
-  { id: 'mrr-growth', title: 'MRR growth drivers', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025', sparklineData: [10, 15, 20, 25, 30, 35, 40] },
+  { id: 'high-usage-growth', title: 'High usage growth', creator: 'You', dateCreated: 'Apr 17, 2025', lastUpdated: 'Today', sparklineData: [12, 19, 13, 15, 20, 18, 25], value: '276', trend: 39.4, isNegative: false },
+  { id: 'monthly-sales', title: 'Monthly sales', creator: 'kate@example.com', dateCreated: 'Mar 7, 2025', lastUpdated: 'Yesterday', sparklineData: [24, 20, 25, 22, 21, 18, 19], value: '$156.8K', trend: -5.3, isNegative: true },
+  { id: 'new-subscribers', title: 'New subscribers past 7 days', creator: 'You', dateCreated: 'Mar 6, 2025', lastUpdated: 'Today', sparklineData: [8, 9, 12, 14, 15, 18, 21], value: '128', trend: 162.5, isNegative: false },
+  { id: 'revenue-composition', title: 'Revenue composition', creator: 'Stripe', dateCreated: 'Jan 19, 2025', lastUpdated: 'Today', sparklineData: [15, 17, 15, 14, 13, 15, 16], value: '$56.4K', trend: 0.4, isNegative: false },
+  { id: 'weekly-churned', title: 'Weekly churned subscribers', creator: 'You', dateCreated: 'Nov 22, 2024', lastUpdated: 'May 5, 2025', sparklineData: [22, 19, 18, 16, 14, 12, 10], value: '54', trend: -54.5, isNegative: false },
+  { id: 'top-selling', title: 'Top selling products of the week', creator: 'kate@example.com', dateCreated: 'Nov 22, 2024', lastUpdated: 'May 1, 2025', sparklineData: [10, 12, 14, 16, 18, 20, 22], value: '215', trend: 120.0, isNegative: false },
+  { id: 'high-value', title: 'High value customers', creator: 'You', dateCreated: 'Oct 19, 2024', lastUpdated: 'Today', sparklineData: [30, 28, 30, 32, 30, 28, 30], value: '87', trend: 0.0, isNegative: false },
+  { id: 'new-products', title: 'New products adoption', creator: 'You', dateCreated: 'Jun 3, 2024', lastUpdated: 'May 1, 2025', sparklineData: [5, 8, 10, 15, 20, 25, 30], value: '493', trend: 500.0, isNegative: false },
+  { id: 'churn-risk', title: 'Churn risk', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025', sparklineData: [25, 22, 20, 18, 16, 15, 14], value: '413', trend: 3.5, isNegative: true },
+  { id: 'mrr-growth', title: 'MRR growth drivers', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025', sparklineData: [10, 15, 20, 25, 30, 35, 40], value: '$72.4K', trend: 300.0, isNegative: false },
 ];
 
 // Filter options
@@ -379,7 +464,7 @@ const Reports = () => {
   const [sortDirection, setSortDirection] = useState('desc');
   const [creatorFilter, setCreatorFilter] = useState('anyone');
   const [creatorPopoverOpen, setCreatorPopoverOpen] = useState(false);
-  const [pinnedReports, setPinnedReports] = useState([0, 1, 2]); // Store indices of pinned reports
+  const [pinnedReports, setPinnedReports] = useState([0, 1, 2, 8]); // Added churn-risk (index 8) to pinned reports
   const [expandedSections, setExpandedSections] = useState({
     trending: true,
     pinned: true,
@@ -471,11 +556,14 @@ const Reports = () => {
   };
   
   const getSparklineData = (data) => {
+    // Ensure data exists and is an array
+    const safeData = Array.isArray(data) && data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
+    
     return {
       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       datasets: [
         {
-          data: data,
+          data: safeData,
           borderColor: '#635bff',
           backgroundColor: 'rgba(99, 91, 255, 0.1)',
           fill: true
@@ -540,15 +628,34 @@ const Reports = () => {
       {expandedSections.trending && (
         <TrendingGrid>
           {trendingReports.map(report => (
-            <HighlightCard key={report.id} as={Link} to={`/reports/${report.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <CardTitle>{report.title}</CardTitle>
-              <MetricValue>
-                {report.value}
-                <TrendIndicator trend={report.trend} isNegative={report.isNegative}>
-                  {report.trend > 0 ? '+' : ''}{report.trend}%
-                </TrendIndicator>
-              </MetricValue>
-            </HighlightCard>
+            <TrendingCard key={report.id} onClick={() => navigate(`/reports/${report.id}`)}>
+              <ExploreAction className="explore-action">
+                Explore
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </ExploreAction>
+              
+              <TrendingTitle>{report.title}</TrendingTitle>
+              <TrendingContent>
+                <TrendingValueSection>
+                  <TrendingValue>{report.value}</TrendingValue>
+                  <TrendingTrend trend={report.trend > 0 ? 'up' : 'down'} isNegative={report.isNegative}>
+                    {report.trend > 0 ? '+' : ''}{report.trend}%
+                  </TrendingTrend>
+                </TrendingValueSection>
+                <SparklineContainer>
+                  {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
+                    <Line
+                      data={getSparklineData(report.sparklineData)}
+                      options={getSparklineOptions()}
+                      height={50}
+                    />
+                  )}
+                </SparklineContainer>
+              </TrendingContent>
+            </TrendingCard>
           ))}
         </TrendingGrid>
       )}
@@ -574,6 +681,12 @@ const Reports = () => {
               <SparklineHeaderCell>
                 Last 7 days
               </SparklineHeaderCell>
+              <TableHeaderCell>
+                Value
+              </TableHeaderCell>
+              <TableHeaderCell>
+                Change
+              </TableHeaderCell>
               <TableHeaderCell onClick={() => handleSort('creator')}>
                 Created by {getSortIcon('creator')}
               </TableHeaderCell>
@@ -602,7 +715,7 @@ const Reports = () => {
                         onClick={(e) => handlePinToggle(originalIndex, e)}
                       >
                         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-    <path fill-rule="evenodd" clip-rule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
+    <path fillRule="evenodd" clipRule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
   </svg>
                       </PinButton>
                     </PinColumn>
@@ -611,12 +724,18 @@ const Reports = () => {
                     </TableCell>
                     <SparklineCell onClick={(e) => e.stopPropagation()}>
                       <div style={{ width: '100%', height: '30px' }}>
-                        <Line
-                          data={getSparklineData(report.sparklineData)}
-                          options={getSparklineOptions()}
-                        />
+                        {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
+                          <Line
+                            data={getSparklineData(report.sparklineData)}
+                            options={getSparklineOptions()}
+                          />
+                        )}
                       </div>
                     </SparklineCell>
+                    <ValueCell>{report.value}</ValueCell>
+                    <ChangeCell trend={report.trend} isNegative={report.isNegative}>
+                      {report.trend > 0 ? '+' : ''}{report.trend}%
+                    </ChangeCell>
                     <TableCell>{report.creator}</TableCell>
                     <DateColumn>{report.dateCreated}</DateColumn>
                     <DateColumn>{report.lastUpdated}</DateColumn>
@@ -705,6 +824,12 @@ const Reports = () => {
                 <SparklineHeaderCell>
                   Last 7 days
                 </SparklineHeaderCell>
+                <TableHeaderCell>
+                  Value
+                </TableHeaderCell>
+                <TableHeaderCell>
+                  Change
+                </TableHeaderCell>
                 <TableHeaderCell onClick={() => handleSort('creator')}>
                   Created by {getSortIcon('creator')}
                 </TableHeaderCell>
@@ -729,8 +854,8 @@ const Reports = () => {
                       onClick={(e) => handlePinToggle(index, e)}
                     >
                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-    <path fill-rule="evenodd" clip-rule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
-  </svg>
+<path fillRule="evenodd" clipRule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
+</svg>
                     </PinButton>
                   </PinColumn>
                   <TableCell>
@@ -738,12 +863,18 @@ const Reports = () => {
                   </TableCell>
                   <SparklineCell onClick={(e) => e.stopPropagation()}>
                     <div style={{ width: '100%', height: '30px' }}>
-                      <Line
-                        data={getSparklineData(report.sparklineData)}
-                        options={getSparklineOptions()}
-                      />
+                      {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
+                        <Line
+                          data={getSparklineData(report.sparklineData)}
+                          options={getSparklineOptions()}
+                        />
+                      )}
                     </div>
                   </SparklineCell>
+                  <ValueCell>{report.value}</ValueCell>
+                  <ChangeCell trend={report.trend} isNegative={report.isNegative}>
+                    {report.trend > 0 ? '+' : ''}{report.trend}%
+                  </ChangeCell>
                   <TableCell>{report.creator}</TableCell>
                   <DateColumn>{report.dateCreated}</DateColumn>
                   <DateColumn>{report.lastUpdated}</DateColumn>
