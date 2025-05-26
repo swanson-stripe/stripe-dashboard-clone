@@ -46,11 +46,11 @@ export const MetricsProvider = ({ children }) => {
         ...standardizedMetrics,
         'overage-revenue': {
           ...standardizedMetrics['overage-revenue'],
-          baseCurrencyValue: 48125.34,
+          baseCurrencyValue: 48904.12,
         },
         'usage-overage-revenue': {
           ...standardizedMetrics['usage-overage-revenue'],
-          baseCurrencyValue: 48125.34,
+          baseCurrencyValue: 48904.12,
         }
       };
       setMetrics(updatedMetrics);
