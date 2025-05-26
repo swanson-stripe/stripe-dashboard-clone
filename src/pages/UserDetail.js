@@ -8,6 +8,9 @@ import AlertModal from '../components/AlertModal';
 // Styled components
 const Container = styled(motion.div)`
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
 `;
 
 const UserDetailContainer = styled.div`
