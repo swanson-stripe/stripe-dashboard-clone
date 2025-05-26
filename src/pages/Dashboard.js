@@ -1184,7 +1184,7 @@ const Dashboard = () => {
     if (chartData.datasets && chartData.datasets.length > 1) {
       chartData.datasets[1] = {
         ...chartData.datasets[1],
-        borderColor: '#9ca3af', // Ensure we use gray for comparison lines
+        borderColor: GRAY, // Use the standard GRAY constant instead of hardcoded value
         backgroundColor: 'transparent',
         tension: 0.4,
         pointRadius: 0,

@@ -1076,6 +1076,12 @@ const metricCategories = {
     'mrr-growth',
     'subscriber-ltv'
   ],
+  'Usage': [
+    'usage-revenue',
+    'usage-count',
+    'overage-revenue',
+    'usage-overage-revenue'
+  ],
   'Payments': [
     'successful-payments',
     'refund-rate',
@@ -1088,12 +1094,6 @@ const metricCategories = {
     'churned-subscribers',
     'churn-rate',
     'conversion-rate'
-  ],
-  'Usage': [
-    'usage-revenue',
-    'usage-count',
-    'overage-revenue',
-    'usage-overage-revenue'
   ],
   'Billing': [
     'invoice-revenue',
