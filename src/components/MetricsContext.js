@@ -4,6 +4,14 @@ import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData
 // Create the context
 const MetricsContext = createContext();
 
+// Define the Overage revenue values for different plans
+const OVERAGE_REVENUE_VALUES = {
+  all: 152593.95,
+  developer: 48125.34,
+  standard: 152593.95,
+  premium: 152593.95
+};
+
 export const MetricsProvider = ({ children }) => {
   const [metrics, setMetrics] = useState(standardizedMetrics);
   const [loading, setLoading] = useState(true);
@@ -19,43 +27,46 @@ export const MetricsProvider = ({ children }) => {
     
     // Create a copy of standardizedMetrics with consistent values
     setTimeout(() => {
-      setMetrics(standardizedMetrics);
+      // Apply the default plan values (all) to the metrics
+      const updatedMetrics = updateMetricsWithPlanValues(standardizedMetrics, 'all');
+      setMetrics(updatedMetrics);
       setLoading(false);
     }, 300);
   }, []);
 
+  // Helper function to update metrics with plan-specific values
+  const updateMetricsWithPlanValues = useCallback((metricsData, plan) => {
+    const overageValue = OVERAGE_REVENUE_VALUES[plan] || OVERAGE_REVENUE_VALUES.all;
+
+    // Create a new object to avoid mutating the original
+    const updatedMetrics = { ...metricsData };
+
+    // Update all overage revenue related metrics
+    const overageMetricIds = ['overage-revenue', 'usage-overage-revenue'];
+    
+    overageMetricIds.forEach(id => {
+      if (updatedMetrics[id]) {
+        updatedMetrics[id] = {
+          ...updatedMetrics[id],
+          baseCurrencyValue: overageValue,
+        };
+      }
+    });
+
+    return updatedMetrics;
+  }, []);
+
   // Update metrics when plan filter changes
   useEffect(() => {
-    if (currentPlan === 'all') {
-      // For "All plans", use the default metrics with higher value
-      const updatedMetrics = {
-        ...standardizedMetrics,
-        'overage-revenue': {
-          ...standardizedMetrics['overage-revenue'],
-          baseCurrencyValue: 152593.95,
-        },
-        'usage-overage-revenue': {
-          ...standardizedMetrics['usage-overage-revenue'],
-          baseCurrencyValue: 152593.95,
-        }
-      };
-      setMetrics(updatedMetrics);
-    } else if (currentPlan === 'developer') {
-      // For "Developer" plan, use lower value
-      const updatedMetrics = {
-        ...standardizedMetrics,
-        'overage-revenue': {
-          ...standardizedMetrics['overage-revenue'],
-          baseCurrencyValue: 48125.34,
-        },
-        'usage-overage-revenue': {
-          ...standardizedMetrics['usage-overage-revenue'],
-          baseCurrencyValue: 48125.34,
-        }
-      };
-      setMetrics(updatedMetrics);
-    }
-  }, [currentPlan]);
+    // Get updated metrics with the new plan values
+    const updatedMetrics = updateMetricsWithPlanValues(standardizedMetrics, currentPlan);
+    setMetrics(updatedMetrics);
+    
+    // Update global standardizedMetrics to ensure consistency across components
+    Object.keys(updatedMetrics).forEach(key => {
+      standardizedMetrics[key] = updatedMetrics[key];
+    });
+  }, [currentPlan, updateMetricsWithPlanValues]);
 
   // Get metric by ID
   const getMetricById = useCallback((metricId) => {

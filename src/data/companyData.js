@@ -1113,6 +1113,7 @@ const defaultMetricIds = [
   'active-subscribers',
   'mrr',
   'subscriber-ltv',
+  'overage-revenue',
   'invoices-status'
 ];
 
