@@ -689,7 +689,7 @@ const standardizedMetrics = {
     description: 'Revenue from usage beyond committed quantities',
     group: 'billing',
     section: 'usage',
-    baseCurrencyValue: 5422.00,
+    baseCurrencyValue: 152593.95,
     trendValue: 14.8,
     trend: 'up',
     unit: 'currency',
@@ -700,7 +700,7 @@ const standardizedMetrics = {
     id: 'usage-overage-revenue',
     title: 'Overage revenue',
     description: 'Revenue from usage exceeding included quotas',
-    baseCurrencyValue: 14750,
+    baseCurrencyValue: 152593.95,
     baseNumberValue: 0,
     trendValue: 14.8,
     trend: 'up',
@@ -1113,7 +1113,6 @@ const defaultMetricIds = [
   'active-subscribers',
   'mrr',
   'subscriber-ltv',
-  'overage-revenue',
   'invoices-status'
 ];
 

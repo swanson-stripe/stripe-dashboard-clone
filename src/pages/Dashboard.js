@@ -8,7 +8,6 @@ import { PERIODS, metricCategories, defaultMetricIds } from '../data/companyData
 import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
 import MeterChart from '../components/MeterChart';
-import PlanFilter from '../components/PlanFilter';
 
 // Constants for consistent styling
 const STRIPE_PURPLE = '#635bff';
@@ -594,12 +593,7 @@ const ExploreLink = styled.div`
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { 
-    metrics: standardizedMetrics, 
-    getMetricChartData, 
-    getMetricById, 
-    currentPlan 
-  } = useMetrics();
+  const { metrics: standardizedMetrics, getMetricById, getMetricChartData } = useMetrics();
   const [dateRange, setDateRange] = useState({ 
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 
     endDate: new Date() 
@@ -1006,54 +1000,139 @@ const Dashboard = () => {
     }
   };
 
-  // Update metric data when period, interval, comparison or plan filter changes
+  // Update metrics data when period or interval changes
   useEffect(() => {
     try {
-      // Map the metric IDs to get the full metric data and generate chart data
-      const updatedMetricData = baseMetrics.map(baseMetric => {
-        // Get the latest metric with current values from context
-        const metric = getMetricById(baseMetric.id) || baseMetric;
+      // Generate updated metrics with chart data
+      const updatedMetrics = baseMetrics.map(metric => {
+        // For meter chart metrics, we don't need to generate chart data
+        if (metric.chartType === 'meter') {
+          const totalValue = metric.meterData.reduce((sum, item) => sum + item.value, 0);
+          const formattedTotal = metric.meterData[0].type === 'currency' 
+            ? formatCurrency(totalValue)
+            : formatNumber(totalValue);
+          
+          return {
+            ...metric,
+            value: formattedTotal,
+            numericalValue: totalValue,
+            trendValue: metric.trendValue,
+            meterData: metric.meterData
+          };
+        }
         
-        // Generate chart data for the metric
-        const chartData = generateMetricChartData(
-          metric, 
-          activePeriod, 
+        // Get chart data for regular metrics - ensure MRR metrics use exact same period/interval
+        const chartData = generateMetricChartData(metric, activePeriod, activeInterval);
+        
+        // Use the last data point for the current value if available
+        let adjustedValue;
+        if (chartData && chartData.datasets && chartData.datasets[0] && chartData.datasets[0].data && chartData.datasets[0].data.length > 0) {
+          // Use the last point from the chart data
+          adjustedValue = chartData.datasets[0].data[chartData.datasets[0].data.length - 1];
+        } else {
+          // Fall back to calculated value if chart data isn't available
+          adjustedValue = metric.isCurrency ? metric.baseCurrencyValue : metric.baseNumberValue;
+        }
+        
+        // Format the display value
+        const displayValue = metric.isCurrency
+          ? formatCurrency(adjustedValue)
+          : metric.unit === 'percentage'
+            ? adjustedValue.toFixed(2) + '%'
+            : formatNumber(adjustedValue);
+        
+        // Calculate trend value based on comparison data
+        let trendVal = metric.trendValue;
+        
+        if (chartData && chartData.datasets && chartData.datasets.length > 1 && 
+            chartData.datasets[0].data && chartData.datasets[0].data.length > 0 && 
+            chartData.datasets[1].data && chartData.datasets[1].data.length > 0) {
+          const currentValue = chartData.datasets[0].data[chartData.datasets[0].data.length - 1];
+          const previousValue = chartData.datasets[1].data[chartData.datasets[1].data.length - 1];
+          
+          if (previousValue > 0) {
+            const percentChange = ((currentValue - previousValue) / previousValue) * 100;
+            trendVal = percentChange;
+          }
+        }
+        
+        return {
+          ...metric,
+          value: displayValue,
+          numericalValue: adjustedValue,
+          trendValue: parseFloat(trendVal.toFixed(2)), // Format to 2 decimal places
+          chartData: chartData
+        };
+      });
+      
+      setMetricData(updatedMetrics);
+    } catch (error) {
+      console.error("Error updating metrics data:", error);
+    }
+  }, [activePeriod, activeInterval, activeComparison, baseMetrics, standardizedMetrics]);
+
+  // Update baseMetrics when standardizedMetrics changes (due to plan filter)
+  useEffect(() => {
+    const updatedBaseMetrics = defaultMetricIds
+      .map(id => standardizedMetrics[id])
+      .filter(Boolean);
+    setBaseMetrics(updatedBaseMetrics);
+  }, [standardizedMetrics]);
+
+  // Add a specific useEffect to refresh MRR metric data when other metrics are updated
+  useEffect(() => {
+    if (metricData.length > 0) {
+      // Find MRR metric if it exists in the current metrics
+      const mrrMetric = metricData.find(m => m.id === 'mrr');
+      
+      if (mrrMetric) {
+        // Ensure MRR is using the latest period and interval
+        const updatedMRRData = generateMetricChartData(
+          mrrMetric, 
+          activePeriod,
           activeInterval, 
           activeComparison !== 'none'
         );
         
-        // Format the metric value for display
-        const formattedValue = metric.chartType === 'meter' 
-          ? formatCurrency(metric.meterData.reduce((sum, item) => sum + item.value, 0))
-          : metric.isCurrency 
-            ? formatCurrency(metric.baseCurrencyValue)
-            : metric.unit === 'percentage'
-              ? `${metric.baseNumberValue.toFixed(1)}%`
-              : formatNumber(metric.baseNumberValue);
-        
-        // Return the formatted metric with chart data
-        return {
-          ...metric,
-          value: formattedValue,
-          chartData,
-        };
-      });
-      
-      setMetricData(updatedMetricData);
-    } catch (error) {
-      console.error("Error updating metric data:", error);
+        // Update the MRR metric with the correct data
+        setMetricData(prevMetrics => {
+          return prevMetrics.map(m => {
+            if (m.id === 'mrr') {
+              // Get the last value for MRR display
+              let adjustedValue = m.numericalValue;
+              if (updatedMRRData && updatedMRRData.datasets && updatedMRRData.datasets[0] && 
+                  updatedMRRData.datasets[0].data && updatedMRRData.datasets[0].data.length > 0) {
+                adjustedValue = updatedMRRData.datasets[0].data[updatedMRRData.datasets[0].data.length - 1];
+              }
+              
+              // Calculate trend if we have comparison data
+              let trendVal = m.trendValue;
+              if (updatedMRRData && updatedMRRData.datasets && updatedMRRData.datasets.length > 1 && 
+                  updatedMRRData.datasets[0].data && updatedMRRData.datasets[0].data.length > 0 && 
+                  updatedMRRData.datasets[1].data && updatedMRRData.datasets[1].data.length > 0) {
+                const currentValue = updatedMRRData.datasets[0].data[updatedMRRData.datasets[0].data.length - 1];
+                const previousValue = updatedMRRData.datasets[1].data[updatedMRRData.datasets[1].data.length - 1];
+                
+                if (previousValue > 0) {
+                  const percentChange = ((currentValue - previousValue) / previousValue) * 100;
+                  trendVal = percentChange;
+                }
+              }
+              
+              return {
+                ...m,
+                value: formatCurrency(adjustedValue),
+                numericalValue: adjustedValue,
+                trendValue: parseFloat(trendVal.toFixed(2)),
+                chartData: updatedMRRData
+              };
+            }
+            return m;
+          });
+        });
+      }
     }
-  }, [
-    baseMetrics, 
-    activePeriod, 
-    activeInterval, 
-    activeComparison, 
-    formatCurrency, 
-    formatNumber, 
-    generateMetricChartData,
-    getMetricById,
-    currentPlan
-  ]);
+  }, [activePeriod, activeInterval, activeComparison, metricData.length]);
 
   // Handle period change from reporting controls
   const handlePeriodChange = (period) => {
@@ -1233,16 +1312,13 @@ const Dashboard = () => {
               onIntervalChange={handleIntervalChange}
               onComparisonChange={handleComparisonChange}
             />
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <PlanFilter />
-              <AddMetricsButton onClick={() => setIsMetricsOverlayOpen(true)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Add metrics
-              </AddMetricsButton>
-            </div>
+            <AddMetricsButton onClick={() => setIsMetricsOverlayOpen(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Add metrics
+            </AddMetricsButton>
           </ControlsContainer>
         </OverviewHeader>
         
@@ -1347,7 +1423,7 @@ const Dashboard = () => {
                                 formatNumber(metric.meterData.reduce((sum, item) => sum + item.value, 0))
                             ) : (
                               metric.isCurrency 
-                                ? formatCurrency(getMetricById(metric.id)?.baseCurrencyValue || metric.baseCurrencyValue)
+                                ? formatCurrency(metric.baseCurrencyValue)
                                 : metric.unit === 'percentage'
                                   ? `${metric.baseNumberValue.toFixed(1)}%`
                                   : formatNumber(metric.baseNumberValue)

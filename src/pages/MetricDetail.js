@@ -645,14 +645,12 @@ const MetricDetail = () => {
   // Get initial metric data - compute once with useMemo to prevent re-renders
   const baseMetric = useMemo(() => {
     // First try to get the metric from location state
-    let foundMetric;
-    
     if (location.state?.metric) {
-      foundMetric = location.state.metric;
-    } else {
-      // Otherwise get it directly from the metrics context
-      foundMetric = getMetricById(metricId) || standardizedMetrics['gross-volume'];
+      return location.state.metric;
     }
+
+    // Otherwise get it from the URL parameter
+    const foundMetric = standardizedMetrics[metricId] || standardizedMetrics['gross-volume'];
     
     // Return a complete metric object with all necessary properties
     return {
@@ -667,7 +665,7 @@ const MetricDetail = () => {
       source: 'dashboard',
       hasAnomaly: foundMetric.hasAnomaly || false
     };
-  }, [location.state, metricId, standardizedMetrics, getMetricById]);
+  }, [location.state, metricId, standardizedMetrics]);
   
   // Function to check if metric has anomaly
   const hasAnomaly = useCallback(() => {

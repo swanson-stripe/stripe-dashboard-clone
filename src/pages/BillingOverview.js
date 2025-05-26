@@ -1645,20 +1645,9 @@ const BillingOverview = () => {
       trend: 'up',
       trendValue: 3.8
     },
-    // Add overage revenue metric
-    {
-      id: 'overage-revenue',
-      title: 'Overage revenue',
-      description: 'Revenue from usage exceeding included quotas',
-      baseCurrencyValue: 14750,
-      baseNumberValue: 14750,
-      isCurrency: true,
-      unit: 'currency',
-      trend: 'up',
-      trendValue: 14.8, // Updated to match the screenshot
-      hasAnomaly: true // Add flag to identify this metric for anomaly highlighting
-    }
-  ], []);
+    // Use overage revenue metric from context
+    standardizedMetrics['overage-revenue']
+  ], [standardizedMetrics]);
 
   const baseGrowthMetrics = useMemo(() => [
     standardizedMetrics['mrr-growth-rate'],
@@ -1682,7 +1671,7 @@ const BillingOverview = () => {
       trend: 'up',
       trendValue: 1.8
     }
-  ], []);
+  ], [standardizedMetrics]);
 
   const baseSubscribersMetrics = useMemo(() => [
     standardizedMetrics['active-subscribers'],
@@ -1691,31 +1680,20 @@ const BillingOverview = () => {
     standardizedMetrics['churned-subscribers'],
     standardizedMetrics['arpu'],
     standardizedMetrics['subscriber-ltv']
-  ], []);
+  ], [standardizedMetrics]);
 
   const baseInvoicingMetrics = useMemo(() => [
     standardizedMetrics['invoice-revenue'],
     standardizedMetrics['past-due-invoice-volume'],
     standardizedMetrics['past-due-invoice-payment-rate'],
     standardizedMetrics['avg-invoice-payment-length']
-  ], []);
+  ], [standardizedMetrics]);
 
   const baseUsageMetrics = useMemo(() => [
     standardizedMetrics['usage-revenue'],
     standardizedMetrics['usage-count'],
-    // Add overage revenue metric
-    {
-      id: 'usage-overage-revenue',
-      title: 'Overage revenue',
-      description: 'Revenue from usage exceeding included quotas',
-      baseCurrencyValue: 14750,
-      baseNumberValue: 14750,
-      isCurrency: true,
-      unit: 'currency',
-      trend: 'up',
-      trendValue: 14.8, // Updated to match the screenshot
-      hasAnomaly: true // Add flag to identify this metric for anomaly highlighting
-    },
+    // Use usage overage revenue metric from context
+    standardizedMetrics['usage-overage-revenue'],
     // Add revenue per unit metric
     {
       id: 'revenue-per-unit',
@@ -1729,7 +1707,7 @@ const BillingOverview = () => {
       trend: 'up',
       trendValue: 2.1
     }
-  ], []);
+  ], [standardizedMetrics]);
 
   // Check for tab parameter in URL on component mount or when URL changes
   useEffect(() => {
@@ -1868,20 +1846,8 @@ const BillingOverview = () => {
 
   // Generate trending metrics for the summary tab
   useEffect(() => {
-    // Use specific metrics as requested
-    // const mrrGrowthRateMetric = standardizedMetrics['mrr-growth-rate'];
-    const overageRevenueMetric = {
-      id: 'overage-revenue',
-      title: 'Overage revenue',
-      description: 'Revenue from usage exceeding included quotas',
-      baseCurrencyValue: 14750,
-      baseNumberValue: 14750,
-      isCurrency: true,
-      unit: 'currency',
-      trend: 'up',
-      trendValue: 14.8, // Updated from 5.2 to match the screenshot
-      hasAnomaly: true // Add flag for anomaly detection
-    };
+    // Use overage revenue metric from context
+    const overageRevenueMetric = standardizedMetrics['overage-revenue'];
     const subscriberChurnRateMetric = standardizedMetrics['subscriber-churn-rate'];
     const usageRevenueMetric = standardizedMetrics['usage-revenue'];
     
@@ -1934,7 +1900,7 @@ const BillingOverview = () => {
     };
     
     // Create metrics with stable chart data
-    const stableMetrics = [overageRevenueMetric, subscriberChurnRateMetric, usageRevenueMetric].map(metric => {
+    const stableMetrics = [overageRevenueMetric, subscriberChurnRateMetric, usageRevenueMetric].filter(Boolean).map(metric => {
       const chartData = generateStableChartData(metric);
       
       let displayValue;
@@ -1959,7 +1925,7 @@ const BillingOverview = () => {
     
     
     setTrendingMetrics(stableMetrics);
-  }, [formatCurrency, formatPercentage, formatNumber, activePeriod, activeInterval, activeComparison, getMetricChartData]);
+  }, [formatCurrency, formatPercentage, formatNumber, activePeriod, activeInterval, activeComparison, getMetricChartData, standardizedMetrics]);
 
   // Render metric cards for each tab
   const renderMetricCards = useCallback(() => {
