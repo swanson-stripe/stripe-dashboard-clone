@@ -5,6 +5,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import LineChart from '../components/LineChart';
 import BubbleChart from '../components/BubbleChart';
 import ReportingControls from '../components/ReportingControls';
+import PlanFilter from '../components/PlanFilter';
 import { CURRENT_KEY_METRICS } from '../data/companyData';
 import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
@@ -3031,11 +3032,17 @@ const BillingOverview = () => {
             onIntervalChange={handleIntervalChange}
             onComparisonChange={handleComparisonChange}
           />
+          <PlanFilter />
         </ControlsContainer>
       )}
       
       {activeTab === 'summary' && (
         <>
+          {/* Add PlanFilter at the top of the summary tab */}
+          <div style={{ marginBottom: '24px' }}>
+            <PlanFilter />
+          </div>
+          
           <SectionHeader 
             id="trending-metrics"
             title="Trending metrics"

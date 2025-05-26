@@ -10,6 +10,7 @@ export const MetricsProvider = ({ children }) => {
   const [currentPeriod, setCurrentPeriod] = useState(PERIODS.MONTHLY);
   const [currentInterval, setCurrentInterval] = useState('month');
   const [showComparison, setShowComparison] = useState(true);
+  const [currentPlan, setCurrentPlan] = useState('all');
 
   // Initialize metrics data
   useEffect(() => {
@@ -22,6 +23,39 @@ export const MetricsProvider = ({ children }) => {
       setLoading(false);
     }, 300);
   }, []);
+
+  // Update metrics when plan filter changes
+  useEffect(() => {
+    if (currentPlan === 'all') {
+      // For "All plans", use the default metrics with higher value
+      const updatedMetrics = {
+        ...standardizedMetrics,
+        'overage-revenue': {
+          ...standardizedMetrics['overage-revenue'],
+          baseCurrencyValue: 152593.95,
+        },
+        'usage-overage-revenue': {
+          ...standardizedMetrics['usage-overage-revenue'],
+          baseCurrencyValue: 152593.95,
+        }
+      };
+      setMetrics(updatedMetrics);
+    } else if (currentPlan === 'developer') {
+      // For "Developer" plan, use lower value
+      const updatedMetrics = {
+        ...standardizedMetrics,
+        'overage-revenue': {
+          ...standardizedMetrics['overage-revenue'],
+          baseCurrencyValue: 48125.34,
+        },
+        'usage-overage-revenue': {
+          ...standardizedMetrics['usage-overage-revenue'],
+          baseCurrencyValue: 48125.34,
+        }
+      };
+      setMetrics(updatedMetrics);
+    }
+  }, [currentPlan]);
 
   // Get metric by ID
   const getMetricById = useCallback((metricId) => {
@@ -53,6 +87,11 @@ export const MetricsProvider = ({ children }) => {
     setShowComparison(show);
   }, []);
 
+  // Set plan filter
+  const setPlan = useCallback((plan) => {
+    setCurrentPlan(plan);
+  }, []);
+
   // Return the context provider with our values
   return (
     <MetricsContext.Provider 
@@ -62,12 +101,14 @@ export const MetricsProvider = ({ children }) => {
         currentPeriod,
         currentInterval,
         showComparison,
+        currentPlan,
         getMetricById,
         getAllMetrics,
         getMetricChartData,
         setPeriod,
         setInterval,
-        toggleComparison
+        toggleComparison,
+        setPlan
       }}
     >
       {children}
