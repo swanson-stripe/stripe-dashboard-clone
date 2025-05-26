@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
+import PlanFilter from '../components/PlanFilter';
 import { PERIODS } from '../data/companyData';
 import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
@@ -762,7 +763,7 @@ const MetricDetail = () => {
       
       const metricData = getMetricChartData(metricIdForData, reportingControls.period, reportingControls.interval);
       
-      // Apply filters if any exist
+      // Use the metric data directly - plan filtering is handled by MetricsContext
       let filteredCurrentData = [...metricData.currentData];
       let filteredPreviousData = [...metricData.previousData];
       
@@ -1696,6 +1697,13 @@ const MetricDetail = () => {
             )}
           />
         </ControlsContainer>
+        
+        {/* Plan Filter - only show for overage revenue metrics */}
+        {(baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue') && (
+          <div style={{ marginBottom: '24px' }}>
+            <PlanFilter />
+          </div>
+        )}
         
         <ChartSectionContainer>
           {isMeterChart ? (
