@@ -239,7 +239,7 @@ const TableHeaderCell = styled.th`
   text-align: left;
   padding: 12px 16px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: ${props => props.sorted ? '600' : 'normal'};
   color: #6b7c93;
   position: relative;
   cursor: pointer;
@@ -348,14 +348,12 @@ const SparklineCell = styled(TableCell)`
 
 // Add new styled components for the Value and Change columns
 const ValueCell = styled(TableCell)`
-  font-weight: 600;
+  font-weight: normal;
 `;
 
 const ChangeCell = styled(TableCell)`
-  color: ${props => props.trend > 0 
-    ? (props.isNegative ? '#B13600' : '#217005') 
-    : '#B13600'};
-  font-weight: 500;
+  color: #1a1f36;
+  font-weight: normal;
 `;
 
 // New trending components based on BillingOverview
@@ -403,9 +401,7 @@ const TrendingValue = styled.div`
 const TrendingTrend = styled.span`
   font-size: 14px;
   font-weight: 500;
-  color: ${props => props.trend > 0 
-    ? (props.isNegative ? '#B13600' : '#217005') 
-    : '#B13600'};
+  color: #1a1f36;
 `;
 
 const SparklineContainer = styled.div`
@@ -565,8 +561,8 @@ const Reports = () => {
         {
           data: safeData,
           borderColor: '#635bff',
-          backgroundColor: 'rgba(99, 91, 255, 0.1)',
-          fill: true
+          backgroundColor: 'transparent',
+          fill: false
         }
       ]
     };
@@ -675,7 +671,7 @@ const Reports = () => {
           <TableHead>
             <tr>
               <TableHeaderCell style={{ width: '40px' }}></TableHeaderCell>
-              <TableHeaderCell onClick={() => handleSort('title')}>
+              <TableHeaderCell sorted={sortField === 'title'} onClick={() => handleSort('title')}>
                 Title {getSortIcon('title')}
               </TableHeaderCell>
               <SparklineHeaderCell>
@@ -687,13 +683,13 @@ const Reports = () => {
               <TableHeaderCell>
                 Change
               </TableHeaderCell>
-              <TableHeaderCell onClick={() => handleSort('creator')}>
+              <TableHeaderCell sorted={sortField === 'creator'} onClick={() => handleSort('creator')}>
                 Created by {getSortIcon('creator')}
               </TableHeaderCell>
-              <TableHeaderCell onClick={() => handleSort('dateCreated')}>
+              <TableHeaderCell sorted={sortField === 'dateCreated'} onClick={() => handleSort('dateCreated')}>
                 Date created {getSortIcon('dateCreated')}
               </TableHeaderCell>
-              <TableHeaderCell onClick={() => handleSort('lastUpdated')}>
+              <TableHeaderCell sorted={sortField === 'lastUpdated'} onClick={() => handleSort('lastUpdated')}>
                 Last updated date {getSortIcon('lastUpdated')}
               </TableHeaderCell>
               <TableHeaderCell></TableHeaderCell>
@@ -818,7 +814,7 @@ const Reports = () => {
             <TableHead>
               <tr>
                 <TableHeaderCell style={{ width: '40px' }}></TableHeaderCell>
-                <TableHeaderCell onClick={() => handleSort('title')}>
+                <TableHeaderCell sorted={sortField === 'title'} onClick={() => handleSort('title')}>
                   Title {getSortIcon('title')}
                 </TableHeaderCell>
                 <SparklineHeaderCell>
@@ -830,13 +826,13 @@ const Reports = () => {
                 <TableHeaderCell>
                   Change
                 </TableHeaderCell>
-                <TableHeaderCell onClick={() => handleSort('creator')}>
+                <TableHeaderCell sorted={sortField === 'creator'} onClick={() => handleSort('creator')}>
                   Created by {getSortIcon('creator')}
                 </TableHeaderCell>
-                <TableHeaderCell onClick={() => handleSort('dateCreated')}>
+                <TableHeaderCell sorted={sortField === 'dateCreated'} onClick={() => handleSort('dateCreated')}>
                   Date created {getSortIcon('dateCreated')}
                 </TableHeaderCell>
-                <TableHeaderCell onClick={() => handleSort('lastUpdated')}>
+                <TableHeaderCell sorted={sortField === 'lastUpdated'} onClick={() => handleSort('lastUpdated')}>
                   Last updated date {getSortIcon('lastUpdated')}
                 </TableHeaderCell>
                 <TableHeaderCell></TableHeaderCell>
