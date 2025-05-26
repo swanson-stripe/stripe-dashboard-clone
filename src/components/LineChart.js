@@ -95,9 +95,14 @@ const LineChart = memo(forwardRef(({
         // For comparison lines (usually gray)
         dataset.pointRadius = 0; // Hide points by default
         dataset.pointHoverRadius = simplified ? 0 : 5; // Show points on hover unless simplified
-        dataset.pointBackgroundColor = dataset.borderColor || '#aab7c4';
+        dataset.pointBackgroundColor = dataset.borderColor || GRAY;
         dataset.pointBorderColor = 'white';
         dataset.pointBorderWidth = 1;
+        
+        // If this is a comparison line (has borderDash property), ensure it's gray
+        if (dataset.borderDash && dataset.borderDash.length) {
+          dataset.borderColor = GRAY;
+        }
       }
       
       if (!dataset.data || dataset.data.length === 0) {
