@@ -348,12 +348,12 @@ const SparklineCell = styled(TableCell)`
 
 // Add new styled components for the Value and Change columns
 const ValueCell = styled(TableCell)`
-  font-weight: normal;
+  font-weight: ${props => props.sorted ? '600' : 'normal'};
 `;
 
 const ChangeCell = styled(TableCell)`
   color: #1a1f36;
-  font-weight: normal;
+  font-weight: ${props => props.sorted ? '600' : 'normal'};
 `;
 
 // New trending components based on BillingOverview
@@ -456,8 +456,10 @@ const creatorOptions = [
 ];
 
 const Reports = () => {
-  const [sortField, setSortField] = useState('dateCreated');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [pinnedSortField, setPinnedSortField] = useState('dateCreated');
+  const [pinnedSortDirection, setPinnedSortDirection] = useState('desc');
+  const [allSortField, setAllSortField] = useState('dateCreated');
+  const [allSortDirection, setAllSortDirection] = useState('desc');
   const [creatorFilter, setCreatorFilter] = useState('anyone');
   const [creatorPopoverOpen, setCreatorPopoverOpen] = useState(false);
   const [pinnedReports, setPinnedReports] = useState([0, 1, 2, 8]); // Added churn-risk (index 8) to pinned reports
@@ -492,18 +494,32 @@ const Reports = () => {
     };
   }, []);
   
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+  const handlePinnedSort = (field) => {
+    if (pinnedSortField === field) {
+      setPinnedSortDirection(pinnedSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortField(field);
-      setSortDirection('asc');
+      setPinnedSortField(field);
+      setPinnedSortDirection('asc');
     }
   };
   
-  const getSortIcon = (field) => {
-    if (sortField !== field) return '↕';
-    return sortDirection === 'asc' ? '↑' : '↓';
+  const handleAllSort = (field) => {
+    if (allSortField === field) {
+      setAllSortDirection(allSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setAllSortField(field);
+      setAllSortDirection('asc');
+    }
+  };
+  
+  const getPinnedSortIcon = (field) => {
+    if (pinnedSortField !== field) return '↕';
+    return pinnedSortDirection === 'asc' ? '↑' : '↓';
+  };
+  
+  const getAllSortIcon = (field) => {
+    if (allSortField !== field) return '↕';
+    return allSortDirection === 'asc' ? '↑' : '↓';
   };
   
   const handleCreatorChange = (value) => {
@@ -516,20 +532,32 @@ const Reports = () => {
     return option ? option.label : creatorOptions[0].label;
   };
   
-  const sortedReports = [...reportsList].sort((a, b) => {
-    let compareA = a[sortField];
-    let compareB = b[sortField];
-    
-    if (sortField === 'dateCreated') {
-      // Parse dates for proper comparison
-      compareA = new Date(compareA);
-      compareB = new Date(compareB);
-    }
-    
-    if (compareA < compareB) return sortDirection === 'asc' ? -1 : 1;
-    if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
+  const sortReports = (reports, sortField, sortDirection) => {
+    return [...reports].sort((a, b) => {
+      let compareA = a[sortField];
+      let compareB = b[sortField];
+      
+      if (sortField === 'dateCreated') {
+        // Parse dates for proper comparison
+        compareA = new Date(compareA);
+        compareB = new Date(compareB);
+      }
+      
+      if (compareA < compareB) return sortDirection === 'asc' ? -1 : 1;
+      if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+  
+  const sortedAllReports = sortReports(reportsList, allSortField, allSortDirection);
+  
+  // Get pinned reports with their own sorting
+  const getPinnedReports = () => {
+    const pinnedReportsList = pinnedReports.map(index => reportsList[index]);
+    return sortReports(pinnedReportsList, pinnedSortField, pinnedSortDirection);
+  };
+  
+  const sortedPinnedReports = getPinnedReports();
   
   // Sparkline chart configuration
   const getSparklineOptions = () => {
@@ -671,82 +699,80 @@ const Reports = () => {
           <TableHead>
             <tr>
               <TableHeaderCell style={{ width: '40px' }}></TableHeaderCell>
-              <TableHeaderCell sorted={sortField === 'title'} onClick={() => handleSort('title')}>
-                Title {getSortIcon('title')}
+              <TableHeaderCell sorted={pinnedSortField === 'title'} onClick={() => handlePinnedSort('title')}>
+                Title {getPinnedSortIcon('title')}
               </TableHeaderCell>
               <SparklineHeaderCell>
                 Last 7 days
               </SparklineHeaderCell>
-              <TableHeaderCell>
-                Value
+              <TableHeaderCell sorted={pinnedSortField === 'value'} onClick={() => handlePinnedSort('value')}>
+                Value {getPinnedSortIcon('value')}
               </TableHeaderCell>
-              <TableHeaderCell>
-                Change
+              <TableHeaderCell sorted={pinnedSortField === 'trend'} onClick={() => handlePinnedSort('trend')}>
+                Change {getPinnedSortIcon('trend')}
               </TableHeaderCell>
-              <TableHeaderCell sorted={sortField === 'creator'} onClick={() => handleSort('creator')}>
-                Created by {getSortIcon('creator')}
+              <TableHeaderCell sorted={pinnedSortField === 'creator'} onClick={() => handlePinnedSort('creator')}>
+                Created by {getPinnedSortIcon('creator')}
               </TableHeaderCell>
-              <TableHeaderCell sorted={sortField === 'dateCreated'} onClick={() => handleSort('dateCreated')}>
-                Date created {getSortIcon('dateCreated')}
+              <TableHeaderCell sorted={pinnedSortField === 'dateCreated'} onClick={() => handlePinnedSort('dateCreated')}>
+                Date created {getPinnedSortIcon('dateCreated')}
               </TableHeaderCell>
-              <TableHeaderCell sorted={sortField === 'lastUpdated'} onClick={() => handleSort('lastUpdated')}>
-                Last updated date {getSortIcon('lastUpdated')}
+              <TableHeaderCell sorted={pinnedSortField === 'lastUpdated'} onClick={() => handlePinnedSort('lastUpdated')}>
+                Last updated date {getPinnedSortIcon('lastUpdated')}
               </TableHeaderCell>
               <TableHeaderCell></TableHeaderCell>
             </tr>
           </TableHead>
           <tbody>
-            {sortedReports
-              .filter((_, index) => pinnedReports.includes(index))
-              .map((report, idx) => {
-                const originalIndex = sortedReports.findIndex(r => r.id === report.id);
-                return (
-                  <tr 
-                    key={report.id} 
-                    onClick={() => navigate(`/reports/${report.id}`)}
-                  >
-                    <PinColumn onClick={(e) => e.stopPropagation()}>
-                      <PinButton 
-                        pinned={true}
-                        onClick={(e) => handlePinToggle(originalIndex, e)}
-                      >
-                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            {sortedPinnedReports.map((report) => {
+              const originalIndex = reportsList.findIndex(r => r.id === report.id);
+              return (
+                <tr 
+                  key={report.id} 
+                  onClick={() => navigate(`/reports/${report.id}`)}
+                >
+                  <PinColumn onClick={(e) => e.stopPropagation()}>
+                    <PinButton 
+                      pinned={true}
+                      onClick={(e) => handlePinToggle(originalIndex, e)}
+                    >
+                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
     <path fillRule="evenodd" clipRule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
   </svg>
-                      </PinButton>
-                    </PinColumn>
-                    <TableCell>
-                      {report.title}
-                    </TableCell>
-                    <SparklineCell onClick={(e) => e.stopPropagation()}>
-                      <div style={{ width: '100%', height: '30px' }}>
-                        {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
-                          <Line
-                            data={getSparklineData(report.sparklineData)}
-                            options={getSparklineOptions()}
-                          />
-                        )}
-                      </div>
-                    </SparklineCell>
-                    <ValueCell>{report.value}</ValueCell>
-                    <ChangeCell trend={report.trend} isNegative={report.isNegative}>
-                      {report.trend > 0 ? '+' : ''}{report.trend}%
-                    </ChangeCell>
-                    <TableCell>{report.creator}</TableCell>
-                    <DateColumn>{report.dateCreated}</DateColumn>
-                    <DateColumn>{report.lastUpdated}</DateColumn>
-                    <ActionColumn onClick={(e) => e.stopPropagation()}>
-                      <OptionsDots>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-                          <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
-                          <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
-                        </svg>
-                      </OptionsDots>
-                    </ActionColumn>
-                  </tr>
-                );
-              })}
+                    </PinButton>
+                  </PinColumn>
+                  <TableCell sorted={pinnedSortField === 'title'}>
+                    {report.title}
+                  </TableCell>
+                  <SparklineCell onClick={(e) => e.stopPropagation()}>
+                    <div style={{ width: '100%', height: '30px' }}>
+                      {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
+                        <Line
+                          data={getSparklineData(report.sparklineData)}
+                          options={getSparklineOptions()}
+                        />
+                      )}
+                    </div>
+                  </SparklineCell>
+                  <ValueCell sorted={pinnedSortField === 'value'}>{report.value}</ValueCell>
+                  <ChangeCell sorted={pinnedSortField === 'trend'} trend={report.trend} isNegative={report.isNegative}>
+                    {report.trend > 0 ? '+' : ''}{report.trend}%
+                  </ChangeCell>
+                  <TableCell sorted={pinnedSortField === 'creator'}>{report.creator}</TableCell>
+                  <DateColumn sorted={pinnedSortField === 'dateCreated'}>{report.dateCreated}</DateColumn>
+                  <DateColumn sorted={pinnedSortField === 'lastUpdated'}>{report.lastUpdated}</DateColumn>
+                  <ActionColumn onClick={(e) => e.stopPropagation()}>
+                    <OptionsDots>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                        <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
+                        <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
+                      </svg>
+                    </OptionsDots>
+                  </ActionColumn>
+                </tr>
+              );
+            })}
           </tbody>
         </ReportsTable>
       )}
@@ -814,47 +840,47 @@ const Reports = () => {
             <TableHead>
               <tr>
                 <TableHeaderCell style={{ width: '40px' }}></TableHeaderCell>
-                <TableHeaderCell sorted={sortField === 'title'} onClick={() => handleSort('title')}>
-                  Title {getSortIcon('title')}
+                <TableHeaderCell sorted={allSortField === 'title'} onClick={() => handleAllSort('title')}>
+                  Title {getAllSortIcon('title')}
                 </TableHeaderCell>
                 <SparklineHeaderCell>
                   Last 7 days
                 </SparklineHeaderCell>
-                <TableHeaderCell>
-                  Value
+                <TableHeaderCell sorted={allSortField === 'value'} onClick={() => handleAllSort('value')}>
+                  Value {getAllSortIcon('value')}
                 </TableHeaderCell>
-                <TableHeaderCell>
-                  Change
+                <TableHeaderCell sorted={allSortField === 'trend'} onClick={() => handleAllSort('trend')}>
+                  Change {getAllSortIcon('trend')}
                 </TableHeaderCell>
-                <TableHeaderCell sorted={sortField === 'creator'} onClick={() => handleSort('creator')}>
-                  Created by {getSortIcon('creator')}
+                <TableHeaderCell sorted={allSortField === 'creator'} onClick={() => handleAllSort('creator')}>
+                  Created by {getAllSortIcon('creator')}
                 </TableHeaderCell>
-                <TableHeaderCell sorted={sortField === 'dateCreated'} onClick={() => handleSort('dateCreated')}>
-                  Date created {getSortIcon('dateCreated')}
+                <TableHeaderCell sorted={allSortField === 'dateCreated'} onClick={() => handleAllSort('dateCreated')}>
+                  Date created {getAllSortIcon('dateCreated')}
                 </TableHeaderCell>
-                <TableHeaderCell sorted={sortField === 'lastUpdated'} onClick={() => handleSort('lastUpdated')}>
-                  Last updated date {getSortIcon('lastUpdated')}
+                <TableHeaderCell sorted={allSortField === 'lastUpdated'} onClick={() => handleAllSort('lastUpdated')}>
+                  Last updated date {getAllSortIcon('lastUpdated')}
                 </TableHeaderCell>
                 <TableHeaderCell></TableHeaderCell>
               </tr>
             </TableHead>
             <tbody>
-              {sortedReports.map((report, index) => (
+              {sortedAllReports.map((report, index) => (
                 <tr 
                   key={report.id} 
                   onClick={() => navigate(`/reports/${report.id}`)}
                 >
                   <PinColumn onClick={(e) => e.stopPropagation()}>
                     <PinButton 
-                      pinned={pinnedReports.includes(index)}
-                      onClick={(e) => handlePinToggle(index, e)}
+                      pinned={pinnedReports.includes(reportsList.findIndex(r => r.id === report.id))}
+                      onClick={(e) => handlePinToggle(reportsList.findIndex(r => r.id === report.id), e)}
                     >
                       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
 <path fillRule="evenodd" clipRule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
 </svg>
                     </PinButton>
                   </PinColumn>
-                  <TableCell>
+                  <TableCell sorted={allSortField === 'title'}>
                     {report.title}
                   </TableCell>
                   <SparklineCell onClick={(e) => e.stopPropagation()}>
@@ -867,13 +893,13 @@ const Reports = () => {
                       )}
                     </div>
                   </SparklineCell>
-                  <ValueCell>{report.value}</ValueCell>
-                  <ChangeCell trend={report.trend} isNegative={report.isNegative}>
+                  <ValueCell sorted={allSortField === 'value'}>{report.value}</ValueCell>
+                  <ChangeCell sorted={allSortField === 'trend'} trend={report.trend} isNegative={report.isNegative}>
                     {report.trend > 0 ? '+' : ''}{report.trend}%
                   </ChangeCell>
-                  <TableCell>{report.creator}</TableCell>
-                  <DateColumn>{report.dateCreated}</DateColumn>
-                  <DateColumn>{report.lastUpdated}</DateColumn>
+                  <TableCell sorted={allSortField === 'creator'}>{report.creator}</TableCell>
+                  <DateColumn sorted={allSortField === 'dateCreated'}>{report.dateCreated}</DateColumn>
+                  <DateColumn sorted={allSortField === 'lastUpdated'}>{report.lastUpdated}</DateColumn>
                   <ActionColumn onClick={(e) => e.stopPropagation()}>
                     <OptionsDots>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

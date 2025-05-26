@@ -27,6 +27,7 @@ const LineChart = memo(forwardRef(({
   useMarkers = true, 
   sparkline = false,
   simplified = false,
+  disableAnimation = false,
   customPlugins = []
 }, ref) => {
   const chartRef = useRef(null);
@@ -61,8 +62,8 @@ const LineChart = memo(forwardRef(({
     // Get the context
     const ctx = chartRef.current.getContext('2d');
     
-    // Set default animation duration
-    Chart.defaults.animation.duration = 800; // Increased from 300 for smoother transitions
+    // Set default animation duration based on disableAnimation flag
+    Chart.defaults.animation.duration = disableAnimation ? 0 : 800;
     
     // Parse the data - handle both formats (data.chartData and direct data) with additional safety
     const chartData = {
@@ -360,11 +361,41 @@ const LineChart = memo(forwardRef(({
       };
       
       // For area charts, modify the dataset
-      if (fill) {
+      if (fill && !sparkline) {
         chartData.datasets.forEach(dataset => {
           dataset.fill = true;
           dataset.backgroundColor = dataset.borderColor ? `${dataset.borderColor}15` : 'rgba(75, 192, 192, 0.2)';
         });
+      }
+      
+      // Ensure sparklines never have fill and use simpler rendering
+      if (sparkline) {
+        // For sparklines, ensure data is always rendered with no fill
+        chartData.datasets.forEach(dataset => {
+          dataset.fill = false;
+          dataset.borderWidth = 2;
+          dataset.pointRadius = 0;
+          dataset.pointHoverRadius = 0;
+          dataset.tension = 0.3;
+          
+          // Use Stripe purple for the primary dataset unless explicitly set to another color
+          if (!dataset.borderColor || dataset.borderColor === '#000') {
+            dataset.borderColor = STRIPE_PURPLE;
+          }
+        });
+        
+        // Simplify options for sparklines
+        options.responsive = true;
+        options.maintainAspectRatio = false;
+        options.animation = disableAnimation ? false : { duration: 400 };
+        options.plugins.tooltip.enabled = false;
+        options.plugins.legend.display = false;
+        options.scales.x.display = false;
+        options.scales.x.grid.display = false;
+        options.scales.y.display = false;
+        options.scales.y.grid.display = false;
+        options.layout = { padding: 0 };
+        options.interaction = { mode: null };
       }
       
       // Set all point radii to 0 by default, but allow them to show on hover
@@ -491,7 +522,7 @@ const LineChart = memo(forwardRef(({
         chartInstance.current.destroy();
       }
     };
-  }, [data, height, showLegend, showAxes, type, unitType, reducedLabels, useMarkers, sparkline, customPlugins]);
+  }, [data, height, showLegend, showAxes, type, unitType, reducedLabels, useMarkers, sparkline, simplified, disableAnimation, customPlugins]);
 
   return (
     <ChartContainer style={{ height: `${height}px` }}>
@@ -514,6 +545,8 @@ const LineChart = memo(forwardRef(({
     prevProps.reducedLabels === nextProps.reducedLabels &&
     prevProps.useMarkers === nextProps.useMarkers &&
     prevProps.sparkline === nextProps.sparkline &&
+    prevProps.simplified === nextProps.simplified &&
+    prevProps.disableAnimation === nextProps.disableAnimation &&
     !pluginsChanged
   );
 }));

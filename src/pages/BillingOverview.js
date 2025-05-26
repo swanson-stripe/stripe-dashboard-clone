@@ -396,6 +396,7 @@ const TrendingCard = styled.div`
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
+  min-height: 120px;
   
   &:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -418,11 +419,13 @@ const TrendingContent = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 `;
 
 const TrendingValueSection = styled.div`
   display: flex;
   flex-direction: column;
+  flex: 1;
 `;
 
 const TrendingValue = styled.div`
@@ -441,6 +444,12 @@ const SparklineContainer = styled.div`
   height: 50px;
   width: 100px;
   margin-left: 8px;
+  flex-shrink: 0;
+  min-width: 100px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const ExploreAction = styled.div`
@@ -1877,8 +1886,50 @@ const BillingOverview = () => {
     
     // Create a stable set of data points with realistic shapes
     const generateStableChartData = (metric) => {
-      // Use the consistent metric data from the context
-      return getMetricChartData(metric.id, activePeriod, activeInterval, activeComparison !== 'no-comparison');
+      // Create simple sparkline data with 10 points
+      const pointCount = 10;
+      const labels = Array.from({ length: pointCount }, (_, i) => `Day ${i+1}`);
+      
+      // Generate stable random values based on metric ID
+      const generateStableRandomValue = (i, metric) => {
+        const seed = (metric.id.charCodeAt(0) + i * 100) % 10000;
+        return Math.abs(Math.sin(seed)) * 0.5 + 0.5; // Returns value between 0.5 and 1
+      };
+      
+      // Generate data with appropriate trend
+      let data;
+      const baseValue = metric.isCurrency ? metric.baseCurrencyValue : metric.baseNumberValue;
+      
+      if (metric.trend === 'up') {
+        // Upward trend
+        data = Array.from({ length: pointCount }, (_, i) => {
+          const progress = i / (pointCount - 1);
+          const trendFactor = 0.8 + (progress * 0.4); // 0.8 to 1.2
+          const randomFactor = 0.9 + (generateStableRandomValue(i, metric) * 0.2); // 0.9 to 1.1
+          return baseValue * trendFactor * randomFactor / 10;
+        });
+      } else {
+        // Downward trend
+        data = Array.from({ length: pointCount }, (_, i) => {
+          const progress = i / (pointCount - 1);
+          const trendFactor = 1.2 - (progress * 0.4); // 1.2 to 0.8
+          const randomFactor = 0.9 + (generateStableRandomValue(i, metric) * 0.2); // 0.9 to 1.1
+          return baseValue * trendFactor * randomFactor / 10;
+        });
+      }
+      
+      return {
+        labels,
+        datasets: [{
+          label: metric.title,
+          data,
+          borderColor: STRIPE_PURPLE,
+          backgroundColor: 'transparent',
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2
+        }]
+      };
     };
     
     // Create metrics with stable chart data
@@ -1977,8 +2028,11 @@ const BillingOverview = () => {
       const metricKey = `trending-${metric.id}`;
       const showAnomaly = hasAnomaly(metric.id);
       
-      // Don't apply anomaly highlighting to chart data (remove area fill)
-      const chartData = metric.chartData;
+      // Add safety check for chart data
+      if (!metric.chartData || !metric.chartData.datasets || !metric.chartData.labels) {
+        console.warn(`Invalid chart data for trending metric ${metric.id}`);
+        return null;
+      }
       
       return (
         <TrendingCard key={metricKey} onClick={() => handleMetricClick(metric)}>
@@ -2007,22 +2061,23 @@ const BillingOverview = () => {
               <TrendingTrend trend={metric.trend}>{metric.trendDisplay}</TrendingTrend>
             </TrendingValueSection>
             <SparklineContainer
-              onMouseMove={(e) => throttledShowTooltip(e, metric.id, chartData)}
+              onMouseMove={(e) => throttledShowTooltip(e, metric.id, metric.chartData)}
               onMouseLeave={hideTooltip}
             >
               <LineChart 
-                data={chartData} 
+                data={metric.chartData} 
                 height={50} 
                 showLegend={false}
                 showAxes={false}
                 unit={metric.unit}
                 sparkline={true}
+                disableAnimation={true}
               />
             </SparklineContainer>
           </TrendingContent>
         </TrendingCard>
       );
-    });
+    }).filter(Boolean); // Filter out any null values from invalid chart data
   }, [trendingMetrics, handleMetricClick, throttledShowTooltip, hideTooltip, hasAnomaly]);
 
   // In the return statement, ensure chart data is properly structured for rendering
@@ -2446,6 +2501,7 @@ const BillingOverview = () => {
                 showAxes={false}
                 unit={metric.unit}
                 sparkline={true}
+                type="line"
               />
             </BenchmarkSparklineContainer>
           </TrendingContent>

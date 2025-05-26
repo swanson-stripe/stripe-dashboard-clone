@@ -113,12 +113,25 @@ function App() {
                   <Route path="/meters" element={<EmptyPage title="Meters" />} />
                   <Route path="/subscriptions" element={<EmptyPage title="Subscriptions" />} />
                   
-                  {/* Products */}
+                  {/* Connect routes */}
                   <Route path="/connect" element={<EmptyPage title="Connect" />} />
+                  <Route path="/connect/overview" element={<EmptyPage title="Connect Overview" />} />
+                  <Route path="/connect/connected-accounts" element={<EmptyPage title="Connected Accounts" />} />
+                  <Route path="/connect/treasury" element={<EmptyPage title="Treasury" />} />
+                  <Route path="/connect/capital" element={<EmptyPage title="Capital" />} />
+                  <Route path="/connect/support-cases" element={<EmptyPage title="Support Cases" />} />
+                  <Route path="/connect/embedded-apps" element={<EmptyPage title="Embedded Apps" />} />
+                  
+                  {/* Payments routes */}
                   <Route path="/payments" element={<EmptyPage title="Payments" />} />
+                  <Route path="/payments/analytics" element={<EmptyPage title="Payments Analytics" />} />
+                  <Route path="/payments/orchestration" element={<EmptyPage title="Orchestration" />} />
+                  <Route path="/payments/disputes" element={<EmptyPage title="Disputes" />} />
+                  <Route path="/payments/radar" element={<EmptyPage title="Radar" />} />
+                  <Route path="/payments/payment-links" element={<EmptyPage title="Payment Links" />} />
+                  <Route path="/payments/terminal" element={<EmptyPage title="Terminal" />} />
+                  
                   <Route path="/billing-product" element={<EmptyPage title="Billing" />} />
-                  <Route path="/reporting" element={<EmptyPage title="Reporting" />} />
-                  <Route path="/more" element={<EmptyPage title="More" />} />
                   
                   {/* Bottom */}
                   <Route path="/developers" element={<EmptyPage title="Developers" />} />

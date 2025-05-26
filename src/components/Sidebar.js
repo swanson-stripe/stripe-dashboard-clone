@@ -127,26 +127,19 @@ const Submenu = styled.div`
   top: -16px;
   background-color: white;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   min-width: 180px;
   padding: 12px 0;
   z-index: 1500;
   display: none;
+  border: 1px solid #e6e8eb;
   
   &:hover {
     display: block;
   }
   
   &::before {
-    content: '';
-    position: absolute;
-    top: 24px;
-    left: -6px;
-    width: 12px;
-    height: 12px;
-    background-color: white;
-    transform: rotate(45deg);
-    box-shadow: -3px 3px 5px rgba(0, 0, 0, 0.05);
+    display: none;
   }
 `;
 
@@ -168,6 +161,7 @@ const SubmenuItem = styled(Link)`
   
   &:hover {
     background-color: rgba(0, 0, 0, 0.04);
+    text-decoration: none;
   }
 `;
 
@@ -192,6 +186,10 @@ const Sidebar = () => {
                            location.pathname.includes('/explorer');
   
   const isBillingActive = location.pathname.includes('/billing');
+  
+  // Add checks for Connect and Payments paths
+  const isConnectActive = location.pathname.includes('/connect');
+  const isPaymentsActive = location.pathname.includes('/payments');
   
   return (
     <SidebarContainer>
@@ -233,19 +231,44 @@ const Sidebar = () => {
       </NavigationSection>
       
       <NavigationSection>
-        <NavItem to="/connect" data-tooltip="Connect">
+        <NavItemWithSubmenu
+          className={isConnectActive ? 'active' : ''}
+        >
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
             <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M0 6c0-.31.163-.598.429-.757L7.07 1.257a1.805 1.805 0 0 1 1.858 0l6.642 3.986a.883.883 0 0 1 0 1.514l-6.64 3.986a1.805 1.805 0 0 1-1.858 0L.43 6.757A.883.883 0 0 1 0 6Zm7.894 3.37L2.277 6l5.617-3.37a.205.205 0 0 1 .212 0L13.723 6 8.107 9.37a.205.205 0 0 1-.212 0Z"></path>
             <path fill="currentColor" d="M1.434 9.828a.8.8 0 0 0-.868 1.344l6.128 3.96a2.3 2.3 0 0 0 1.248.368h.116a2.3 2.3 0 0 0 1.248-.368l6.128-3.96a.8.8 0 1 0-.868-1.344l-6.129 3.96a.7.7 0 0 1-.38.112h-.115a.7.7 0 0 1-.38-.112l-6.128-3.96Z"></path>
           </svg>
-        </NavItem>
+          <SubmenuHoverArea />
+          <Submenu className="submenu">
+            <SubmenuTitle>Connect</SubmenuTitle>
+            <SubmenuItem to="/connect/overview">Overview</SubmenuItem>
+            <SubmenuItem to="/connect/connected-accounts">Connected accounts</SubmenuItem>
+            <SubmenuItem to="/connect/treasury">Treasury</SubmenuItem>
+            <SubmenuItem to="/connect/capital">Capital</SubmenuItem>
+            <SubmenuItem to="/connect/support-cases">Support cases</SubmenuItem>
+            <SubmenuItem to="/connect/embedded-apps">Embedded apps</SubmenuItem>
+          </Submenu>
+        </NavItemWithSubmenu>
         
-        <NavItem to="/payments" data-tooltip="Payments">
+        <NavItemWithSubmenu
+          className={isPaymentsActive ? 'active' : ''}
+        >
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
             <path fill="currentColor" d="M0 2.25A2.25 2.25 0 0 1 2.25 0h7.5A2.25 2.25 0 0 1 12 2.25v6a.75.75 0 0 1-1.5 0v-6a.75.75 0 0 0-.75-.75h-7.5a.75.75 0 0 0-.75.75v10.851a.192.192 0 0 0 .277.172l.888-.444a.75.75 0 1 1 .67 1.342l-.887.443A1.69 1.69 0 0 1 0 13.101V2.25Z"></path>
             <path fill="currentColor" d="M5 10.7a.7.7 0 0 1 .7-.7h4.6a.7.7 0 1 1 0 1.4H7.36l.136.237c.098.17.193.336.284.491.283.483.554.907.855 1.263.572.675 1.249 1.109 2.365 1.109 1.18 0 2.038-.423 2.604-1.039.576-.626.896-1.5.896-2.461 0-.99-.42-1.567-.807-1.998a.75.75 0 1 1 1.115-1.004C15.319 8.568 16 9.49 16 11c0 1.288-.43 2.54-1.292 3.476C13.838 15.423 12.57 16 11 16c-1.634 0-2.706-.691-3.51-1.64-.386-.457-.71-.971-1.004-1.472L6.4 12.74v2.56a.7.7 0 1 1-1.4 0v-4.6ZM2.95 4.25a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1-.75-.75ZM3.7 6.5a.75.75 0 0 0 0 1.5h4.6a.75.75 0 0 0 0-1.5H3.7Z"></path>
           </svg>
-        </NavItem>
+          <SubmenuHoverArea />
+          <Submenu className="submenu">
+            <SubmenuTitle>Payments</SubmenuTitle>
+            <SubmenuItem to="/payments">Payments</SubmenuItem>
+            <SubmenuItem to="/payments/analytics">Analytics</SubmenuItem>
+            <SubmenuItem to="/payments/orchestration">Orchestration</SubmenuItem>
+            <SubmenuItem to="/payments/disputes">Disputes</SubmenuItem>
+            <SubmenuItem to="/payments/radar">Radar</SubmenuItem>
+            <SubmenuItem to="/payments/payment-links">Payment Links</SubmenuItem>
+            <SubmenuItem to="/payments/terminal">Terminal</SubmenuItem>
+          </Submenu>
+        </NavItemWithSubmenu>
         
         <NavItemWithSubmenu 
           className={isBillingActive ? 'active' : ''}
