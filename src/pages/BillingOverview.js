@@ -1179,8 +1179,16 @@ const BillingOverview = () => {
 
   // Update the generateAnomalyHighlight function to create proper highlighting
   const generateAnomalyHighlight = (chartData, metricId) => {
-    if (!hasAnomaly(metricId) || !chartData || !chartData.datasets || !chartData.datasets[0] || !chartData.datasets[0].data) {
-      return chartData;
+    if (!hasAnomaly(metricId) || !chartData || !chartData.datasets || 
+        !Array.isArray(chartData.datasets) || chartData.datasets.length === 0 || 
+        !chartData.labels || !Array.isArray(chartData.labels) || chartData.labels.length === 0) {
+      return chartData; // Return the original data, not undefined
+    }
+    
+    // Additional safety check for datasets[0].data
+    if (!chartData.datasets[0].data || !Array.isArray(chartData.datasets[0].data) || 
+        chartData.datasets[0].data.length === 0) {
+      return chartData; // Return the original data if no valid data
     }
     
     // Make a deep copy of the chart data to avoid mutations
@@ -1243,131 +1251,176 @@ const BillingOverview = () => {
 
   // Enhanced tooltip handler for charts
   const handleShowTooltip = useCallback((event, metricId, chartData) => {
+    // Safety check for invalid chart data
+    if (!chartData || !chartData.datasets || !chartData.datasets.length || 
+        !chartData.labels || !Array.isArray(chartData.labels) || chartData.labels.length === 0) {
+      console.warn('Invalid chart data structure', chartData);
+      return;
+    }
+    
     // Get the y position, adjusting if too close to the bottom of the window
     let yPosition = event.clientY;
     if (event.clientY > window.innerHeight - 200) {
       yPosition = window.innerHeight - 200;
     }
     
-    // Calculate which data point we're hovering over
-    const chartBounds = event.currentTarget.getBoundingClientRect();
-    const mouseX = event.clientX - chartBounds.left;
-    const chartWidth = chartBounds.width;
-    const dataPointWidth = chartWidth / chartData.labels.length;
-    const dataIndex = Math.min(
-      Math.floor(mouseX / dataPointWidth),
-      chartData.labels.length - 1
-    );
-
-    // Get the metric details
-    let metric;
-    if (metricId === 'total-revenue') {
-      metric = {
-        id: 'total-revenue',
-        title: 'Total Revenue',
-        unit: 'currency',
-        showCents: true
-      };
-    } else {
-      metric = getMetricById(metricId) || 
-               standardizedMetrics[metricId] || 
-               { id: metricId, title: 'Metric' };
-    }
-
-    // Check if we're dealing with a stacked chart
-    const isStacked = chartData && chartData.datasets && chartData.datasets.length > 0 && 
-                      chartData.datasets.some(ds => ds.stack !== undefined);
-    
-    if (isStacked && metricId === 'total-revenue') {
-      // For stacked bar charts, show all categories in the tooltip
-      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
-      
-      // Process each dataset in the stacked chart
-      let hasValidData = false;
-      chartData.datasets.forEach(dataset => {
-        if (!dataset || !dataset.data || dataIndex >= dataset.data.length) return;
-        
-        const value = dataset.data[dataIndex];
-        if (value > 0) { // Only show non-zero values
-          hasValidData = true;
-          // Use formatCurrency for all values
-          const formattedValue = metric.unit === 'currency' ? 
-            formatCurrency(value) : formatNumber(value);
-          
-          // Determine color based on dataset
-          let color;
-          if (dataset.label === 'MRR') {
-            color = STRIPE_PURPLE;
-          } else if (dataset.label === 'Usage revenue') {
-            color = USAGE_BLUE;
-          } else if (dataset.label === 'Forecasted usage revenue') {
-            color = USAGE_BLUE;
-          } else {
-            color = dataset.borderColor || '#333';
-          }
-          
-          tooltipContent += `<div style="color: ${color};">${dataset.label}: ${formattedValue}</div>`;
-        }
-      });
-      
-      if (!hasValidData) return;
-      
-      // Add the total with cents
-      const total = chartData.datasets.reduce((acc, dataset) => {
-        if (!dataset || !dataset.data || dataIndex >= dataset.data.length) return acc;
-        return acc + (dataset.data[dataIndex] || 0);
-      }, 0);
-      
-      tooltipContent += `<div style="margin-top: 4px; font-weight: 600;">Total: ${formatCurrency(total)}</div>`;
-      
-      showTooltip(event.clientX, yPosition, tooltipContent, metricId);
-    } else {
-      // Standard tooltip handling for non-stacked charts
-      const currentData = chartData.datasets[0]?.data;
-      const previousData = chartData.datasets[1]?.data;
-      
-      if (!currentData || dataIndex >= currentData.length) return;
-      
-      const currentValue = currentData[dataIndex];
-      if (currentValue === undefined || currentValue === null) return;
-      
-      const previousValue = previousData && dataIndex < previousData.length ? previousData[dataIndex] : null;
-      
-      let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
-      
-      if (metric.unit === 'currency' || metric.isCurrency) {
-        tooltipContent += `<div class="current-value">Current: ${formatCurrency(currentValue)}</div>`;
-      } else if (metric.unit === 'percentage') {
-        tooltipContent += `<div class="current-value">Current: ${formatPercentage(currentValue)}</div>`;
+    try {
+      // Calculate which data point we're hovering over
+      const chartBounds = event.currentTarget.getBoundingClientRect();
+      const mouseX = event.clientX - chartBounds.left;
+      const chartWidth = chartBounds.width;
+      const dataPointWidth = chartWidth / chartData.labels.length;
+      const dataIndex = Math.min(
+        Math.floor(mouseX / dataPointWidth),
+        chartData.labels.length - 1
+      );
+  
+      // Safety check for dataIndex
+      if (dataIndex < 0 || dataIndex >= chartData.labels.length) {
+        return;
+      }
+  
+      // Get the metric details
+      let metric;
+      if (metricId === 'total-revenue') {
+        metric = {
+          id: 'total-revenue',
+          title: 'Total Revenue',
+          unit: 'currency',
+          showCents: true
+        };
       } else {
-        tooltipContent += `<div class="current-value">Current: ${formatNumber(currentValue)}</div>`;
+        metric = getMetricById(metricId) || 
+                standardizedMetrics[metricId] || 
+                { id: metricId, title: 'Metric' };
       }
+
+      // Check if we're dealing with a stacked chart
+      const isStacked = chartData && chartData.datasets && chartData.datasets.length > 0 && 
+                        chartData.datasets.some(ds => ds.stack !== undefined);
       
-      if (previousValue !== null && previousValue !== undefined) {
+      if (isStacked && metricId === 'total-revenue') {
+        // For stacked bar charts, show all categories in the tooltip
+        let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
+        
+        // Process each dataset in the stacked chart
+        let hasValidData = false;
+        chartData.datasets.forEach(dataset => {
+          if (!dataset || !dataset.data || dataIndex >= dataset.data.length) return;
+          
+          const value = dataset.data[dataIndex];
+          if (value > 0) { // Only show non-zero values
+            hasValidData = true;
+            // Use formatCurrency for all values
+            const formattedValue = metric.unit === 'currency' ? 
+              formatCurrency(value) : formatNumber(value);
+            
+            // Determine color based on dataset
+            let color;
+            if (dataset.label === 'MRR') {
+              color = STRIPE_PURPLE;
+            } else if (dataset.label === 'Usage revenue') {
+              color = USAGE_BLUE;
+            } else if (dataset.label === 'Forecasted usage revenue') {
+              color = USAGE_BLUE;
+            } else {
+              color = dataset.borderColor || '#333';
+            }
+            
+            tooltipContent += `<div style="color: ${color};">${dataset.label}: ${formattedValue}</div>`;
+          }
+        });
+        
+        if (!hasValidData) return;
+        
+        // Add the total with cents
+        const total = chartData.datasets.reduce((acc, dataset) => {
+          if (!dataset || !dataset.data || dataIndex >= dataset.data.length) return acc;
+          return acc + (dataset.data[dataIndex] || 0);
+        }, 0);
+        
+        tooltipContent += `<div style="margin-top: 4px; font-weight: 600;">Total: ${formatCurrency(total)}</div>`;
+        
+        showTooltip(event.clientX, yPosition, tooltipContent, metricId);
+      } else {
+        // Standard tooltip handling for non-stacked charts
+        const currentData = chartData.datasets[0]?.data;
+        const previousData = chartData.datasets[1]?.data;
+        
+        if (!currentData || dataIndex >= currentData.length) return;
+        
+        const currentValue = currentData[dataIndex];
+        if (currentValue === undefined || currentValue === null) return;
+        
+        const previousValue = previousData && dataIndex < previousData.length ? previousData[dataIndex] : null;
+        
+        let tooltipContent = `<strong>${chartData.labels[dataIndex]}</strong>`;
+        
         if (metric.unit === 'currency' || metric.isCurrency) {
-          tooltipContent += `<div class="previous-value">Previous: ${formatCurrency(previousValue)}</div>`;
+          tooltipContent += `<div class="current-value">Current: ${formatCurrency(currentValue)}</div>`;
         } else if (metric.unit === 'percentage') {
-          tooltipContent += `<div class="previous-value">Previous: ${formatPercentage(previousValue)}</div>`;
+          tooltipContent += `<div class="current-value">Current: ${formatPercentage(currentValue)}</div>`;
         } else {
-          tooltipContent += `<div class="previous-value">Previous: ${formatNumber(previousValue)}</div>`;
+          tooltipContent += `<div class="current-value">Current: ${formatNumber(currentValue)}</div>`;
         }
+        
+        if (previousValue !== null && previousValue !== undefined) {
+          if (metric.unit === 'currency' || metric.isCurrency) {
+            tooltipContent += `<div class="previous-value">Previous: ${formatCurrency(previousValue)}</div>`;
+          } else if (metric.unit === 'percentage') {
+            tooltipContent += `<div class="previous-value">Previous: ${formatPercentage(previousValue)}</div>`;
+          } else {
+            tooltipContent += `<div class="previous-value">Previous: ${formatNumber(previousValue)}</div>`;
+          }
+        }
+        
+        showTooltip(event.clientX, yPosition, tooltipContent, metricId);
       }
-      
-      showTooltip(event.clientX, yPosition, tooltipContent, metricId);
+    } catch (error) {
+      console.error("Error handling tooltip:", error);
     }
   }, [formatCurrency, formatPercentage, formatNumber, getMetricById, showTooltip]);
 
   // Create a shared throttled tooltip handler for trending metrics
   const throttledShowTooltip = useCallback((e, metricId, chartData) => {
-    // Skip if no event
+    // Skip if no event or invalid chart data
     if (!e || !e.currentTarget) return;
+    
+    // Comprehensive safety check for chart data
+    if (!chartData || 
+        !chartData.datasets || 
+        !Array.isArray(chartData.datasets) || 
+        chartData.datasets.length === 0 || 
+        !chartData.labels || 
+        !Array.isArray(chartData.labels) || 
+        chartData.labels.length === 0) {
+      console.warn('Invalid chart data in throttledShowTooltip', chartData);
+      return;
+    }
+    
+    // Check for valid dataset data
+    const hasValidData = chartData.datasets.some(dataset => 
+      dataset && 
+      dataset.data && 
+      Array.isArray(dataset.data) && 
+      dataset.data.length > 0
+    );
+    
+    if (!hasValidData) {
+      console.warn('No valid dataset data in throttledShowTooltip');
+      return;
+    }
     
     // Use a static variable on the DOM element to prevent refires
     if (!e.currentTarget._tooltipTimestamp || 
         Date.now() - e.currentTarget._tooltipTimestamp > 100) {
       
       e.currentTarget._tooltipTimestamp = Date.now();
-      handleShowTooltip(e, metricId, chartData);
+      try {
+        handleShowTooltip(e, metricId, chartData);
+      } catch (error) {
+        console.error("Error in throttledShowTooltip:", error);
+      }
     }
   }, [handleShowTooltip]);
 
@@ -2484,7 +2537,7 @@ const BillingOverview = () => {
     margin-bottom: 32px;
   `;
 
-  const SectionTitle = styled.h3`
+  const ModalSectionTitle = styled.h3`
     font-size: 18px;
     font-weight: 600;
     margin: 0 0 8px 0;
@@ -2512,7 +2565,7 @@ const BillingOverview = () => {
     margin-bottom: 16px;
   `;
 
-  const ToggleSwitch = styled.label`
+  const ModalToggleSwitch = styled.label`
     position: relative;
     display: inline-block;
     width: 44px;
@@ -2558,7 +2611,7 @@ const BillingOverview = () => {
     }
   `;
 
-  const ToggleLabel = styled.span`
+  const ModalToggleLabel = styled.span`
     font-size: 15px;
   `;
 
@@ -2754,34 +2807,34 @@ const BillingOverview = () => {
           </ModalHeader>
           
           <ModalSection>
-            <SectionTitle>Metrics calculation</SectionTitle>
+            <ModalSectionTitle>Metrics calculation</ModalSectionTitle>
             <SectionDescription>
               Changes will only affect MRR and churn metrics, and will reflect in 24-48 hours. <LearnMoreLink href="#">Learn More</LearnMoreLink>
             </SectionDescription>
             
             <ToggleOption>
-              <ToggleSwitch>
+              <ModalToggleSwitch>
                 <input 
                   type="checkbox" 
                   checked={localSettings.subtractRecurringDiscounts} 
                   onChange={() => handleToggleChange('subtractRecurringDiscounts')}
                 />
                 <span></span>
-              </ToggleSwitch>
-              <ToggleLabel>Subtract recurring discounts from MRR</ToggleLabel>
+              </ModalToggleSwitch>
+              <ModalToggleLabel>Subtract recurring discounts from MRR</ModalToggleLabel>
               <InfoIcon>?</InfoIcon>
             </ToggleOption>
             
             <ToggleOption>
-              <ToggleSwitch>
+              <ModalToggleSwitch>
                 <input 
                   type="checkbox" 
                   checked={localSettings.subtractOneTimeDiscounts} 
                   onChange={() => handleToggleChange('subtractOneTimeDiscounts')}
                 />
                 <span></span>
-              </ToggleSwitch>
-              <ToggleLabel>Subtract one-time discounts from MRR</ToggleLabel>
+              </ModalToggleSwitch>
+              <ModalToggleLabel>Subtract one-time discounts from MRR</ModalToggleLabel>
             </ToggleOption>
             
             <SelectWrapper>
