@@ -46,6 +46,13 @@ const LineChart = memo(forwardRef(({
     // Only proceed if we have valid data and DOM element
     if (!chartRef.current || !data) return;
     
+    // Additional safety checks for data structure
+    if (!data.datasets || !Array.isArray(data.datasets) || data.datasets.length === 0 ||
+        !data.labels || !Array.isArray(data.labels)) {
+      console.warn('LineChart: Invalid data format', data);
+      return;
+    }
+    
     // If chart already exists, destroy it
     if (chartInstance.current) {
       chartInstance.current.destroy();
@@ -57,13 +64,15 @@ const LineChart = memo(forwardRef(({
     // Set default animation duration
     Chart.defaults.animation.duration = 800; // Increased from 300 for smoother transitions
     
-    // Parse the data - handle both formats (data.chartData and direct data)
+    // Parse the data - handle both formats (data.chartData and direct data) with additional safety
     const chartData = {
-      labels: data.labels || [],
-      datasets: (data.datasets || []).map(dataset => ({
-        ...dataset,
-        data: Array.isArray(dataset.data) ? dataset.data : [] // Ensure data is always an array
-      }))
+      labels: Array.isArray(data.labels) ? data.labels : [],
+      datasets: Array.isArray(data.datasets) 
+        ? data.datasets.map(dataset => ({
+            ...dataset,
+            data: Array.isArray(dataset.data) ? dataset.data : []
+          }))
+        : []
     };
 
     // Check if datasets have stack property, which indicates stacked bar chart
