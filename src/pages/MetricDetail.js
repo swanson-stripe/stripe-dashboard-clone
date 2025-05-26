@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
-import PlanFilter from '../components/PlanFilter';
 import { PERIODS } from '../data/companyData';
 import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
@@ -641,7 +640,7 @@ const MetricDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { showTooltip, hideTooltip } = useTooltip();
-  const { metrics: standardizedMetrics, getMetricById, getMetricChartData } = useMetrics();
+  const { metrics: standardizedMetrics, getMetricById, getMetricChartData, setPlan, currentPlan } = useMetrics();
   
   // Get initial metric data - compute once with useMemo to prevent re-renders
   const baseMetric = useMemo(() => {
@@ -1330,7 +1329,7 @@ const MetricDetail = () => {
     // Apply Developer plan filter if active
     let filteredTransactions = transactions;
     if (baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue') {
-      if (reportingControls.filters.includes('developer-plan')) {
+      if (currentPlan === 'developer') {
         filteredTransactions = transactions.filter(txn => txn.plan === 'Developer');
       }
     }
@@ -1348,7 +1347,7 @@ const MetricDetail = () => {
       indexOfFirstTransaction, 
       indexOfLastTransaction 
     };
-  }, [currentPage, baseMetric.id, reportingControls.filters]);
+  }, [currentPage, baseMetric.id, currentPlan]);
   
   // Determine the source page for breadcrumbs
   const sourcePage = useMemo(() => location.state?.sourcePage || 'Home', [location.state]);
@@ -1698,13 +1697,6 @@ const MetricDetail = () => {
           />
         </ControlsContainer>
         
-        {/* Plan Filter - only show for overage revenue metrics */}
-        {(baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue') && (
-          <div style={{ marginBottom: '24px' }}>
-            <PlanFilter />
-          </div>
-        )}
-        
         <ChartSectionContainer>
           {isMeterChart ? (
             <div style={{ width: '100%' }}>
@@ -1750,13 +1742,10 @@ const MetricDetail = () => {
               {baseMetric.title} increased {latestValues.trendValue?.toFixed(1) || '14.8'}% within the past 10 days, primarily driven by a surge in Generator meter usage from Developer-tier customers. A handful of accounts exceeded their included units by over 200%, suggesting unanticipated usage spikes or under-provisioned plans.
             </AnomalyDescription>
             
-            {!reportingControls.filters.includes('developer-plan') && (
+            {currentPlan !== 'developer' && (
               <AnomalyActionLink onClick={() => {
-                // Add filter for Developer plan
-                setReportingControls(prev => ({
-                  ...prev,
-                  filters: [...prev.filters, 'developer-plan']
-                }));
+                // Set plan to Developer in MetricsContext
+                setPlan('developer');
                 // Reset to first page when filter is applied
                 setCurrentPage(1);
               }}>
@@ -1767,6 +1756,21 @@ const MetricDetail = () => {
                   <path d="M3 14H10V21H3V14Z" stroke="#635bff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 Filter for Developer plan
+              </AnomalyActionLink>
+            )}
+            
+            {currentPlan === 'developer' && (
+              <AnomalyActionLink onClick={() => {
+                // Clear plan filter in MetricsContext
+                setPlan('all');
+                // Reset to first page when filter is cleared
+                setCurrentPage(1);
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18" stroke="#635bff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6 6L18 18" stroke="#635bff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Clear Developer plan filter
               </AnomalyActionLink>
             )}
             
