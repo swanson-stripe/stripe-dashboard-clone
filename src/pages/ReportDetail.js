@@ -183,23 +183,24 @@ const TableContainer = styled.div`
 `;
 
 const StyledTable = styled.table`
-  width: 100%;
+  width: 260px;
   border-collapse: collapse;
   table-layout: fixed;
   
   th, td {
-    padding: 12px 16px;
+    padding: 8px 4px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 12px;
   }
   
   th {
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 11px;
     position: relative;
     cursor: pointer;
     
@@ -208,12 +209,12 @@ const StyledTable = styled.table`
     }
   }
   
-  /* Column width classes */
-  th:nth-child(1), td:nth-child(1) { width: 120px; } /* Customer names */
-  th:nth-child(2), td:nth-child(2) { width: 80px; } /* Product/Category */
-  th:nth-child(3), td:nth-child(3) { width: 70px; } /* Numbers/Percentages */
-  th:nth-child(4), td:nth-child(4) { width: 90px; } /* Currency values */
-  th:nth-child(5), td:nth-child(5) { width: 90px; } /* Additional currency */
+  /* Column width classes - Total: 260px */
+  th:nth-child(1), td:nth-child(1) { width: 70px; } /* Customer names */
+  th:nth-child(2), td:nth-child(2) { width: 50px; } /* Product/Category */
+  th:nth-child(3), td:nth-child(3) { width: 60px; } /* Numbers/Percentages */
+  th:nth-child(4), td:nth-child(4) { width: 80px; } /* Currency values */
+  th:nth-child(5), td:nth-child(5) { width: 80px; } /* Additional currency */
   
   tr:not(thead tr) {
     cursor: pointer;
@@ -225,7 +226,7 @@ const StyledTable = styled.table`
   }
   
   td {
-    font-size: 14px;
+    font-size: 12px;
   }
 `;
 
@@ -293,28 +294,29 @@ const SummaryRow = styled.tr`
 `;
 
 const SummaryCell = styled.td`
-  padding: 12px 16px !important;
+  padding: 8px 4px !important;
   vertical-align: top;
   border-bottom: 1px solid var(--border-color) !important;
   overflow: visible !important;
   white-space: normal !important;
   position: relative;
+  font-size: 12px !important;
 `;
 
 const ChartContainer = styled.div`
   width: 100%;
-  height: 50px;
-  margin-bottom: 6px;
+  height: 40px;
+  margin-bottom: 4px;
   position: relative;
-  z-index: 10;
+  z-index: 100;
 `;
 
 const SummaryText = styled.div`
-  font-size: 11px;
+  font-size: 9px;
   color: #6b7c93;
   text-align: center;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.1;
 `;
 
 const HeaderCellContent = styled.div`
@@ -679,7 +681,9 @@ const ReportDetail = () => {
         fill: true,
         tension: 0.4,
         borderWidth: 2,
-        pointRadius: 0
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHitRadius: 10
       }]
     };
   };
@@ -694,7 +698,9 @@ const ReportDetail = () => {
         data: data,
         backgroundColor: '#635bff',
         borderColor: '#635bff',
-        borderWidth: 1
+        borderWidth: 1,
+        hoverBackgroundColor: '#5a51e5',
+        hoverBorderColor: '#5a51e5'
       }]
     };
   };
@@ -710,7 +716,9 @@ const ReportDetail = () => {
           data: [values.length],
           backgroundColor: '#635bff',
           borderColor: '#635bff',
-          borderWidth: 1
+          borderWidth: 1,
+          hoverBackgroundColor: '#5a51e5',
+          hoverBorderColor: '#5a51e5'
         }]
       };
     }
@@ -742,7 +750,9 @@ const ReportDetail = () => {
         data: buckets,
         backgroundColor: '#635bff',
         borderColor: '#635bff',
-        borderWidth: 1
+        borderWidth: 1,
+        hoverBackgroundColor: '#5a51e5',
+        hoverBorderColor: '#5a51e5'
       }]
     };
   };
@@ -764,51 +774,58 @@ const ReportDetail = () => {
     const baseOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'point'
+      },
       plugins: {
-        legend: { display: false },
-        tooltip: { 
+        legend: { 
+          display: false 
+        },
+        tooltip: {
           enabled: true,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          titleColor: 'white',
-          bodyColor: 'white',
+          mode: 'nearest',
+          intersect: false,
+          backgroundColor: '#000',
+          titleColor: '#fff',
+          bodyColor: '#fff',
           borderColor: '#635bff',
           borderWidth: 1,
-          cornerRadius: 6,
-          displayColors: false,
-          titleFont: { size: 12 },
-          bodyFont: { size: 11 },
-          padding: 8
+          cornerRadius: 4,
+          padding: 6,
+          titleFont: { size: 11 },
+          bodyFont: { size: 10 },
+          displayColors: false
         }
       },
       scales: {
         x: { 
-          display: false,
-          grid: { display: false }
+          display: false
         },
         y: { 
-          display: false,
-          grid: { display: false }
+          display: false
         }
       },
       elements: {
-        point: { radius: 2, hoverRadius: 4 },
-        line: { borderWidth: 2 },
-        bar: { borderWidth: 1 }
-      },
-      interaction: {
-        intersect: false,
-        mode: 'nearest'
+        point: { 
+          radius: 0,
+          hoverRadius: 3,
+          hitRadius: 10
+        },
+        line: { 
+          borderWidth: 2,
+          tension: 0.4
+        },
+        bar: {
+          borderWidth: 0
+        }
       }
     };
 
     if (type === 'horizontalBar') {
       return {
         ...baseOptions,
-        indexAxis: 'y',
-        scales: {
-          x: { display: false, grid: { display: false } },
-          y: { display: false, grid: { display: false } }
-        }
+        indexAxis: 'y'
       };
     }
 
