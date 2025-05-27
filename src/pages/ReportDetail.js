@@ -185,11 +185,15 @@ const TableContainer = styled.div`
 const StyledTable = styled.table`
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   
   th, td {
     padding: 12px 16px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   th {
@@ -203,6 +207,13 @@ const StyledTable = styled.table`
       color: var(--text-color);
     }
   }
+  
+  /* Column width classes */
+  th:nth-child(1), td:nth-child(1) { width: 200px; } /* Customer names */
+  th:nth-child(2), td:nth-child(2) { width: 150px; } /* Product/Category */
+  th:nth-child(3), td:nth-child(3) { width: 180px; } /* Numbers/Percentages */
+  th:nth-child(4), td:nth-child(4) { width: 200px; } /* Currency values */
+  th:nth-child(5), td:nth-child(5) { width: 200px; } /* Additional currency */
   
   tr:not(thead tr) {
     cursor: pointer;
@@ -285,6 +296,8 @@ const SummaryCell = styled.td`
   padding: 12px 16px !important;
   vertical-align: top;
   border-bottom: 1px solid var(--border-color) !important;
+  overflow: visible !important;
+  white-space: normal !important;
 `;
 
 const ChartContainer = styled.div`
@@ -663,7 +676,8 @@ const ReportDetail = () => {
         fill: true,
         tension: 0.4,
         borderWidth: 2,
-        pointRadius: 0
+        pointRadius: 0,
+        label: 'Records created'
       }]
     };
   };
@@ -678,7 +692,8 @@ const ReportDetail = () => {
         data: data,
         backgroundColor: '#635bff',
         borderColor: '#635bff',
-        borderWidth: 1
+        borderWidth: 1,
+        label: 'Category count'
       }]
     };
   };
@@ -694,7 +709,8 @@ const ReportDetail = () => {
           data: [values.length],
           backgroundColor: '#635bff',
           borderColor: '#635bff',
-          borderWidth: 1
+          borderWidth: 1,
+          label: 'Value frequency'
         }]
       };
     }
@@ -726,7 +742,8 @@ const ReportDetail = () => {
         data: buckets,
         backgroundColor: '#635bff',
         borderColor: '#635bff',
-        borderWidth: 1
+        borderWidth: 1,
+        label: 'Value frequency'
       }]
     };
   };
@@ -750,7 +767,28 @@ const ReportDetail = () => {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { enabled: false }
+        tooltip: { 
+          enabled: true,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: 'white',
+          bodyColor: 'white',
+          borderColor: '#635bff',
+          borderWidth: 1,
+          cornerRadius: 6,
+          displayColors: false,
+          titleFont: { size: 12, weight: 'bold' },
+          bodyFont: { size: 11 },
+          padding: 8,
+          callbacks: {
+            title: function(context) {
+              return context[0].label;
+            },
+            label: function(context) {
+              const value = context.parsed.y || context.parsed.x || context.raw;
+              return `Count: ${value}`;
+            }
+          }
+        }
       },
       scales: {
         x: { 
@@ -765,6 +803,10 @@ const ReportDetail = () => {
       elements: {
         point: { radius: 0 },
         line: { borderWidth: 2 }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
       }
     };
 
@@ -775,6 +817,21 @@ const ReportDetail = () => {
         scales: {
           x: { display: false, grid: { display: false } },
           y: { display: false, grid: { display: false } }
+        },
+        plugins: {
+          ...baseOptions.plugins,
+          tooltip: {
+            ...baseOptions.plugins.tooltip,
+            callbacks: {
+              title: function(context) {
+                return context[0].label;
+              },
+              label: function(context) {
+                const value = context.parsed.x || context.raw;
+                return `Count: ${value}`;
+              }
+            }
+          }
         }
       };
     }
