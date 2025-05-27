@@ -178,8 +178,10 @@ const ExportButton = styled.button`
 `;
 
 const TableContainer = styled.div`
-  width: 100%;
-  overflow-x: auto;
+  width: 260px;
+  max-width: 260px;
+  overflow-x: visible;
+  overflow-y: visible;
 `;
 
 const StyledTable = styled.table`
@@ -188,13 +190,13 @@ const StyledTable = styled.table`
   table-layout: fixed;
   
   th, td {
-    padding: 8px 4px;
+    padding: 4px 2px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: 11px;
   }
   
   th {
@@ -210,11 +212,11 @@ const StyledTable = styled.table`
   }
   
   /* Column width classes - Total: 260px */
-  th:nth-child(1), td:nth-child(1) { width: 70px; } /* Customer names */
+  th:nth-child(1), td:nth-child(1) { width: 60px; } /* Customer names */
   th:nth-child(2), td:nth-child(2) { width: 50px; } /* Product/Category */
-  th:nth-child(3), td:nth-child(3) { width: 60px; } /* Numbers/Percentages */
-  th:nth-child(4), td:nth-child(4) { width: 80px; } /* Currency values */
-  th:nth-child(5), td:nth-child(5) { width: 80px; } /* Additional currency */
+  th:nth-child(3), td:nth-child(3) { width: 50px; } /* Numbers/Percentages */
+  th:nth-child(4), td:nth-child(4) { width: 50px; } /* Currency values */
+  th:nth-child(5), td:nth-child(5) { width: 50px; } /* Additional currency */
   
   tr:not(thead tr) {
     cursor: pointer;
@@ -294,13 +296,13 @@ const SummaryRow = styled.tr`
 `;
 
 const SummaryCell = styled.td`
-  padding: 8px 4px !important;
+  padding: 4px 2px !important;
   vertical-align: top;
   border-bottom: 1px solid var(--border-color) !important;
   overflow: visible !important;
   white-space: normal !important;
   position: relative;
-  font-size: 12px !important;
+  font-size: 11px !important;
 `;
 
 const ChartContainer = styled.div`
