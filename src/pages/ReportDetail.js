@@ -3,6 +3,11 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import ReportingControls from '../components/ReportingControls';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend } from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
 
 const Container = styled(motion.div)`
   width: 100%;
@@ -260,6 +265,56 @@ const PageButton = styled.button`
   }
 `;
 
+// New styled components for data summary row
+const DataTypeIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  color: #6b7c93;
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+const SummaryRow = styled.tr`
+  background-color: #f9fafc;
+  border-bottom: 2px solid #e3e8ee;
+  
+  &:hover {
+    background-color: #f9fafc !important;
+  }
+`;
+
+const SummaryCell = styled.td`
+  padding: 16px !important;
+  vertical-align: top;
+  border-bottom: 2px solid #e3e8ee !important;
+`;
+
+const ChartContainer = styled.div`
+  width: 100%;
+  height: 60px;
+  margin-bottom: 8px;
+`;
+
+const SummaryText = styled.div`
+  font-size: 12px;
+  color: #6b7c93;
+  text-align: center;
+  font-weight: 500;
+`;
+
+const HeaderCellContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const HeaderLabel = styled.span`
+  display: flex;
+  align-items: center;
+`;
+
 // Sample report data
 const reportSamples = {
   'churn-risk': {
@@ -381,112 +436,112 @@ const ReportDetail = () => {
     switch (params.reportId) {
       case 'high-usage-growth':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Product', sortable: true },
-          { id: 'usage_growth', label: 'Usage Growth %', sortable: true, isTrend: true, isPositive: true },
-          { id: 'overage_revenue', label: 'Overage Revenue', sortable: true, isCurrency: true },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
+          { id: 'usage_growth', label: 'Usage Growth %', sortable: true, isTrend: true, isPositive: true, dataType: 'number' },
+          { id: 'overage_revenue', label: 'Overage Revenue', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       case 'monthly-sales':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Product', sortable: true },
-          { id: 'current_mrr', label: 'Revenue', sortable: true, isCurrency: true },
-          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
+          { id: 'current_mrr', label: 'Revenue', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       case 'new-subscribers':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Plan', sortable: true },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true },
-          { id: 'included_units', label: 'Units', sortable: true, isNumber: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Plan', sortable: true, dataType: 'category' },
+          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'included_units', label: 'Units', sortable: true, isNumber: true, dataType: 'number' }
         ];
         break;
         
       case 'weekly-churned':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Product', sortable: true },
-          { id: 'usage_growth', label: 'Usage Trend', sortable: true, isTrend: true },
-          { id: 'current_mrr', label: 'Lost MRR', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
+          { id: 'usage_growth', label: 'Usage Trend', sortable: true, isTrend: true, dataType: 'number' },
+          { id: 'current_mrr', label: 'Lost MRR', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       case 'top-selling':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Product', sortable: true },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true },
-          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
+          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       case 'high-value':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Product', sortable: true },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true },
-          { id: 'projected_ltv', label: 'Lifetime Value', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
+          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'projected_ltv', label: 'Lifetime Value', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       case 'new-products':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'New Product', sortable: true },
-          { id: 'current_mrr', label: 'New MRR', sortable: true, isCurrency: true },
-          { id: 'included_units', label: 'Included Units', sortable: true, isNumber: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'New Product', sortable: true, dataType: 'category' },
+          { id: 'current_mrr', label: 'New MRR', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'included_units', label: 'Included Units', sortable: true, isNumber: true, dataType: 'number' }
         ];
         break;
         
       case 'mrr-growth':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true },
-          { id: 'usage_growth', label: 'Growth Rate', sortable: true, isTrend: true, isPositive: true },
-          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'usage_growth', label: 'Growth Rate', sortable: true, isTrend: true, isPositive: true, dataType: 'number' },
+          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       case 'upsell-opportunities':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Current Plan', sortable: true },
-          { id: 'current_mrr', label: 'Current MRR', sortable: true, isCurrency: true },
-          { id: 'projected_ltv', label: 'Potential LTV', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Current Plan', sortable: true, dataType: 'category' },
+          { id: 'current_mrr', label: 'Current MRR', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'projected_ltv', label: 'Potential LTV', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       case 'new-free-trials':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Trial Plan', sortable: true },
-          { id: 'included_units', label: 'Trial Units', sortable: true, isNumber: true },
-          { id: 'projected_ltv', label: 'Potential Value', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Trial Plan', sortable: true, dataType: 'category' },
+          { id: 'included_units', label: 'Trial Units', sortable: true, isNumber: true, dataType: 'number' },
+          { id: 'projected_ltv', label: 'Potential Value', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       case 'revenue-composition':
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'subscription_revenue', label: 'Subscription', sortable: true, isCurrency: true },
-          { id: 'usage_revenue', label: 'Usage', sortable: true, isCurrency: true },
-          { id: 'add_on_revenue', label: 'Add-ons', sortable: true, isCurrency: true },
-          { id: 'current_mrr', label: 'Total MRR', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'subscription_revenue', label: 'Subscription', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'usage_revenue', label: 'Usage', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'add_on_revenue', label: 'Add-ons', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'current_mrr', label: 'Total MRR', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
         
       default: // churn-risk or any other
         columns = [
-          { id: 'name', label: 'Customer', sortable: true },
-          { id: 'product', label: 'Product', sortable: true },
-          { id: 'current_mrr', label: 'MRR at Risk', sortable: true, isCurrency: true },
-          { id: 'usage_growth', label: 'Usage Trend', sortable: true, isTrend: true },
-          { id: 'projected_ltv', label: 'Potential LTV Loss', sortable: true, isCurrency: true }
+          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
+          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
+          { id: 'current_mrr', label: 'MRR at Risk', sortable: true, isCurrency: true, dataType: 'number' },
+          { id: 'usage_growth', label: 'Usage Trend', sortable: true, isTrend: true, dataType: 'number' },
+          { id: 'projected_ltv', label: 'Potential LTV Loss', sortable: true, isCurrency: true, dataType: 'number' }
         ];
         break;
     }
@@ -497,6 +552,238 @@ const ReportDetail = () => {
     };
   }, [params.reportId]);
   
+  // Helper functions for data analysis and visualization
+  const getDataTypeIcon = (dataType) => {
+    switch (dataType) {
+      case 'date':
+        return (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
+            <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        );
+      case 'string':
+        return <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>ABC</span>;
+      case 'number':
+        return <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>123</span>;
+      case 'category':
+        return (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2"/>
+            <line x1="3" y1="6" x2="3.01" y2="6" stroke="currentColor" strokeWidth="2"/>
+            <line x1="3" y1="12" x2="3.01" y2="12" stroke="currentColor" strokeWidth="2"/>
+            <line x1="3" y1="18" x2="3.01" y2="18" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const analyzeColumnData = (data, column) => {
+    const values = data.map(row => row[column.id]).filter(val => val !== null && val !== undefined);
+    
+    if (values.length === 0) {
+      return {
+        type: 'bar',
+        summary: '0 values',
+        chartData: { labels: ['No data'], datasets: [{ data: [0], backgroundColor: '#e3e8ee' }] }
+      };
+    }
+    
+    switch (column.dataType) {
+      case 'string':
+        // For strings, we'll show count over time (simulated)
+        const uniqueCount = new Set(values).size;
+        return {
+          type: 'line',
+          summary: `${uniqueCount} unique values`,
+          chartData: generateTimeSeriesData(values.length)
+        };
+        
+      case 'category':
+        // Count occurrences of each category
+        const categoryCount = {};
+        values.forEach(val => {
+          categoryCount[val] = (categoryCount[val] || 0) + 1;
+        });
+        return {
+          type: 'horizontalBar',
+          summary: `${Object.keys(categoryCount).length} categories`,
+          chartData: generateCategoryChartData(categoryCount)
+        };
+        
+      case 'number':
+        // Create distribution buckets
+        const numericValues = values.filter(val => typeof val === 'number' && !isNaN(val));
+        if (numericValues.length === 0) {
+          return {
+            type: 'bar',
+            summary: '0 numeric values',
+            chartData: { labels: ['No data'], datasets: [{ data: [0], backgroundColor: '#e3e8ee' }] }
+          };
+        }
+        const min = Math.min(...numericValues);
+        const max = Math.max(...numericValues);
+        return {
+          type: 'bar',
+          summary: `${numericValues.length} values`,
+          chartData: generateNumberDistributionData(numericValues, min, max)
+        };
+        
+      case 'date':
+        // Date distribution (if we had date columns)
+        return {
+          type: 'bar',
+          summary: `${values.length} dates`,
+          chartData: generateDateDistributionData(values)
+        };
+        
+      default:
+        return {
+          type: 'bar',
+          summary: `${values.length} items`,
+          chartData: { labels: ['Data'], datasets: [{ data: [values.length], backgroundColor: '#635bff' }] }
+        };
+    }
+  };
+
+  const generateTimeSeriesData = (totalCount) => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const data = days.map(() => Math.floor(Math.random() * (totalCount / 4)) + 1);
+    
+    return {
+      labels: days,
+      datasets: [{
+        data: data,
+        borderColor: '#635bff',
+        backgroundColor: 'rgba(99, 91, 255, 0.1)',
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: 0
+      }]
+    };
+  };
+
+  const generateCategoryChartData = (categoryCount) => {
+    const labels = Object.keys(categoryCount);
+    const data = Object.values(categoryCount);
+    
+    return {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: '#635bff',
+        borderColor: '#635bff',
+        borderWidth: 1
+      }]
+    };
+  };
+
+  const generateNumberDistributionData = (values, min, max) => {
+    const bucketCount = 5;
+    
+    // Handle edge case where all values are the same
+    if (min === max) {
+      return {
+        labels: [String(min)],
+        datasets: [{
+          data: [values.length],
+          backgroundColor: '#635bff',
+          borderColor: '#635bff',
+          borderWidth: 1
+        }]
+      };
+    }
+    
+    const bucketSize = (max - min) / bucketCount;
+    const buckets = Array(bucketCount).fill(0);
+    const bucketLabels = [];
+    
+    // Create bucket labels
+    for (let i = 0; i < bucketCount; i++) {
+      const start = min + (i * bucketSize);
+      const end = min + ((i + 1) * bucketSize);
+      if (bucketSize >= 1) {
+        bucketLabels.push(`${Math.round(start)}-${Math.round(end)}`);
+      } else {
+        bucketLabels.push(`${start.toFixed(1)}-${end.toFixed(1)}`);
+      }
+    }
+    
+    // Distribute values into buckets
+    values.forEach(value => {
+      const bucketIndex = Math.min(Math.floor((value - min) / bucketSize), bucketCount - 1);
+      buckets[bucketIndex]++;
+    });
+    
+    return {
+      labels: bucketLabels,
+      datasets: [{
+        data: buckets,
+        backgroundColor: '#635bff',
+        borderColor: '#635bff',
+        borderWidth: 1
+      }]
+    };
+  };
+
+  const generateDateDistributionData = (values) => {
+    // Placeholder for date distribution
+    return {
+      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+      datasets: [{
+        data: [10, 15, 12, 8],
+        backgroundColor: '#635bff',
+        borderColor: '#635bff',
+        borderWidth: 1
+      }]
+    };
+  };
+
+  const getChartOptions = (type) => {
+    const baseOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      },
+      scales: {
+        x: { 
+          display: false,
+          grid: { display: false }
+        },
+        y: { 
+          display: false,
+          grid: { display: false }
+        }
+      },
+      elements: {
+        point: { radius: 0 },
+        line: { borderWidth: 2 }
+      }
+    };
+
+    if (type === 'horizontalBar') {
+      return {
+        ...baseOptions,
+        indexAxis: 'y',
+        scales: {
+          x: { display: false, grid: { display: false } },
+          y: { display: false, grid: { display: false } }
+        }
+      };
+    }
+
+    return baseOptions;
+  };
+
   // Reporting controls
   const [reportingControls, setReportingControls] = useState({
     period: 'last_7_days',
@@ -817,10 +1104,47 @@ const ReportDetail = () => {
                 <tr>
                   {getReportData.columns.map((column) => (
                     <th key={column.id} onClick={() => handleSort(column.id)}>
-                      {column.label} {getSortIndicator(column.id)}
+                      <HeaderCellContent>
+                        <HeaderLabel>
+                          {column.label} {getSortIndicator(column.id)}
+                        </HeaderLabel>
+                        <DataTypeIcon>
+                          {getDataTypeIcon(column.dataType)}
+                        </DataTypeIcon>
+                      </HeaderCellContent>
                     </th>
                   ))}
                 </tr>
+                <SummaryRow>
+                  {getReportData.columns.map((column) => {
+                    const analysis = analyzeColumnData(sortedData, column);
+                    return (
+                      <SummaryCell key={`summary-${column.id}`}>
+                        <ChartContainer>
+                          {analysis.type === 'line' && (
+                            <Line
+                              data={analysis.chartData}
+                              options={getChartOptions('line')}
+                            />
+                          )}
+                          {analysis.type === 'bar' && (
+                            <Bar
+                              data={analysis.chartData}
+                              options={getChartOptions('bar')}
+                            />
+                          )}
+                          {analysis.type === 'horizontalBar' && (
+                            <Bar
+                              data={analysis.chartData}
+                              options={getChartOptions('horizontalBar')}
+                            />
+                          )}
+                        </ChartContainer>
+                        <SummaryText>{analysis.summary}</SummaryText>
+                      </SummaryCell>
+                    );
+                  })}
+                </SummaryRow>
               </thead>
               <tbody>
                 {currentData.map((customer) => (
