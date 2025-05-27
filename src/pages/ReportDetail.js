@@ -276,31 +276,29 @@ const DataTypeIcon = styled.span`
 `;
 
 const SummaryRow = styled.tr`
-  background-color: #f9fafc;
-  border-bottom: 2px solid #e3e8ee;
-  
   &:hover {
-    background-color: #f9fafc !important;
+    background-color: transparent !important;
   }
 `;
 
 const SummaryCell = styled.td`
-  padding: 16px !important;
+  padding: 12px 16px !important;
   vertical-align: top;
-  border-bottom: 2px solid #e3e8ee !important;
+  border-bottom: 1px solid var(--border-color) !important;
 `;
 
 const ChartContainer = styled.div`
   width: 100%;
-  height: 60px;
-  margin-bottom: 8px;
+  height: 50px;
+  margin-bottom: 6px;
 `;
 
 const SummaryText = styled.div`
-  font-size: 12px;
+  font-size: 11px;
   color: #6b7c93;
   text-align: center;
   font-weight: 500;
+  line-height: 1.2;
 `;
 
 const HeaderCellContent = styled.div`
@@ -572,8 +570,8 @@ const ReportDetail = () => {
         return (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2"/>
-            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2"/>
-            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2"/>
             <line x1="3" y1="6" x2="3.01" y2="6" stroke="currentColor" strokeWidth="2"/>
             <line x1="3" y1="12" x2="3.01" y2="12" stroke="currentColor" strokeWidth="2"/>
             <line x1="3" y1="18" x2="3.01" y2="18" stroke="currentColor" strokeWidth="2"/>
