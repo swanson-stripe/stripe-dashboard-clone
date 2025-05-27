@@ -209,11 +209,11 @@ const StyledTable = styled.table`
   }
   
   /* Column width classes */
-  th:nth-child(1), td:nth-child(1) { width: 200px; } /* Customer names */
-  th:nth-child(2), td:nth-child(2) { width: 150px; } /* Product/Category */
-  th:nth-child(3), td:nth-child(3) { width: 180px; } /* Numbers/Percentages */
-  th:nth-child(4), td:nth-child(4) { width: 200px; } /* Currency values */
-  th:nth-child(5), td:nth-child(5) { width: 200px; } /* Additional currency */
+  th:nth-child(1), td:nth-child(1) { width: 120px; } /* Customer names */
+  th:nth-child(2), td:nth-child(2) { width: 80px; } /* Product/Category */
+  th:nth-child(3), td:nth-child(3) { width: 70px; } /* Numbers/Percentages */
+  th:nth-child(4), td:nth-child(4) { width: 90px; } /* Currency values */
+  th:nth-child(5), td:nth-child(5) { width: 90px; } /* Additional currency */
   
   tr:not(thead tr) {
     cursor: pointer;
@@ -298,12 +298,15 @@ const SummaryCell = styled.td`
   border-bottom: 1px solid var(--border-color) !important;
   overflow: visible !important;
   white-space: normal !important;
+  position: relative;
 `;
 
 const ChartContainer = styled.div`
   width: 100%;
   height: 50px;
   margin-bottom: 6px;
+  position: relative;
+  z-index: 10;
 `;
 
 const SummaryText = styled.div`
@@ -676,8 +679,7 @@ const ReportDetail = () => {
         fill: true,
         tension: 0.4,
         borderWidth: 2,
-        pointRadius: 0,
-        label: 'Records created'
+        pointRadius: 0
       }]
     };
   };
@@ -692,8 +694,7 @@ const ReportDetail = () => {
         data: data,
         backgroundColor: '#635bff',
         borderColor: '#635bff',
-        borderWidth: 1,
-        label: 'Category count'
+        borderWidth: 1
       }]
     };
   };
@@ -709,8 +710,7 @@ const ReportDetail = () => {
           data: [values.length],
           backgroundColor: '#635bff',
           borderColor: '#635bff',
-          borderWidth: 1,
-          label: 'Value frequency'
+          borderWidth: 1
         }]
       };
     }
@@ -742,8 +742,7 @@ const ReportDetail = () => {
         data: buckets,
         backgroundColor: '#635bff',
         borderColor: '#635bff',
-        borderWidth: 1,
-        label: 'Value frequency'
+        borderWidth: 1
       }]
     };
   };
@@ -776,18 +775,9 @@ const ReportDetail = () => {
           borderWidth: 1,
           cornerRadius: 6,
           displayColors: false,
-          titleFont: { size: 12, weight: 'bold' },
+          titleFont: { size: 12 },
           bodyFont: { size: 11 },
-          padding: 8,
-          callbacks: {
-            title: function(context) {
-              return context[0].label;
-            },
-            label: function(context) {
-              const value = context.parsed.y || context.parsed.x || context.raw;
-              return `Count: ${value}`;
-            }
-          }
+          padding: 8
         }
       },
       scales: {
@@ -801,12 +791,13 @@ const ReportDetail = () => {
         }
       },
       elements: {
-        point: { radius: 0 },
-        line: { borderWidth: 2 }
+        point: { radius: 2, hoverRadius: 4 },
+        line: { borderWidth: 2 },
+        bar: { borderWidth: 1 }
       },
       interaction: {
         intersect: false,
-        mode: 'index'
+        mode: 'nearest'
       }
     };
 
@@ -817,21 +808,6 @@ const ReportDetail = () => {
         scales: {
           x: { display: false, grid: { display: false } },
           y: { display: false, grid: { display: false } }
-        },
-        plugins: {
-          ...baseOptions.plugins,
-          tooltip: {
-            ...baseOptions.plugins.tooltip,
-            callbacks: {
-              title: function(context) {
-                return context[0].label;
-              },
-              label: function(context) {
-                const value = context.parsed.x || context.raw;
-                return `Count: ${value}`;
-              }
-            }
-          }
         }
       };
     }
