@@ -178,31 +178,30 @@ const ExportButton = styled.button`
 `;
 
 const TableContainer = styled.div`
-  width: 260px;
-  max-width: 260px;
-  overflow-x: visible;
+  width: 100%;
+  overflow-x: auto;
   overflow-y: visible;
 `;
 
 const StyledTable = styled.table`
-  width: 260px;
+  width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   
   th, td {
-    padding: 4px 2px;
+    padding: 12px 16px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 14px;
   }
   
   th {
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: 13px;
     position: relative;
     cursor: pointer;
     
@@ -211,12 +210,12 @@ const StyledTable = styled.table`
     }
   }
   
-  /* Column width classes - Total: 260px */
-  th:nth-child(1), td:nth-child(1) { width: 60px; } /* Customer names */
-  th:nth-child(2), td:nth-child(2) { width: 50px; } /* Product/Category */
-  th:nth-child(3), td:nth-child(3) { width: 50px; } /* Numbers/Percentages */
-  th:nth-child(4), td:nth-child(4) { width: 50px; } /* Currency values */
-  th:nth-child(5), td:nth-child(5) { width: 50px; } /* Additional currency */
+  /* Column width classes - Content-based widths */
+  th:nth-child(1), td:nth-child(1) { width: 220px; } /* Customer names */
+  th:nth-child(2), td:nth-child(2) { width: 180px; } /* Product/Category */
+  th:nth-child(3), td:nth-child(3) { width: 200px; } /* Numbers/Percentages */
+  th:nth-child(4), td:nth-child(4) { width: 250px; } /* Currency values */
+  th:nth-child(5), td:nth-child(5) { width: 280px; } /* Additional currency */
   
   tr:not(thead tr) {
     cursor: pointer;
@@ -228,7 +227,7 @@ const StyledTable = styled.table`
   }
   
   td {
-    font-size: 12px;
+    font-size: 14px;
   }
 `;
 
@@ -296,29 +295,29 @@ const SummaryRow = styled.tr`
 `;
 
 const SummaryCell = styled.td`
-  padding: 4px 2px !important;
+  padding: 12px 16px !important;
   vertical-align: top;
   border-bottom: 1px solid var(--border-color) !important;
   overflow: visible !important;
   white-space: normal !important;
   position: relative;
-  font-size: 11px !important;
+  font-size: 14px !important;
 `;
 
 const ChartContainer = styled.div`
   width: 100%;
-  height: 40px;
-  margin-bottom: 4px;
+  height: 50px;
+  margin-bottom: 8px;
   position: relative;
   z-index: 100;
 `;
 
 const SummaryText = styled.div`
-  font-size: 9px;
+  font-size: 12px;
   color: #6b7c93;
   text-align: center;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.2;
 `;
 
 const HeaderCellContent = styled.div`
