@@ -451,7 +451,8 @@ const reportsList = [
 // Filter options
 const creatorOptions = [
   { value: 'anyone', label: 'Created by anyone' },
-  { value: 'me', label: 'Created by me' },
+  { value: 'you', label: 'Created by you' },
+  { value: 'others', label: 'Created by others' },
   { value: 'stripe', label: 'Created by Stripe' }
 ];
 
@@ -531,6 +532,20 @@ const Reports = () => {
     const option = creatorOptions.find(opt => opt.value === creatorFilter);
     return option ? option.label : creatorOptions[0].label;
   };
+
+  // Filter reports based on creator filter
+  const filterReportsByCreator = (reports) => {
+    if (creatorFilter === 'anyone') {
+      return reports;
+    } else if (creatorFilter === 'you') {
+      return reports.filter(report => report.creator === 'You');
+    } else if (creatorFilter === 'others') {
+      return reports.filter(report => report.creator !== 'You' && report.creator !== 'Stripe');
+    } else if (creatorFilter === 'stripe') {
+      return reports.filter(report => report.creator === 'Stripe');
+    }
+    return reports;
+  };
   
   const sortReports = (reports, sortField, sortDirection) => {
     return [...reports].sort((a, b) => {
@@ -549,7 +564,9 @@ const Reports = () => {
     });
   };
   
-  const sortedAllReports = sortReports(reportsList, allSortField, allSortDirection);
+  // Apply filtering and sorting to all reports
+  const filteredReports = filterReportsByCreator(reportsList);
+  const sortedAllReports = sortReports(filteredReports, allSortField, allSortDirection);
   
   // Get pinned reports with their own sorting
   const getPinnedReports = () => {
