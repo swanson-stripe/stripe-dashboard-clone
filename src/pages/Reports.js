@@ -446,6 +446,49 @@ const reportsList = [
   { id: 'new-products', title: 'New products adoption', creator: 'You', dateCreated: 'Jun 3, 2024', lastUpdated: 'May 1, 2025', sparklineData: [5, 8, 10, 15, 20, 25, 30], value: '493', trend: 500.0, isNegative: false },
   { id: 'churn-risk', title: 'Churn risk', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025', sparklineData: [25, 22, 20, 18, 16, 15, 14], value: '413', trend: 3.5, isNegative: true },
   { id: 'mrr-growth', title: 'MRR growth drivers', creator: 'Stripe', dateCreated: 'Apr 14, 2024', lastUpdated: 'May 1, 2025', sparklineData: [10, 15, 20, 25, 30, 35, 40], value: '$72.4K', trend: 300.0, isNegative: false },
+  { id: 'customer-lifetime-value', title: 'Customer lifetime value analysis', creator: 'sarah@example.com', dateCreated: 'Apr 10, 2025', lastUpdated: 'Today', sparklineData: [45, 48, 52, 49, 51, 53, 55], value: '$2.3K', trend: 12.8, isNegative: false },
+  { id: 'payment-failures', title: 'Payment failure rates', creator: 'Stripe', dateCreated: 'Apr 8, 2025', lastUpdated: 'Yesterday', sparklineData: [8, 7, 9, 6, 5, 4, 3], value: '2.1%', trend: -62.5, isNegative: false },
+  { id: 'trial-conversion', title: 'Trial to paid conversion', creator: 'You', dateCreated: 'Apr 5, 2025', lastUpdated: 'Today', sparklineData: [18, 22, 25, 28, 30, 32, 35], value: '24.5%', trend: 94.4, isNegative: false },
+  { id: 'api-usage-trends', title: 'API usage trends', creator: 'mike@example.com', dateCreated: 'Apr 3, 2025', lastUpdated: 'May 2, 2025', sparklineData: [120, 135, 142, 158, 165, 172, 180], value: '1.2M', trend: 50.0, isNegative: false },
+  { id: 'subscription-downgrades', title: 'Subscription downgrades', creator: 'You', dateCreated: 'Mar 28, 2025', lastUpdated: 'Today', sparklineData: [15, 12, 10, 8, 6, 5, 4], value: '23', trend: -73.3, isNegative: false },
+  { id: 'geographic-revenue', title: 'Revenue by geography', creator: 'Stripe', dateCreated: 'Mar 25, 2025', lastUpdated: 'May 1, 2025', sparklineData: [85, 88, 92, 95, 98, 102, 105], value: '$234.7K', trend: 23.5, isNegative: false },
+  { id: 'feature-adoption', title: 'New feature adoption rates', creator: 'alex@example.com', dateCreated: 'Mar 20, 2025', lastUpdated: 'Yesterday', sparklineData: [5, 12, 18, 25, 32, 38, 45], value: '67%', trend: 800.0, isNegative: false },
+  { id: 'support-tickets', title: 'Support ticket volume', creator: 'You', dateCreated: 'Mar 15, 2025', lastUpdated: 'Today', sparklineData: [45, 42, 38, 35, 32, 28, 25], value: '156', trend: -44.4, isNegative: false },
+  { id: 'mobile-usage', title: 'Mobile app engagement', creator: 'lisa@example.com', dateCreated: 'Mar 12, 2025', lastUpdated: 'May 3, 2025', sparklineData: [65, 68, 72, 75, 78, 82, 85], value: '78.2%', trend: 30.8, isNegative: false },
+  { id: 'refund-requests', title: 'Refund request analysis', creator: 'Stripe', dateCreated: 'Mar 8, 2025', lastUpdated: 'Yesterday', sparklineData: [12, 10, 8, 6, 5, 4, 3], value: '1.8%', trend: -75.0, isNegative: false },
+  { id: 'seasonal-trends', title: 'Seasonal revenue patterns', creator: 'You', dateCreated: 'Feb 28, 2025', lastUpdated: 'Today', sparklineData: [100, 105, 110, 115, 120, 125, 130], value: '$189.4K', trend: 30.0, isNegative: false },
+  { id: 'cohort-retention', title: 'Customer cohort retention', creator: 'david@example.com', dateCreated: 'Feb 25, 2025', lastUpdated: 'May 1, 2025', sparklineData: [90, 85, 82, 78, 75, 72, 70], value: '72.3%', trend: -22.2, isNegative: true },
+  { id: 'pricing-optimization', title: 'Pricing tier performance', creator: 'Stripe', dateCreated: 'Feb 20, 2025', lastUpdated: 'Today', sparklineData: [25, 28, 32, 35, 38, 42, 45], value: '$98.7K', trend: 80.0, isNegative: false },
+  { id: 'email-campaigns', title: 'Email campaign effectiveness', creator: 'You', dateCreated: 'Feb 15, 2025', lastUpdated: 'Yesterday', sparklineData: [15, 18, 22, 25, 28, 32, 35], value: '18.5%', trend: 133.3, isNegative: false },
+  { id: 'competitor-analysis', title: 'Competitive market share', creator: 'emma@example.com', dateCreated: 'Feb 10, 2025', lastUpdated: 'May 2, 2025', sparklineData: [35, 36, 37, 38, 39, 40, 41], value: '38.2%', trend: 17.1, isNegative: false },
+  { id: 'product-usage', title: 'Product feature usage', creator: 'You', dateCreated: 'Feb 5, 2025', lastUpdated: 'Today', sparklineData: [55, 58, 62, 65, 68, 72, 75], value: '68.9%', trend: 36.4, isNegative: false },
+  { id: 'billing-disputes', title: 'Billing dispute trends', creator: 'Stripe', dateCreated: 'Jan 30, 2025', lastUpdated: 'May 1, 2025', sparklineData: [8, 7, 6, 5, 4, 3, 2], value: '0.9%', trend: -75.0, isNegative: false },
+  { id: 'user-onboarding', title: 'User onboarding completion', creator: 'tom@example.com', dateCreated: 'Jan 25, 2025', lastUpdated: 'Yesterday', sparklineData: [45, 48, 52, 55, 58, 62, 65], value: '61.7%', trend: 44.4, isNegative: false },
+  { id: 'cross-sell-success', title: 'Cross-sell opportunities', creator: 'You', dateCreated: 'Jan 20, 2025', lastUpdated: 'Today', sparklineData: [12, 15, 18, 22, 25, 28, 32], value: '156', trend: 166.7, isNegative: false },
+  { id: 'server-performance', title: 'API response times', creator: 'Stripe', dateCreated: 'Jan 15, 2025', lastUpdated: 'Today', sparklineData: [250, 240, 230, 220, 210, 200, 190], value: '198ms', trend: -24.0, isNegative: false },
+  { id: 'social-media', title: 'Social media engagement', creator: 'jenny@example.com', dateCreated: 'Jan 10, 2025', lastUpdated: 'May 3, 2025', sparklineData: [85, 92, 98, 105, 112, 118, 125], value: '2.4K', trend: 47.1, isNegative: false },
+  { id: 'inventory-turnover', title: 'Product inventory analysis', creator: 'You', dateCreated: 'Jan 5, 2025', lastUpdated: 'Yesterday', sparklineData: [15, 18, 22, 25, 28, 32, 35], value: '4.2x', trend: 133.3, isNegative: false },
+  { id: 'fraud-detection', title: 'Fraud prevention metrics', creator: 'Stripe', dateCreated: 'Dec 28, 2024', lastUpdated: 'Today', sparklineData: [5, 4, 3, 2, 2, 1, 1], value: '0.3%', trend: -80.0, isNegative: false },
+  { id: 'customer-satisfaction', title: 'Customer satisfaction scores', creator: 'chris@example.com', dateCreated: 'Dec 20, 2024', lastUpdated: 'May 1, 2025', sparklineData: [75, 78, 82, 85, 88, 90, 92], value: '4.6/5', trend: 22.7, isNegative: false },
+  { id: 'marketplace-fees', title: 'Marketplace transaction fees', creator: 'You', dateCreated: 'Dec 15, 2024', lastUpdated: 'Today', sparklineData: [25, 28, 32, 35, 38, 42, 45], value: '$12.8K', trend: 80.0, isNegative: false },
+  { id: 'webhook-reliability', title: 'Webhook delivery success', creator: 'Stripe', dateCreated: 'Dec 10, 2024', lastUpdated: 'Yesterday', sparklineData: [95, 96, 97, 98, 98, 99, 99], value: '98.7%', trend: 4.9, isNegative: false },
+  { id: 'partner-revenue', title: 'Partner channel performance', creator: 'anna@example.com', dateCreated: 'Dec 5, 2024', lastUpdated: 'May 2, 2025', sparklineData: [45, 52, 58, 65, 72, 78, 85], value: '$67.3K', trend: 88.9, isNegative: false },
+  { id: 'tax-compliance', title: 'Tax calculation accuracy', creator: 'Stripe', dateCreated: 'Nov 30, 2024', lastUpdated: 'Today', sparklineData: [98, 98, 99, 99, 99, 100, 100], value: '99.8%', trend: 2.0, isNegative: false },
+  { id: 'subscription-metrics', title: 'Subscription health metrics', creator: 'You', dateCreated: 'Nov 25, 2024', lastUpdated: 'Yesterday', sparklineData: [85, 87, 89, 91, 93, 95, 97], value: '92.1%', trend: 14.1, isNegative: false },
+  { id: 'payment-methods', title: 'Payment method preferences', creator: 'ryan@example.com', dateCreated: 'Nov 20, 2024', lastUpdated: 'May 1, 2025', sparklineData: [65, 68, 72, 75, 78, 82, 85], value: '76.4%', trend: 30.8, isNegative: false },
+  { id: 'currency-conversion', title: 'Multi-currency transactions', creator: 'Stripe', dateCreated: 'Nov 15, 2024', lastUpdated: 'Today', sparklineData: [35, 38, 42, 45, 48, 52, 55], value: '$89.2K', trend: 57.1, isNegative: false },
+  { id: 'user-segmentation', title: 'Customer segment analysis', creator: 'You', dateCreated: 'Nov 10, 2024', lastUpdated: 'Yesterday', sparklineData: [25, 28, 32, 35, 38, 42, 45], value: '8 segments', trend: 80.0, isNegative: false },
+  { id: 'integration-usage', title: 'Third-party integrations', creator: 'paul@example.com', dateCreated: 'Nov 5, 2024', lastUpdated: 'May 3, 2025', sparklineData: [15, 18, 22, 25, 28, 32, 35], value: '67', trend: 133.3, isNegative: false },
+  { id: 'dispute-resolution', title: 'Chargeback resolution time', creator: 'Stripe', dateCreated: 'Oct 30, 2024', lastUpdated: 'Today', sparklineData: [15, 14, 13, 12, 11, 10, 9], value: '8.2 days', trend: -40.0, isNegative: false },
+  { id: 'revenue-forecasting', title: 'Revenue prediction accuracy', creator: 'You', dateCreated: 'Oct 25, 2024', lastUpdated: 'May 1, 2025', sparklineData: [75, 78, 82, 85, 88, 90, 92], value: '87.3%', trend: 22.7, isNegative: false },
+  { id: 'customer-acquisition', title: 'Customer acquisition cost', creator: 'maria@example.com', dateCreated: 'Oct 20, 2024', lastUpdated: 'Yesterday', sparklineData: [125, 120, 115, 110, 105, 100, 95], value: '$98', trend: -24.0, isNegative: false },
+  { id: 'platform-uptime', title: 'Platform availability metrics', creator: 'Stripe', dateCreated: 'Oct 15, 2024', lastUpdated: 'Today', sparklineData: [99.8, 99.9, 99.9, 99.9, 100, 100, 100], value: '99.95%', trend: 0.2, isNegative: false },
+  { id: 'subscription-upgrades', title: 'Plan upgrade patterns', creator: 'You', dateCreated: 'Oct 10, 2024', lastUpdated: 'Yesterday', sparklineData: [8, 12, 15, 18, 22, 25, 28], value: '89', trend: 250.0, isNegative: false },
+  { id: 'regional-performance', title: 'Regional sales performance', creator: 'steve@example.com', dateCreated: 'Oct 5, 2024', lastUpdated: 'May 2, 2025', sparklineData: [45, 48, 52, 55, 58, 62, 65], value: '$145.6K', trend: 44.4, isNegative: false },
+  { id: 'mobile-payments', title: 'Mobile payment adoption', creator: 'Stripe', dateCreated: 'Sep 30, 2024', lastUpdated: 'Today', sparklineData: [35, 38, 42, 45, 48, 52, 55], value: '48.7%', trend: 57.1, isNegative: false },
+  { id: 'customer-feedback', title: 'Product feedback analysis', creator: 'You', dateCreated: 'Sep 25, 2024', lastUpdated: 'May 1, 2025', sparklineData: [65, 68, 72, 75, 78, 82, 85], value: '4.3/5', trend: 30.8, isNegative: false },
+  { id: 'compliance-metrics', title: 'Regulatory compliance status', creator: 'Stripe', dateCreated: 'Sep 20, 2024', lastUpdated: 'Yesterday', sparklineData: [95, 96, 97, 98, 98, 99, 99], value: '98.2%', trend: 4.2, isNegative: false },
+  { id: 'team-productivity', title: 'Development team velocity', creator: 'You', dateCreated: 'Sep 15, 2024', lastUpdated: 'Today', sparklineData: [25, 28, 32, 35, 38, 42, 45], value: '42 pts', trend: 80.0, isNegative: false }
 ];
 
 // Filter options
@@ -469,6 +512,8 @@ const Reports = () => {
     pinned: true,
     all: true
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [reportsPerPage] = useState(10);
   
   const creatorRef = useRef(null);
   const navigate = useNavigate();
@@ -567,6 +612,30 @@ const Reports = () => {
   // Apply filtering and sorting to all reports
   const filteredReports = filterReportsByCreator(reportsList);
   const sortedAllReports = sortReports(filteredReports, allSortField, allSortDirection);
+  
+  // Pagination logic
+  const totalReports = sortedAllReports.length;
+  const totalPages = Math.ceil(totalReports / reportsPerPage);
+  const startIndex = (currentPage - 1) * reportsPerPage;
+  const endIndex = startIndex + reportsPerPage;
+  const currentReports = sortedAllReports.slice(startIndex, endIndex);
+  
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [creatorFilter]);
   
   // Get pinned reports with their own sorting
   const getPinnedReports = () => {
@@ -882,7 +951,7 @@ const Reports = () => {
               </tr>
             </TableHead>
             <tbody>
-              {sortedAllReports.map((report, index) => (
+              {currentReports.map((report, index) => (
                 <tr 
                   key={report.id} 
                   onClick={() => navigate(`/reports/${report.id}`)}
@@ -934,10 +1003,10 @@ const Reports = () => {
       )}
       
       <Pagination>
-        <div>10 of 52 results</div>
+        <div>{Math.min(startIndex + 1, totalReports)}-{Math.min(endIndex, totalReports)} of {totalReports} results</div>
         <PaginationControls>
-          <PaginationButton disabled>Previous</PaginationButton>
-          <PaginationButton>Next</PaginationButton>
+          <PaginationButton disabled={currentPage === 1} onClick={handlePreviousPage}>Previous</PaginationButton>
+          <PaginationButton disabled={currentPage === totalPages} onClick={handleNextPage}>Next</PaginationButton>
         </PaginationControls>
       </Pagination>
     </PageContainer>
