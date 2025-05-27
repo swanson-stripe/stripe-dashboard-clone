@@ -5,6 +5,20 @@
 - **`main`** - Production branch (deployed to https://swanson-stripe.github.io/stripe-dashboard-clone/)
 - **`development`** - Development branch (deployed to https://swanson-stripe.github.io/stripe-dashboard-clone/dev/)
 
+## 🤖 Automated Deployments
+
+### GitHub Actions Workflows
+
+1. **Production Deployment** (`.github/workflows/deploy-main.yml`)
+   - Triggers on push to `main` branch
+   - Deploys to production URL automatically
+
+2. **Development Preview** (`.github/workflows/deploy-dev.yml`)
+   - Triggers on push to `development` branch
+   - Triggers on pull requests to `main` branch
+   - Deploys to development preview URL
+   - Adds preview link comments to pull requests
+
 ## 🔄 Development Process
 
 ### 1. Switch to Development Branch
@@ -20,13 +34,18 @@ git commit -m "Feature: your description"
 git push origin development
 ```
 
-### 3. Deploy to Development Preview
-```bash
-npm run deploy-dev
-```
-This deploys to: `https://swanson-stripe.github.io/stripe-dashboard-clone/dev/`
+### 3. Automatic Preview Deployment
+- GitHub Actions will automatically build and deploy your changes
+- Preview will be available at: `https://swanson-stripe.github.io/stripe-dashboard-clone/dev/`
+- No manual deployment needed!
 
-### 4. When Ready for Production
+### 4. Create Pull Request (Optional)
+```bash
+# Create a pull request from development to main
+# GitHub will automatically add a preview link comment
+```
+
+### 5. When Ready for Production
 ```bash
 # Switch to main branch
 git checkout main
@@ -34,20 +53,17 @@ git checkout main
 # Merge development changes
 git merge development
 
-# Push to main
+# Push to main (triggers automatic production deployment)
 git push origin main
-
-# Deploy to production
-npm run deploy
 ```
 
 ## 📋 Available Scripts
 
 - `npm start` - Start development server
 - `npm run build` - Build for production
-- `npm run deploy` - Deploy main branch to production
-- `npm run deploy-dev` - Deploy development branch to preview
-- `npm run deploy-preview` - Deploy current branch to preview
+- `npm run deploy` - Manual deploy main branch to production
+- `npm run deploy-dev` - Manual deploy development branch to preview
+- `npm run deploy-preview` - Manual deploy current branch to preview
 
 ## 🌐 URLs
 
@@ -57,7 +73,20 @@ npm run deploy
 ## 🛡️ Best Practices
 
 1. Always work on the `development` branch
-2. Test changes using `npm run deploy-dev` before merging to main
+2. GitHub Actions will automatically deploy previews - no manual deployment needed
 3. Only merge to main when features are complete and tested
 4. Use descriptive commit messages
-5. Deploy to production only from the main branch 
+5. Create pull requests to get automatic preview links
+6. Production deploys automatically when you push to main
+
+## 🔧 Manual Deployment (Fallback)
+
+If GitHub Actions fail, you can still deploy manually:
+
+```bash
+# For development preview
+npm run deploy-dev
+
+# For production (from main branch)
+npm run deploy
+``` 

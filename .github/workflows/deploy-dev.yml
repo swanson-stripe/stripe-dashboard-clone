@@ -1,0 +1,54 @@
+name: Deploy Development Preview
+
+on:
+  push:
+    branches: [ development ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+        with:
+          ref: development
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build project
+        run: npm run build
+        env:
+          CI: false
+          
+      - name: Deploy to GitHub Pages (Development)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          publish_branch: gh-pages-dev
+          destination_dir: .
+          
+      - name: Comment on PR with preview link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.issue.number;
+            const previewUrl = `https://swanson-stripe.github.io/stripe-dashboard-clone/dev/`;
+            
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Development Preview Deployed!**\n\n📱 Preview your changes: ${previewUrl}\n\n*This preview will be updated automatically when you push new commits to this PR.*`
+            }); 
