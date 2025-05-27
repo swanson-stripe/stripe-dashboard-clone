@@ -260,12 +260,14 @@ const TableCell = styled.td`
   font-size: 14px;
   color: #1a1f36;
   border-bottom: 1px solid #e3e8ee;
+  font-weight: ${props => props.sorted ? '600' : 'normal'};
 `;
 
 const ActionColumn = styled.td`
   padding: 16px;
   text-align: right;
   border-bottom: 1px solid #e3e8ee;
+  color: #1a1f36;
 `;
 
 const PinColumn = styled.td`
@@ -273,6 +275,7 @@ const PinColumn = styled.td`
   text-align: center;
   border-bottom: 1px solid #e3e8ee;
   width: 40px;
+  color: #1a1f36;
 `;
 
 const PinButton = styled.button`
@@ -295,6 +298,7 @@ const OptionsDots = styled.button`
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
+  color: #1a1f36;
   
   &:hover {
     background-color: #f7f9fc;
@@ -302,7 +306,8 @@ const OptionsDots = styled.button`
 `;
 
 const DateColumn = styled(TableCell)`
-  color: #697386;
+  color: #1a1f36;
+  font-weight: ${props => props.sorted ? '600' : 'normal'};
 `;
 
 const Pagination = styled.div`
@@ -344,10 +349,12 @@ const SparklineCell = styled(TableCell)`
   height: 40px;
   padding: 8px 16px;
   box-sizing: border-box;
+  color: #1a1f36;
 `;
 
 // Add new styled components for the Value and Change columns
 const ValueCell = styled(TableCell)`
+  color: #1a1f36;
   font-weight: ${props => props.sorted ? '600' : 'normal'};
 `;
 
