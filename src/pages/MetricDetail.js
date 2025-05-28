@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import ShareModal from '../components/ShareModal';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line, Bar } from 'react-chartjs-2';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
 import { PERIODS } from '../data/companyData';
@@ -9,6 +12,9 @@ import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
 import MeterChart from '../components/MeterChart';
 import StackedBarChart from '../components/StackedBarChart';
+
+// Register Chart.js components including Tooltip
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
 const Container = styled(motion.div)`
   width: 100%;
@@ -248,35 +254,58 @@ const SectionTitle = styled.h3`
 const TableContainer = styled.div`
   width: 100%;
   overflow-x: auto;
+  overflow-y: visible;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
   
-  table {
-    width: 100%;
-    border-collapse: collapse;
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+  }
+  
+  th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 13px;
+    position: relative;
+    cursor: pointer;
     
-    th, td {
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid var(--border-color);
+    &:hover {
+      color: var(--text-color);
     }
+  }
+  
+  /* Column width classes - Content-based widths */
+  th:nth-child(1), td:nth-child(1) { width: 220px; } /* Customer names */
+  th:nth-child(2), td:nth-child(2) { width: 180px; } /* Product/Category */
+  th:nth-child(3), td:nth-child(3) { width: 200px; } /* Numbers/Percentages */
+  th:nth-child(4), td:nth-child(4) { width: 250px; } /* Currency values */
+  th:nth-child(5), td:nth-child(5) { width: 280px; } /* Additional currency */
+  th:nth-child(6), td:nth-child(6) { width: 200px; } /* Units used */
+  th:nth-child(7), td:nth-child(7) { width: 200px; } /* Overage units */
+  th:nth-child(8), td:nth-child(8) { width: 180px; } /* Overage rate */
+  th:nth-child(9), td:nth-child(9) { width: 250px; } /* Overage revenue */
+  
+  tr:not(thead tr) {
+    cursor: pointer;
+    transition: background-color 0.2s;
     
-    th {
-      font-weight: 600;
-      color: var(--text-secondary);
-      font-size: 13px;
+    &:hover {
+      background-color: #f9fafb;
     }
-    
-    tr:not(thead tr) {
-      cursor: pointer;
-      transition: background-color 0.2s;
-      
-      &:hover {
-        background-color: #f9fafb;
-      }
-    }
-    
-    td {
-      font-size: 14px;
-    }
+  }
+  
+  td {
+    font-size: 14px;
   }
 `;
 
@@ -574,9 +603,30 @@ const FilterValue = styled.span`
 `;
 
 const FilterIcon = styled.span`
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  margin-left: 6px;
+  margin-right: 4px;
+  color: #635bff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: #5a51e5;
+    
+    svg {
+      transform: scale(1.1);
+    }
+  }
+  
+  &.remove-filter:hover {
+    color: #dc3545;
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+    transition: all 0.2s ease;
+  }
 `;
 
 const FilterPopover = styled.div`
@@ -634,6 +684,247 @@ const ApplyButton = styled.button`
     background-color: #564bd9;
   }
 `;
+
+// Data visualization styled components
+const DataTypeIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  color: #6b7c93;
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+const HeaderIcons = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const HeaderCellContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const HeaderLabel = styled.span`
+  display: flex;
+  align-items: center;
+`;
+
+const SummaryRow = styled.tr`
+  &:hover {
+    background-color: transparent !important;
+  }
+`;
+
+const SummaryCell = styled.td`
+  padding: 12px 16px !important;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-color) !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  position: relative;
+  font-size: 14px !important;
+  z-index: 1;
+`;
+
+const SummaryCellContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 140px;
+  height: 100%;
+`;
+
+const DataVizChartContainer = styled.div`
+  width: 100%;
+  height: ${props => props.chartType === 'category' ? 'auto' : '80px'};
+  min-height: ${props => props.chartType === 'category' ? '100px' : '80px'};
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+`;
+
+const SummaryText = styled.div`
+  font-size: 12px;
+  color: #6b7c93;
+  font-weight: 500;
+  line-height: 1.2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 20px;
+  margin-top: auto;
+  padding-top: 4px;
+`;
+
+const SummaryTextLeft = styled.span`
+  text-align: left;
+`;
+
+const SummaryTextRight = styled.span`
+  text-align: right;
+`;
+
+const CategoryBarFill = styled.div`
+  height: 100%;
+  background-color: ${props => 
+    props.isFilteredOut ? '#F5F6F8' :
+    props.isSelected ? '#635bff' : 
+    props.hasSelection ? '#E8EAED' : '#D8DEE4'
+  };
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: ${props => 
+      props.isFilteredOut ? '#E8EAED' :
+      props.isSelected ? '#5a51e5' : 
+      props.hasSelection ? '#D7DFE8' : '#C5CDD6'
+    };
+  }
+`;
+
+const CategoryBar = styled.div`
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin-bottom: 4px;
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const CategoryBarText = styled.div`
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+`;
+
+const CategoryBarCount = styled.div`
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+`;
+
+// Helper functions for data visualization
+const getDataTypeIcon = (dataType) => {
+  switch (dataType) {
+    case 'date':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+          <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
+          <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
+          <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+        </svg>
+      );
+    case 'string':
+      return <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>ABC</span>;
+    case 'number':
+      return <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>123</span>;
+    case 'category':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2"/>
+          <line x1="8" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="2"/>
+          <line x1="8" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2"/>
+          <line x1="3" y1="6" x2="3.01" y2="6" stroke="currentColor" strokeWidth="2"/>
+          <line x1="3" y1="12" x2="3.01" y2="12" stroke="currentColor" strokeWidth="2"/>
+          <line x1="3" y1="18" x2="3.01" y2="18" stroke="currentColor" strokeWidth="2"/>
+        </svg>
+      );
+    default:
+      return null;
+  }
+};
+
+const CategoryChart = ({ data, totalResults, onCategoryClick, selectedCategories = [] }) => {
+  const categories = Object.keys(data);
+  const values = Object.values(data);
+  const hasSelection = selectedCategories && selectedCategories.length > 0;
+  
+  // Create array of category objects and sort by count in descending order
+  const sortedCategories = categories.map((category, index) => ({
+    name: category,
+    count: values[index]
+  })).sort((a, b) => b.count - a.count);
+  
+  // Limit to top 4 categories
+  const maxDisplay = 4;
+  const displayCategories = sortedCategories.slice(0, maxDisplay);
+  const hasMoreCategories = sortedCategories.length > maxDisplay;
+  const remainingCount = sortedCategories.slice(maxDisplay).reduce((sum, cat) => sum + cat.count, 0);
+  
+  return (
+    <div>
+      {displayCategories.map((category) => {
+        const percentage = totalResults ? (category.count / totalResults) * 100 : 0;
+        const isSelected = selectedCategories.includes(category.name);
+        const isFilteredOut = hasSelection && !isSelected;
+        
+        return (
+          <CategoryBar 
+            key={category.name}
+            onClick={() => onCategoryClick && onCategoryClick(category.name)}
+          >
+            <CategoryBarFill 
+              style={{ width: `${percentage}%` }} 
+              isSelected={isSelected}
+              hasSelection={hasSelection}
+              isFilteredOut={isFilteredOut}
+            />
+            <CategoryBarText>
+              {category.name}
+            </CategoryBarText>
+            <CategoryBarCount>
+              {category.count}
+            </CategoryBarCount>
+          </CategoryBar>
+        );
+      })}
+      
+      {hasMoreCategories && (
+        <CategoryBar>
+          <CategoryBarFill 
+            style={{ width: `${totalResults ? (remainingCount / totalResults) * 100 : 0}%` }} 
+            isSelected={false}
+            hasSelection={hasSelection}
+            isFilteredOut={false}
+          />
+          <CategoryBarText>
+            {sortedCategories.length - maxDisplay} more
+          </CategoryBarText>
+          <CategoryBarCount>
+            {remainingCount}
+          </CategoryBarCount>
+        </CategoryBar>
+      )}
+    </div>
+  );
+};
 
 const MetricDetail = () => {
   const { metricId } = useParams();
@@ -719,6 +1010,416 @@ const MetricDetail = () => {
   // Fixed pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const transactionsPerPage = 25;
+  
+  // Add state for data visualization filters
+  const [activeFilters, setActiveFilters] = useState({});
+  
+  // Add state for share modal
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  
+  // Custom tooltip management
+  const hideAllTooltips = useCallback(() => {
+    const tooltips = document.querySelectorAll('.chartjs-tooltip');
+    tooltips.forEach(tooltip => {
+      tooltip.style.opacity = '0';
+    });
+    
+    const globalTooltip = document.getElementById('global-chart-tooltip');
+    if (globalTooltip) {
+      globalTooltip.style.opacity = '0';
+    }
+  }, []);
+
+  const showCustomTooltip = useCallback((event, label, value, chart, column = null) => {
+    hideAllTooltips();
+    
+    let tooltipEl = document.getElementById('global-chart-tooltip');
+    
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.id = 'global-chart-tooltip';
+      tooltipEl.className = 'chartjs-tooltip';
+      tooltipEl.style.position = 'fixed';
+      tooltipEl.style.pointerEvents = 'none';
+      tooltipEl.style.zIndex = '9999';
+      tooltipEl.style.transition = 'opacity 0.2s ease';
+      tooltipEl.style.opacity = '0';
+      document.body.appendChild(tooltipEl);
+    }
+    
+    tooltipEl.style.backgroundColor = 'white';
+    tooltipEl.style.color = '#333';
+    tooltipEl.style.border = '1px solid #e3e8ee';
+    tooltipEl.style.borderRadius = '6px';
+    tooltipEl.style.padding = '10px 14px';
+    tooltipEl.style.fontSize = '12px';
+    tooltipEl.style.fontWeight = '500';
+    tooltipEl.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.15)';
+    tooltipEl.style.whiteSpace = 'nowrap';
+    
+    let content = `<strong>${label}</strong><br/>${value}`;
+    tooltipEl.innerHTML = content;
+    
+    const mouseX = event.clientX;
+    const mouseY = event.clientY;
+    
+    const tooltipX = mouseX - (tooltipEl.offsetWidth / 2);
+    const tooltipY = mouseY - tooltipEl.offsetHeight - 10;
+    
+    tooltipEl.style.left = tooltipX + 'px';
+    tooltipEl.style.top = tooltipY + 'px';
+    tooltipEl.style.opacity = '1';
+  }, [hideAllTooltips]);
+
+  // Toggle filter function
+  const toggleFilter = useCallback((columnId, filterValue) => {
+    setActiveFilters(prev => {
+      const currentFilters = prev[columnId] || [];
+      const isActive = currentFilters.includes(filterValue);
+      
+      if (isActive) {
+        const newFilters = currentFilters.filter(f => f !== filterValue);
+        if (newFilters.length === 0) {
+          const { [columnId]: removed, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [columnId]: newFilters };
+      } else {
+        return { ...prev, [columnId]: [...currentFilters, filterValue] };
+      }
+    });
+    // Reset to first page when filter changes
+    setCurrentPage(1);
+  }, []);
+
+  // Remove filter function
+  const removeFilter = useCallback((columnId) => {
+    setActiveFilters(prev => {
+      const { [columnId]: removed, ...rest } = prev;
+      return rest;
+    });
+    // Reset to first page when filter is removed
+    setCurrentPage(1);
+  }, []);
+
+  // Chart options with tooltip functionality
+  const getChartOptions = useCallback((type, columnKey, selectedValue, column = null) => {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'point'
+      },
+      onClick: (event, activeElements, chart) => {
+        if (activeElements.length > 0 && columnKey) {
+          const activeElement = activeElements[0];
+          const index = activeElement.index;
+          const label = chart.data.labels[index];
+          toggleFilter(columnKey, label);
+        }
+      },
+      onHover: (event, activeElements, chart) => {
+        const canvas = chart.canvas;
+        if (activeElements.length > 0) {
+          canvas.style.cursor = 'pointer';
+          
+          const activeElement = activeElements[0];
+          const index = activeElement.index;
+          const dataset = chart.data.datasets[activeElement.datasetIndex];
+          const value = dataset.data[index];
+          const label = chart.data.labels[index];
+          
+          showCustomTooltip(event.native, label, value, chart, column);
+        } else {
+          canvas.style.cursor = 'default';
+          hideAllTooltips();
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      },
+      scales: {
+        x: { display: false },
+        y: { display: false }
+      },
+      elements: {
+        point: { 
+          radius: 2,
+          hoverRadius: 4,
+          hitRadius: 10
+        },
+        line: { 
+          borderWidth: 2,
+          tension: 0.4
+        },
+        bar: {
+          borderWidth: 0
+        }
+      }
+    };
+  }, [toggleFilter, showCustomTooltip, hideAllTooltips]);
+
+  // Helper functions for chart generation
+  const generateTimeSeriesData = useCallback((values, selectedValues = []) => {
+    if (values.length === 0) return null;
+    
+    const dateCounts = {};
+    values.forEach(dateValue => {
+      let date;
+      
+      // Handle different date formats
+      if (dateValue instanceof Date) {
+        date = dateValue;
+      } else if (typeof dateValue === 'string') {
+        // Try to parse the string as a date
+        date = new Date(dateValue);
+      } else {
+        // Skip invalid date values
+        return;
+      }
+      
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return;
+      }
+      
+      const dateStr = date.toLocaleDateString();
+      dateCounts[dateStr] = (dateCounts[dateStr] || 0) + 1;
+    });
+    
+    const labels = Object.keys(dateCounts).sort();
+    const data = labels.map(label => dateCounts[label]);
+    
+    return {
+      labels,
+      datasets: [{
+        data,
+        borderColor: '#D8DEE4',
+        backgroundColor: 'rgba(216, 222, 228, 0.1)',
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: labels.map(label => selectedValues.includes(label) ? 6 : 2),
+        pointBackgroundColor: labels.map(label => selectedValues.includes(label) ? '#635bff' : '#D8DEE4'),
+        pointBorderColor: labels.map(label => selectedValues.includes(label) ? '#635bff' : '#D8DEE4')
+      }]
+    };
+  }, []);
+
+  const generateNumberDistributionData = useCallback((values, selectedValues = []) => {
+    if (values.length === 0) return null;
+    
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const binCount = Math.min(10, Math.ceil(Math.sqrt(values.length)));
+    const binSize = (max - min) / binCount;
+    
+    const bins = Array(binCount).fill(0);
+    const labels = [];
+    
+    for (let i = 0; i < binCount; i++) {
+      const binStart = min + i * binSize;
+      const binEnd = min + (i + 1) * binSize;
+      labels.push(`${Math.round(binStart)}-${Math.round(binEnd)}`);
+    }
+    
+    values.forEach(value => {
+      const binIndex = Math.min(Math.floor((value - min) / binSize), binCount - 1);
+      bins[binIndex]++;
+    });
+    
+    return {
+      labels,
+      datasets: [{
+        data: bins,
+        backgroundColor: labels.map(label => selectedValues.includes(label) ? '#635bff' : '#D8DEE4'),
+        borderColor: labels.map(label => selectedValues.includes(label) ? '#635bff' : '#D8DEE4'),
+        borderWidth: 1,
+        borderRadius: 2
+      }]
+    };
+  }, []);
+
+  const calculateMedian = useCallback((values) => {
+    if (values.length === 0) return 0;
+    
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    
+    if (sorted.length % 2 === 0) {
+      return (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+    
+    return sorted[mid];
+  }, []);
+
+  // Column definitions
+  const getColumnDefinitions = useCallback(() => {
+    if (baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue') {
+      return [
+        { id: 'date', label: 'Date', dataType: 'date' },
+        { id: 'customer', label: 'Customer name', dataType: 'string' },
+        { id: 'plan', label: 'Plan', dataType: 'category' },
+        { id: 'meter', label: 'Meter', dataType: 'category' },
+        { id: 'includedUnits', label: 'Included units', dataType: 'number' },
+        { id: 'unitsUsed', label: 'Units used', dataType: 'number' },
+        { id: 'overageUnits', label: 'Overage units', dataType: 'number' },
+        { id: 'overageRate', label: 'Overage rate', dataType: 'number' },
+        { id: 'amount', label: 'Overage revenue', dataType: 'number' }
+      ];
+    } else {
+      return [
+        { id: 'date', label: 'Date', dataType: 'date' },
+        { id: 'amount', label: 'Amount', dataType: 'number' },
+        { id: 'customer', label: 'Customer', dataType: 'string' },
+        { id: 'status', label: 'Status', dataType: 'category' }
+      ];
+    }
+  }, [baseMetric.id]);
+
+  // Analyze column data for charts
+  const analyzeColumnDataForChart = useCallback((data, column) => {
+    const values = data.map(row => row[column.id]).filter(val => val !== null && val !== undefined);
+    
+    if (values.length === 0) {
+      return { 
+        type: 'empty', 
+        chartData: null, 
+        summary: 'No data', 
+        medianSummary: '' 
+      };
+    }
+    
+    const selectedValues = activeFilters[column.id] || [];
+    
+    switch (column.dataType) {
+      case 'date': {
+        const dateValues = values.map(val => {
+          if (val instanceof Date) {
+            return val;
+          } else if (typeof val === 'string') {
+            return new Date(val);
+          } else {
+            return new Date(val);
+          }
+        }).filter(d => !isNaN(d.getTime()));
+        
+        const chartData = generateTimeSeriesData(dateValues, selectedValues);
+        
+        let summary = 'No data';
+        if (dateValues.length > 0) {
+          const earliest = new Date(Math.min(...dateValues));
+          const latest = new Date(Math.max(...dateValues));
+          summary = `${earliest.toLocaleDateString()} - ${latest.toLocaleDateString()}`;
+        }
+        
+        return {
+          type: 'line',
+          chartData,
+          summary,
+          medianSummary: `${values.length} values`
+        };
+      }
+      
+      case 'string': {
+        // For strings, show count over time (like customer names, emails)
+        // We need to get the dates from the data rows, not the string values themselves
+        const uniqueCount = new Set(values).size;
+        
+        // Generate time series based on when these string values occurred
+        // We'll use the transaction dates for this
+        const transactionDates = data.map(row => {
+          const dateValue = row.date;
+          if (dateValue instanceof Date) {
+            return dateValue;
+          } else if (typeof dateValue === 'string') {
+            return new Date(dateValue);
+          } else {
+            return new Date(dateValue);
+          }
+        }).filter(d => !isNaN(d.getTime()));
+        
+        const chartData = generateTimeSeriesData(transactionDates, selectedValues);
+        
+        return {
+          type: 'line',
+          chartData,
+          summary: `${uniqueCount} unique values`,
+          medianSummary: ''
+        };
+      }
+      
+      case 'number': {
+        const numericValues = values.map(val => {
+          if (typeof val === 'string') {
+            const cleaned = val.replace(/[$,]/g, '');
+            return parseFloat(cleaned);
+          }
+          return parseFloat(val);
+        }).filter(val => !isNaN(val));
+        
+        if (numericValues.length === 0) {
+          return { 
+            type: 'empty', 
+            chartData: null, 
+            summary: 'No data', 
+            medianSummary: '' 
+          };
+        }
+        
+        const chartData = generateNumberDistributionData(numericValues, selectedValues);
+        const median = calculateMedian(numericValues);
+        
+        let medianText = '';
+        if (column.id === 'amount' || column.id.includes('revenue')) {
+          medianText = `median $${median.toFixed(2)}`;
+        } else if (column.id.includes('rate')) {
+          medianText = `median $${median.toFixed(3)}`;
+        } else {
+          medianText = `median ${Math.round(median).toLocaleString()}`;
+        }
+        
+        return {
+          type: 'bar',
+          chartData,
+          summary: `${values.length} values`,
+          medianSummary: medianText
+        };
+      }
+      
+      case 'category': {
+        const categoryCount = {};
+        values.forEach(val => {
+          categoryCount[val] = (categoryCount[val] || 0) + 1;
+        });
+        
+        const uniqueCount = Object.keys(categoryCount).length;
+        const summary = uniqueCount === 1 ? '1 category' : 
+                       uniqueCount <= 10 ? `${uniqueCount} categories` : 
+                       `${uniqueCount} unique values`;
+        
+        return {
+          type: 'category',
+          chartData: null,
+          rawData: categoryCount,
+          summary,
+          medianSummary: ''
+        };
+      }
+      
+      default:
+        return { 
+          type: 'empty', 
+          chartData: null, 
+          summary: 'No data', 
+          medianSummary: '' 
+        };
+    }
+  }, [activeFilters, generateTimeSeriesData, generateNumberDistributionData, calculateMedian]);
+
+  const columnDefinitions = getColumnDefinitions();
   
   // Consolidated reporting controls state to prevent unnecessary re-renders
   const [reportingControls, setReportingControls] = useState({
@@ -1274,6 +1975,7 @@ const MetricDetail = () => {
           
           allTransactions.push({
             id: `txn_${Math.random().toString(36).substr(2, 9)}`,
+            date: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000),
             customer: companies[Math.floor(Math.random() * companies.length)],
             plan: selectedPlan,
             meter: meters[Math.floor(Math.random() * meters.length)],
@@ -1313,7 +2015,7 @@ const MetricDetail = () => {
         
         transactions.push({
           id: `txn_${Math.random().toString(36).substr(2, 9)}`,
-          date: date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+          date: date,
           amount: `$${amounts[Math.floor(Math.random() * amounts.length)].toFixed(2)}`,
           customer: customers[Math.floor(Math.random() * customers.length)],
           status: statuses[Math.floor(Math.random() * statuses.length)]
@@ -1334,6 +2036,16 @@ const MetricDetail = () => {
       }
     }
     
+    // Apply data visualization filters
+    if (Object.keys(activeFilters).length > 0) {
+      filteredTransactions = filteredTransactions.filter(transaction => {
+        return Object.entries(activeFilters).every(([columnKey, filterValues]) => {
+          const transactionValue = transaction[columnKey];
+          return filterValues.includes(transactionValue);
+        });
+      });
+    }
+    
     // Calculate pagination values
     const indexOfLastTransaction = currentPage * transactionsPerPage;
     const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
@@ -1347,7 +2059,7 @@ const MetricDetail = () => {
       indexOfFirstTransaction, 
       indexOfLastTransaction 
     };
-  }, [currentPage, baseMetric.id, currentPlan]);
+  }, [currentPage, baseMetric.id, currentPlan, activeFilters]);
   
   // Determine the source page for breadcrumbs
   const sourcePage = useMemo(() => location.state?.sourcePage || 'Home', [location.state]);
@@ -1582,11 +2294,11 @@ const MetricDetail = () => {
         <MetricDetailHeader>
           <MetricDetailTitle>{baseMetric.title}</MetricDetailTitle>
           <ActionButtonsContainer>
-            <ShareButton>
+            <ShareButton onClick={() => setIsShareModalOpen(true)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M4 12V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 6L12 2L8 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 2V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="8,6 12,2 16,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="12" y1="2" x2="12" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Share
             </ShareButton>
@@ -1972,30 +2684,97 @@ const MetricDetail = () => {
           </TransactionsHeader>
           
           <TableContainer>
-            <table>
+            <StyledTable>
               <thead>
                 <tr>
-                  {baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue' ? (
-                    <>
-                      <th>Date</th>
-                      <th>Customer name</th>
-                      <th>Plan</th>
-                      <th>Meter</th>
-                      <th>Included units</th>
-                      <th>Units used</th>
-                      <th>Overage units</th>
-                      <th>Overage rate</th>
-                      <th>Overage revenue</th>
-                    </>
-                  ) : (
-                    <>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Customer</th>
-                      <th>Status</th>
-                    </>
-                  )}
+                  {columnDefinitions.map((column) => (
+                    <th key={column.id}>
+                      <HeaderCellContent>
+                        <HeaderLabel>
+                          {column.label}
+                        </HeaderLabel>
+                        <HeaderIcons>
+                          {activeFilters[column.id] && activeFilters[column.id].length > 0 && (
+                            <FilterIcon 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeFilter(column.id);
+                              }}
+                              onMouseEnter={(e) => {
+                                const svg = e.currentTarget.querySelector('svg');
+                                if (svg) {
+                                  svg.innerHTML = `
+                                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  `;
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                const svg = e.currentTarget.querySelector('svg');
+                                if (svg) {
+                                  svg.innerHTML = `
+                                    <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  `;
+                                }
+                              }}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </FilterIcon>
+                          )}
+                          <DataTypeIcon>
+                            {getDataTypeIcon(column.dataType)}
+                          </DataTypeIcon>
+                        </HeaderIcons>
+                      </HeaderCellContent>
+                    </th>
+                  ))}
                 </tr>
+                
+                {/* Data visualization summary row */}
+                <SummaryRow>
+                  {columnDefinitions.map((column) => {
+                    const analysis = analyzeColumnDataForChart(transactions, column);
+                    return (
+                      <SummaryCell key={`summary-${column.id}`}>
+                        <SummaryCellContent>
+                          <DataVizChartContainer chartType={analysis.type}>
+                            {analysis.type === 'line' && analysis.chartData && (
+                              <Line
+                                data={analysis.chartData}
+                                options={getChartOptions('line', column.id, activeFilters[column.id], column)}
+                              />
+                            )}
+                            {analysis.type === 'bar' && analysis.chartData && (
+                              <Bar
+                                data={analysis.chartData}
+                                options={getChartOptions('bar', column.id, activeFilters[column.id], column)}
+                              />
+                            )}
+                            {analysis.type === 'category' && analysis.rawData && (
+                              <CategoryChart
+                                data={analysis.rawData}
+                                totalResults={transactions.length}
+                                onCategoryClick={(value) => toggleFilter(column.id, value)}
+                                selectedCategories={activeFilters[column.id]}
+                              />
+                            )}
+                            {analysis.type === 'empty' && (
+                              <div style={{ color: '#6b7c93', fontSize: '12px', textAlign: 'center', padding: '20px' }}>
+                                No data
+                              </div>
+                            )}
+                          </DataVizChartContainer>
+                          <SummaryText>
+                            <SummaryTextLeft>{analysis.summary}</SummaryTextLeft>
+                            <SummaryTextRight>{analysis.medianSummary || ''}</SummaryTextRight>
+                          </SummaryText>
+                        </SummaryCellContent>
+                      </SummaryCell>
+                    );
+                  })}
+                </SummaryRow>
               </thead>
               <tbody>
                 {currentTransactions.map((transaction) => (
@@ -2003,39 +2782,30 @@ const MetricDetail = () => {
                     key={transaction.id} 
                     onClick={() => navigate(`/users/${transaction.customer.replace(/\s+/g, '-').toLowerCase()}`)}
                   >
-                    {baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue' ? (
-                      <>
-                        <td>{transaction.date || 'N/A'}</td>
-                        <td>{transaction.customer}</td>
-                        <td>{transaction.plan}</td>
-                        <td>{transaction.meter}</td>
-                        <td>{transaction.includedUnits}</td>
-                        <td>{transaction.unitsUsed}</td>
-                        <td>{transaction.overageUnits}</td>
-                        <td>{transaction.overageRate}</td>
-                        <td>{transaction.amount}</td>
-                      </>
-                    ) : (
-                      <>
-                        <td>{transaction.date}</td>
-                        <td>{transaction.amount}</td>
-                        <td>{transaction.customer}</td>
-                        <td>
+                    {columnDefinitions.map((column) => (
+                      <td key={column.id}>
+                        {column.id === 'status' ? (
                           <span style={{ 
-                            color: transaction.status === 'Succeeded' ? 'var(--success-color)' : 
-                                   transaction.status === 'Failed' ? 'var(--danger-color)' :
-                                   transaction.status === 'Refunded' ? 'var(--warning-color)' : 
+                            color: transaction[column.id] === 'Succeeded' ? 'var(--success-color)' : 
+                                   transaction[column.id] === 'Failed' ? 'var(--danger-color)' :
+                                   transaction[column.id] === 'Refunded' ? 'var(--warning-color)' : 
                                    'var(--text-secondary)'
                           }}>
-                            {transaction.status}
+                            {transaction[column.id]}
                           </span>
-                        </td>
-                      </>
-                    )}
+                        ) : column.id === 'date' ? (
+                          transaction[column.id] instanceof Date ? 
+                            transaction[column.id].toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) :
+                            transaction[column.id]
+                        ) : (
+                          transaction[column.id]
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </StyledTable>
           </TableContainer>
           
           <Pagination>
@@ -2087,6 +2857,12 @@ const MetricDetail = () => {
           </Pagination>
         </TransactionsSection>
       </MetricDetailContainer>
+      
+      <ShareModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)}
+        title={baseMetric.title}
+      />
     </Container>
   );
 };
