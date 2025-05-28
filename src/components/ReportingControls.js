@@ -130,7 +130,14 @@ const ReportingControls = ({
   onComparisonChange,
   filters = [],
   onRemoveFilter,
-  customContent
+  customContent,
+  // Chart-related props
+  chartType = null,
+  onChartTypeChange = null,
+  onChartAxisChange = null,
+  chartSettings = null,
+  availableColumns = [],
+  onRemoveChart = null
 }) => {
   // Find initial option objects
   const initialPeriodOption = periodOptions.find(option => option.value === initialPeriod) || periodOptions[0];
@@ -146,11 +153,31 @@ const ReportingControls = ({
   const [periodPopoverOpen, setPeriodPopoverOpen] = useState(false);
   const [intervalPopoverOpen, setIntervalPopoverOpen] = useState(false);
   const [comparisonPopoverOpen, setComparisonPopoverOpen] = useState(false);
+  const [chartPopoverOpen, setChartPopoverOpen] = useState(false);
+  
+  // State for pending chart settings (for cancel/apply functionality)
+  const [pendingChartSettings, setPendingChartSettings] = useState({
+    type: null,
+    xAxis: null,
+    yAxis: null
+  });
+  
+  // Initialize pending settings when popover opens
+  useEffect(() => {
+    if (chartPopoverOpen && chartSettings) {
+      setPendingChartSettings({
+        type: chartSettings.type,
+        xAxis: chartSettings.xAxis,
+        yAxis: chartSettings.yAxis
+      });
+    }
+  }, [chartPopoverOpen, chartSettings]);
   
   // Refs for detecting clicks outside popovers
   const periodRef = useRef(null);
   const intervalRef = useRef(null);
   const comparisonRef = useRef(null);
+  const chartRef = useRef(null);
   
   // Close popovers when clicking outside
   useEffect(() => {
@@ -163,6 +190,9 @@ const ReportingControls = ({
       }
       if (comparisonRef.current && !comparisonRef.current.contains(event.target)) {
         setComparisonPopoverOpen(false);
+      }
+      if (chartRef.current && !chartRef.current.contains(event.target)) {
+        setChartPopoverOpen(false);
       }
     };
     
@@ -191,6 +221,45 @@ const ReportingControls = ({
     setComparison(option);
     setComparisonPopoverOpen(false);
     if (onComparisonChange) onComparisonChange(option.value);
+  };
+  
+  // Handle pending chart settings changes
+  const handlePendingChartTypeChange = (newType) => {
+    setPendingChartSettings(prev => ({
+      ...prev,
+      type: newType
+    }));
+  };
+  
+  const handlePendingAxisChange = (axisType, column) => {
+    setPendingChartSettings(prev => ({
+      ...prev,
+      [axisType === 'x' ? 'xAxis' : 'yAxis']: column
+    }));
+  };
+  
+  // Apply chart settings
+  const applyChartSettings = () => {
+    if (onChartTypeChange && pendingChartSettings.type !== chartSettings?.type) {
+      onChartTypeChange(pendingChartSettings.type);
+    }
+    if (onChartAxisChange && pendingChartSettings.xAxis !== chartSettings?.xAxis) {
+      onChartAxisChange('x', pendingChartSettings.xAxis);
+    }
+    if (onChartAxisChange && pendingChartSettings.yAxis !== chartSettings?.yAxis) {
+      onChartAxisChange('y', pendingChartSettings.yAxis);
+    }
+    setChartPopoverOpen(false);
+  };
+  
+  // Cancel chart settings
+  const cancelChartSettings = () => {
+    setPendingChartSettings({
+      type: chartSettings?.type || null,
+      xAxis: chartSettings?.xAxis || null,
+      yAxis: chartSettings?.yAxis || null
+    });
+    setChartPopoverOpen(false);
   };
   
   // Convert filter IDs to readable names
@@ -280,9 +349,6 @@ const ReportingControls = ({
         </Popover>
       </Chip>
       
-      {/* Custom Content - Render after Compare chip and before active filters */}
-      {customContent}
-      
       {/* Active Filter Chips */}
       {filters.map(filter => (
         <Chip key={filter} isActiveFilter={true}>
@@ -297,6 +363,168 @@ const ReportingControls = ({
         </Chip>
       ))}
       
+      {/* Chart Settings Chip - Show when chart exists */}
+      {chartType && (
+        <Chip ref={chartRef} onClick={() => setChartPopoverOpen(!chartPopoverOpen)}>
+          <ChipLabel>Show</ChipLabel>
+          <ChipValue>{chartType.charAt(0).toUpperCase() + chartType.slice(1)} chart</ChipValue>
+          <IconWrapper>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L12 15L18 9" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </IconWrapper>
+          <Popover isOpen={chartPopoverOpen} style={{ minWidth: '280px', padding: '16px' }}>
+            <div style={{ marginBottom: '0' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ 
+                fontSize: '12px', 
+                fontWeight: '600', 
+                color: '#424770', 
+                marginBottom: '12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                Chart settings
+                {onRemoveChart && (
+                  <button
+                    onClick={() => {
+                      onRemoveChart();
+                      setChartPopoverOpen(false);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#424770',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      padding: '0',
+                      textDecoration: 'underline'
+                    }}
+                    onMouseEnter={(e) => e.target.style.opacity = '0.7'}
+                    onMouseLeave={(e) => e.target.style.opacity = '1'}
+                  >
+                    Remove chart
+                  </button>
+                )}
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '500', color: '#424770', marginBottom: '4px' }}>
+                  Chart Type
+                </div>
+                <select 
+                  value={pendingChartSettings?.type || ''} 
+                  onChange={(e) => handlePendingChartTypeChange(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    border: '1px solid #e3e8ee',
+                    borderRadius: '4px',
+                    background: 'white',
+                    fontSize: '12px',
+                    color: '#424770'
+                  }}
+                >
+                  <option value="bar">Bar</option>
+                  <option value="line">Line</option>
+                  <option value="pie">Pie</option>
+                </select>
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '500', color: '#424770', marginBottom: '4px' }}>
+                  X-Axis
+                </div>
+                <select 
+                  value={pendingChartSettings?.xAxis?.id || ''} 
+                  onChange={(e) => handlePendingAxisChange('x', availableColumns.find(col => col.id === e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    border: '1px solid #e3e8ee',
+                    borderRadius: '4px',
+                    background: 'white',
+                    fontSize: '12px',
+                    color: '#424770'
+                  }}
+                >
+                  {availableColumns.map(column => (
+                    <option key={column.id} value={column.id}>{column.label}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '500', color: '#424770', marginBottom: '4px' }}>
+                  Y-Axis
+                </div>
+                <select 
+                  value={pendingChartSettings?.yAxis?.id || ''} 
+                  onChange={(e) => handlePendingAxisChange('y', availableColumns.find(col => col.id === e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    border: '1px solid #e3e8ee',
+                    borderRadius: '4px',
+                    background: 'white',
+                    fontSize: '12px',
+                    color: '#424770'
+                  }}
+                >
+                  {availableColumns.filter(col => col.dataType === 'number' || col.isCurrency || col.isTrend).map(column => (
+                    <option key={column.id} value={column.id}>{column.label}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div style={{ 
+                display: 'flex', 
+                gap: '6px', 
+                marginTop: '12px'
+              }}>
+                <button
+                  onClick={cancelChartSettings}
+                  style={{
+                    flex: '1',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    border: '1px solid #e3e8ee',
+                    background: 'white',
+                    color: '#424770'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#f7f9fc'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={applyChartSettings}
+                  style={{
+                    flex: '1',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    border: '1px solid #6772e5',
+                    background: '#6772e5',
+                    color: 'white'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#5a51e5'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#6772e5'}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </Popover>
+        </Chip>
+      )}
+      
       {/* Add Filter Chip */}
       <Chip isFilterChip={true}>
         <IconWrapper style={{ marginRight: '8px' }}>
@@ -307,6 +535,9 @@ const ReportingControls = ({
         </IconWrapper>
         <ChipValue>Filter</ChipValue>
       </Chip>
+      
+      {/* Custom Content - Render after Add Filter chip */}
+      {customContent}
     </ControlsWrapper>
   );
 };

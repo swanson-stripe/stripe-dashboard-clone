@@ -3,11 +3,12 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import ReportingControls from '../components/ReportingControls';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend } from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
+import ShareModal from '../components/ShareModal';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Bar, Line, Pie } from 'react-chartjs-2';
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
 
 const Container = styled(motion.div)`
   width: 100%;
@@ -136,6 +137,9 @@ const MetricTrend = styled(motion.div)`
 
 const ControlsContainer = styled.div`
   margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const ResultsSection = styled.div`
@@ -288,6 +292,38 @@ const DataTypeIcon = styled.span`
   font-weight: 500;
 `;
 
+const FilterIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+  color: #635bff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: #5a51e5;
+    
+    svg {
+      transform: scale(1.1);
+    }
+  }
+  
+  &.remove-filter:hover {
+    color: #dc3545;
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+    transition: all 0.2s ease;
+  }
+`;
+
+const HeaderIcons = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
 const SummaryRow = styled.tr`
   &:hover {
     background-color: transparent !important;
@@ -302,22 +338,385 @@ const SummaryCell = styled.td`
   white-space: normal !important;
   position: relative;
   font-size: 14px !important;
+  z-index: 1;
+`;
+
+const SummaryCellContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 140px;
+  height: 100%;
 `;
 
 const ChartContainer = styled.div`
   width: 100%;
-  height: 50px;
+  height: ${props => props.chartType === 'category' ? 'auto' : '80px'};
+  min-height: ${props => props.chartType === 'category' ? '100px' : '80px'};
   margin-bottom: 8px;
   position: relative;
-  z-index: 100;
+  z-index: 1;
+  overflow: visible;
 `;
 
 const SummaryText = styled.div`
   font-size: 12px;
   color: #6b7c93;
-  text-align: center;
   font-weight: 500;
   line-height: 1.2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 20px;
+  margin-top: auto;
+  padding-top: 4px;
+`;
+
+const SummaryTextLeft = styled.span`
+  text-align: left;
+`;
+
+const SummaryTextRight = styled.span`
+  text-align: right;
+`;
+
+const ChartModule = styled.div`
+  background-color: transparent;
+  border: 1px dotted #d1d5db;
+  border-radius: 8px;
+  padding: 32px;
+  margin: 24px 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 120px;
+  gap: 12px;
+  
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+`;
+
+const ChartModuleIcon = styled.div`
+  width: 24px;
+  height: 24px;
+  color: #6b7280;
+  flex-shrink: 0;
+  
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+`;
+
+const ChartModuleText = styled.div`
+  color: #6b7280;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+`;
+
+const GeneratedChartContainer = styled(motion.div)`
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin: 24px 0;
+  border: 1px solid var(--border-color);
+`;
+
+const ChartSectionContainer = styled.div`
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+`;
+
+const GeneratedChartWrapper = styled.div`
+  flex: ${props => props.showSettings ? '2' : '1'};
+  height: 200px;
+  width: 100%;
+  min-width: 0;
+  transition: all 0.3s ease;
+`;
+
+const SummaryTableSection = styled.div`
+  margin: 32px 0;
+`;
+
+const SummaryTableContainer = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+`;
+
+const SummaryTable = styled.table`
+  font-size: 14px;
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const SummaryTableCell = styled.td`
+  padding: 12px 16px;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  background-color: white;
+  transition: all 0.2s ease;
+  font-weight: ${props => props.value !== 0 && props.isValue ? '600' : 'normal'};
+  
+  &:last-child {
+    border-right: none;
+  }
+  
+  &.header {
+    font-weight: 600;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+  
+  &.first-column {
+    min-width: 180px;
+    width: 180px;
+  }
+  
+  &.value-cell {
+    cursor: pointer;
+    white-space: nowrap;
+    
+    &:hover {
+      background-color: #f2f2f2;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-decoration-color: #777;
+      text-decoration-thickness: 2px;
+    }
+  }
+`;
+
+const SummaryTableHeaderCell = styled.th`
+  padding: 12px 16px;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  background-color: white;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  
+  &:last-child {
+    border-right: none;
+  }
+  
+  &.first-column {
+    min-width: 180px;
+    width: 180px;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+`;
+
+const GeneratedChartHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const GeneratedChartTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-color);
+`;
+
+const ChartActions = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ChartActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #e3e8ee;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #697386;
+  cursor: pointer;
+  gap: 6px;
+  white-space: nowrap;
+  
+  &:hover {
+    border-color: #d7dfe8;
+  }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const ChartChip = styled.div`
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  background-color: transparent;
+  border-radius: 14px;
+  border: 1px dashed #e3e8ee;
+  cursor: pointer;
+  position: relative;
+  
+  &:hover {
+    border-color: #d7dfe8;
+  }
+`;
+
+const ChartChipValue = styled.span`
+  color: #6772e5;
+  font-weight: 600;
+  font-size: 12px;
+`;
+
+const ChartIconWrapper = styled.span`
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+`;
+
+const ChartDescription = styled.p`
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+`;
+
+const ChartSettingsPanel = styled.div`
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  max-width: 280px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ChartSettingsHeader = styled.h4`
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: var(--text-color);
+`;
+
+const ChartSettingsSection = styled.div`
+  margin-bottom: 16px;
+`;
+
+const ChartSettingsLabel = styled.label`
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 6px;
+`;
+
+const ChartTypeSelector = styled.select`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  color: var(--text-color);
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+`;
+
+const AxisSelector = styled.select`
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  color: var(--text-color);
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+`;
+
+const ChartSettingsActions = styled.div`
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+`;
+
+const ChartSettingsButtonRow = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+`;
+
+const ChartSettingsButton = styled.button`
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  
+  &.primary {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    
+    &:hover {
+      background: #5a51e5;
+    }
+  }
+  
+  &.secondary {
+    background: white;
+    color: var(--text-color);
+    
+    &:hover {
+      background: #f7f9fc;
+    }
+  }
+`;
+
+const RemoveChartButton = styled.button`
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--danger-color);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  
+  &:hover {
+    background: rgba(220, 53, 69, 0.1);
+  }
 `;
 
 const HeaderCellContent = styled.div`
@@ -331,6 +730,105 @@ const HeaderLabel = styled.span`
   display: flex;
   align-items: center;
 `;
+
+const CategoryBarFill = styled.div`
+  height: 100%;
+  background-color: ${props => 
+    props.isSelected ? '#635bff' : 
+    props.hasSelection ? '#F5F6F8' : '#D8DEE4'
+  };
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: ${props => 
+      props.isSelected ? '#5a51e5' : 
+      props.hasSelection ? '#E8EAED' : '#C5CDD6'
+    };
+  }
+`;
+
+const CategoryBar = styled.div`
+  display: flex;
+  align-items: center;
+  height: 24px;
+  margin-bottom: 4px;
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const CategoryBarText = styled.div`
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+`;
+
+const CategoryBarCount = styled.div`
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  z-index: 2;
+  pointer-events: none;
+`;
+
+const CategoryChart = ({ data, totalResults, onCategoryClick, selectedCategory }) => {
+  const categories = Object.keys(data);
+  const values = Object.values(data);
+  const hasSelection = !!selectedCategory;
+  
+  // Create array of category objects and sort by count in descending order
+  const sortedCategories = categories.map((category, index) => ({
+    name: category,
+    count: values[index]
+  })).sort((a, b) => b.count - a.count);
+  
+  return (
+    <div>
+      {sortedCategories.map((category) => {
+        const percentage = totalResults ? (category.count / totalResults) * 100 : 0;
+        const isSelected = selectedCategory === category.name;
+        
+        return (
+          <CategoryBar 
+            key={category.name}
+            onClick={() => onCategoryClick && onCategoryClick(category.name)}
+          >
+            <CategoryBarFill 
+              style={{ width: `${percentage}%` }} 
+              isSelected={isSelected}
+              hasSelection={hasSelection}
+            />
+            <CategoryBarText>
+              {category.name}
+            </CategoryBarText>
+            <CategoryBarCount>
+              {category.count}
+            </CategoryBarCount>
+          </CategoryBar>
+        );
+      })}
+    </div>
+  );
+};
 
 // Sample report data
 const reportSamples = {
@@ -569,6 +1067,172 @@ const ReportDetail = () => {
     };
   }, [params.reportId]);
   
+  // Filter state management
+  const [columnFilters, setColumnFilters] = useState({});
+
+  // Chart state management
+  const [generatedChart, setGeneratedChart] = useState(null);
+
+  // Add state for tracking mouse position for tooltips
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // Add state for share modal
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Chart settings panel state
+  const [showChartSettings, setShowChartSettings] = useState(false);
+
+  // Add state for pending chart settings changes
+  const [pendingChartSettings, setPendingChartSettings] = useState({
+    type: null,
+    xAxis: null,
+    yAxis: null
+  });
+
+  // Add state to store original chart settings for cancel functionality
+  const [originalChartSettings, setOriginalChartSettings] = useState({
+    type: null,
+    xAxis: null,
+    yAxis: null
+  });
+
+  // Initialize pending settings when chart is created or settings panel opens
+  useEffect(() => {
+    if (generatedChart && showChartSettings) {
+      const currentSettings = {
+        type: generatedChart.type,
+        xAxis: generatedChart.xAxis,
+        yAxis: generatedChart.yAxis
+      };
+      setPendingChartSettings(currentSettings);
+      setOriginalChartSettings(currentSettings);
+    }
+  }, [generatedChart, showChartSettings]);
+
+  const toggleFilter = useCallback((columnId, filterValue) => {
+    setColumnFilters(prev => {
+      const newFilters = { ...prev };
+      
+      if (newFilters[columnId] === filterValue) {
+        // Remove filter if clicking the same value
+        delete newFilters[columnId];
+      } else {
+        // Set new filter
+        newFilters[columnId] = filterValue;
+      }
+      
+      return newFilters;
+    });
+  }, []);
+
+  const clearFilter = useCallback((columnId) => {
+    setColumnFilters(prev => {
+      const newFilters = { ...prev };
+      delete newFilters[columnId];
+      return newFilters;
+    });
+  }, []);
+
+  // Global tooltip management
+  const hideAllTooltips = useCallback(() => {
+    const tooltips = document.querySelectorAll('.chartjs-tooltip');
+    tooltips.forEach(tooltip => {
+      tooltip.style.opacity = '0';
+    });
+    
+    // Also hide the global tooltip specifically
+    const globalTooltip = document.getElementById('global-chart-tooltip');
+    if (globalTooltip) {
+      globalTooltip.style.opacity = '0';
+    }
+  }, []);
+
+  const showCustomTooltip = useCallback((event, label, value, chart, column = null) => {
+    // Hide all tooltips first
+    hideAllTooltips();
+    
+    // Get or create tooltip element
+    let tooltipEl = document.getElementById('global-chart-tooltip');
+    
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.id = 'global-chart-tooltip';
+      tooltipEl.className = 'chartjs-tooltip';
+      tooltipEl.style.position = 'fixed';
+      tooltipEl.style.pointerEvents = 'none';
+      tooltipEl.style.zIndex = '9999';
+      tooltipEl.style.transition = 'opacity 0.2s ease';
+      tooltipEl.style.opacity = '0';
+      document.body.appendChild(tooltipEl);
+    }
+    
+    // Set styling
+    tooltipEl.style.backgroundColor = 'white';
+    tooltipEl.style.color = '#333';
+    tooltipEl.style.border = '1px solid #e3e8ee';
+    tooltipEl.style.borderRadius = '6px';
+    tooltipEl.style.padding = '10px 14px';
+    tooltipEl.style.fontSize = '12px';
+    tooltipEl.style.fontWeight = '500';
+    tooltipEl.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.15)';
+    tooltipEl.style.whiteSpace = 'nowrap';
+    
+    // Set content with proper formatting
+    let content = `<div style="color: #635bff; font-weight: 600; margin-bottom: 4px;">${label}</div>`;
+    
+    // Format the value based on column type if available
+    let formattedValue = value;
+    if (column) {
+      if (column.isCurrency && typeof value === 'number') {
+        formattedValue = `${value} records`;
+      } else if (column.isTrend && typeof value === 'number') {
+        formattedValue = `${value} records`;
+      } else if (column.isNumber && typeof value === 'number') {
+        formattedValue = `${value} records`;
+      } else {
+        formattedValue = `${value} records`;
+      }
+    } else {
+      formattedValue = `${value} records`;
+    }
+    
+    content += `<div>${formattedValue}</div>`;
+    tooltipEl.innerHTML = content;
+    
+    // Position tooltip
+    let mouseX, mouseY;
+    
+    if (chart) {
+      // For Chart.js charts
+      mouseX = event.native ? event.native.clientX : event.clientX;
+      mouseY = event.native ? event.native.clientY : event.clientY;
+    } else {
+      // For custom components
+      mouseX = event.clientX;
+      mouseY = event.clientY;
+    }
+    
+    // Calculate position relative to the mouse
+    const tooltipX = mouseX - (tooltipEl.offsetWidth / 2);
+    const tooltipY = mouseY - tooltipEl.offsetHeight - 10;
+    
+    tooltipEl.style.left = tooltipX + 'px';
+    tooltipEl.style.top = tooltipY + 'px';
+    tooltipEl.style.opacity = '1';
+  }, [hideAllTooltips]);
+
+  // Clean up tooltips on unmount
+  useEffect(() => {
+    return () => {
+      hideAllTooltips();
+      // Also clean up the custom chart tooltip
+      const chartTooltip = document.getElementById('chart-tooltip');
+      if (chartTooltip) {
+        chartTooltip.remove();
+      }
+    };
+  }, [hideAllTooltips]);
+
   // Helper functions for data analysis and visualization
   const getDataTypeIcon = (dataType) => {
     switch (dataType) {
@@ -601,88 +1265,180 @@ const ReportDetail = () => {
     }
   };
 
-  const analyzeColumnData = (data, column) => {
+  // Format values based on column type
+  const formatValue = (value, column) => {
+    if (value === null || value === undefined) return value;
+    
+    if (column.isCurrency) {
+      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : value;
+    }
+    
+    if (column.dataType === 'number' && typeof value === 'number') {
+      return value.toLocaleString('en-US');
+    }
+    
+    return value;
+  };
+
+  // Format values for charts - always returns strings, never React components
+  const formatChartValue = (value, column) => {
+    if (value === null || value === undefined) return String(value);
+    
+    if (column.isCurrency) {
+      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : String(value);
+    }
+    
+    if (column.isTrend) {
+      return typeof value === 'number' ? `${value.toFixed(1)}%` : String(value);
+    }
+    
+    if (column.isNumber || column.dataType === 'number') {
+      return typeof value === 'number' ? value.toLocaleString('en-US') : String(value);
+    }
+    
+    return String(value);
+  };
+
+  // Helper function to calculate median
+  const calculateMedian = (values) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  };
+
+  const analyzeColumnData = (data, column, filteredData) => {
     const values = data.map(row => row[column.id]).filter(val => val !== null && val !== undefined);
+    const filteredValues = filteredData.map(row => row[column.id]).filter(val => val !== null && val !== undefined);
     
     if (values.length === 0) {
       return {
         type: 'bar',
         summary: '0 values',
-        chartData: { labels: ['No data'], datasets: [{ data: [0], backgroundColor: '#e3e8ee' }] }
+        chartData: { 
+          labels: ['No data'], 
+          datasets: [{ 
+            data: [0], 
+            backgroundColor: '#F5F6F8',
+            borderRadius: 2
+          }] 
+        }
       };
     }
     
     switch (column.dataType) {
       case 'string':
         // For strings, we'll show count over time (simulated)
-        const uniqueCount = new Set(values).size;
+        const uniqueCount = new Set(filteredValues).size;
         return {
           type: 'line',
           summary: `${uniqueCount} unique values`,
-          chartData: generateTimeSeriesData(values.length)
+          chartData: generateTimeSeriesData(values, columnFilters[column.id], column)
         };
         
       case 'category':
-        // Count occurrences of each category
+        // Count occurrences of each category in original data
         const categoryCount = {};
         values.forEach(val => {
           categoryCount[val] = (categoryCount[val] || 0) + 1;
         });
+        
+        // Count filtered categories for summary
+        const filteredCategoryCount = new Set(filteredValues).size;
         return {
-          type: 'horizontalBar',
-          summary: `${Object.keys(categoryCount).length} categories`,
-          chartData: generateCategoryChartData(categoryCount)
+          type: 'category',
+          summary: `${filteredCategoryCount} ${filteredCategoryCount === 1 ? 'category' : 'categories'}`,
+          chartData: generateCategoryChartData(categoryCount),
+          rawData: categoryCount
         };
         
       case 'number':
-        // Create distribution buckets
+        // Create distribution buckets from original data
         const numericValues = values.filter(val => typeof val === 'number' && !isNaN(val));
+        const filteredNumericValues = filteredValues.filter(val => typeof val === 'number' && !isNaN(val));
         if (numericValues.length === 0) {
           return {
             type: 'bar',
             summary: '0 numeric values',
-            chartData: { labels: ['No data'], datasets: [{ data: [0], backgroundColor: '#e3e8ee' }] }
+            chartData: { 
+              labels: ['No data'], 
+              datasets: [{ 
+                data: [0], 
+                backgroundColor: '#F5F6F8',
+                borderRadius: 2
+              }] 
+            }
           };
         }
         const min = Math.min(...numericValues);
         const max = Math.max(...numericValues);
+        
+        // Format summary based on column type using median
+        let summaryText = `${filteredNumericValues.length} values`;
+        let medianText = '';
+        if (filteredNumericValues.length > 0) {
+          const medianValue = calculateMedian(filteredNumericValues);
+          if (column.isCurrency) {
+            medianText = `median ${formatChartValue(medianValue, column)}`;
+          } else if (column.isTrend) {
+            medianText = `median ${medianValue.toFixed(1)}%`;
+          } else if (column.isNumber) {
+            medianText = `median ${Math.round(medianValue).toLocaleString()}`;
+          }
+        }
+        
         return {
           type: 'bar',
-          summary: `${numericValues.length} values`,
-          chartData: generateNumberDistributionData(numericValues, min, max)
+          summary: summaryText,
+          medianSummary: medianText,
+          chartData: generateNumberDistributionData(numericValues, min, max, columnFilters[column.id], column)
         };
         
       case 'date':
         // Date distribution (if we had date columns)
         return {
           type: 'bar',
-          summary: `${values.length} dates`,
+          summary: `${filteredValues.length} dates`,
           chartData: generateDateDistributionData(values)
         };
         
       default:
         return {
           type: 'bar',
-          summary: `${values.length} items`,
-          chartData: { labels: ['Data'], datasets: [{ data: [values.length], backgroundColor: '#635bff' }] }
+          summary: `${filteredValues.length} items`,
+          chartData: { 
+            labels: ['Data'], 
+            datasets: [{ 
+              data: [values.length], 
+              backgroundColor: '#D8DEE4',
+              borderColor: '#D8DEE4',
+              borderWidth: 1,
+              borderRadius: 2,
+              hoverBackgroundColor: '#C5CDD6',
+              hoverBorderColor: '#C5CDD6'
+            }] 
+          }
         };
     }
   };
 
-  const generateTimeSeriesData = (totalCount) => {
+  const generateTimeSeriesData = (values, selectedValue = null, column = null) => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const totalCount = values.length;
     const data = days.map(() => Math.floor(Math.random() * (totalCount / 4)) + 1);
     
     return {
       labels: days,
       datasets: [{
         data: data,
-        borderColor: '#635bff',
-        backgroundColor: 'rgba(99, 91, 255, 0.1)',
+        borderColor: selectedValue ? '#635bff' : '#D8DEE4',
+        backgroundColor: selectedValue ? 'rgba(99, 91, 255, 0.1)' : 'rgba(216, 222, 228, 0.1)',
         fill: true,
         tension: 0.4,
         borderWidth: 2,
-        pointRadius: 0,
+        pointRadius: days.map(day => selectedValue === day ? 6 : 2),
+        pointBackgroundColor: days.map(day => selectedValue === day ? '#635bff' : '#D8DEE4'),
+        pointBorderColor: days.map(day => selectedValue === day ? '#635bff' : '#D8DEE4'),
+        pointBorderWidth: days.map(day => selectedValue === day ? 2 : 1),
         pointHoverRadius: 4,
         pointHitRadius: 10
       }]
@@ -692,34 +1448,48 @@ const ReportDetail = () => {
   const generateCategoryChartData = (categoryCount) => {
     const labels = Object.keys(categoryCount);
     const data = Object.values(categoryCount);
+    const maxValue = Math.max(...data);
     
     return {
       labels: labels,
       datasets: [{
         data: data,
-        backgroundColor: '#635bff',
-        borderColor: '#635bff',
-        borderWidth: 1,
-        hoverBackgroundColor: '#5a51e5',
-        hoverBorderColor: '#5a51e5'
+        backgroundColor: labels.map((label, index) => {
+          // Calculate bar width as percentage of max value
+          const percentage = (data[index] / maxValue) * 100;
+          return `linear-gradient(90deg, #635bff 0%, #635bff ${percentage}%, #f0f0f0 ${percentage}%, #f0f0f0 100%)`;
+        }),
+        borderColor: 'transparent',
+        borderWidth: 0,
+        barThickness: 24,
+        categoryPercentage: 1.0,
+        barPercentage: 1.0,
+        hoverBackgroundColor: labels.map((label, index) => {
+          const percentage = (data[index] / maxValue) * 100;
+          return `linear-gradient(90deg, #5a51e5 0%, #5a51e5 ${percentage}%, #f0f0f0 ${percentage}%, #f0f0f0 100%)`;
+        }),
+        hoverBorderColor: 'transparent'
       }]
     };
   };
 
-  const generateNumberDistributionData = (values, min, max) => {
-    const bucketCount = 5;
+  const generateNumberDistributionData = (values, min, max, selectedValue = null, column = null) => {
+    const bucketCount = 10; // Changed to 10 for deciles
     
     // Handle edge case where all values are the same
     if (min === max) {
+      const isSelected = selectedValue === String(min);
+      const formattedValue = column ? formatChartValue(min, column) : formatValue(min, { dataType: 'number' });
       return {
-        labels: [String(min)],
+        labels: [formattedValue],
         datasets: [{
           data: [values.length],
-          backgroundColor: '#635bff',
-          borderColor: '#635bff',
+          backgroundColor: isSelected ? '#635bff' : '#D8DEE4',
+          borderColor: isSelected ? '#635bff' : '#D8DEE4',
           borderWidth: 1,
-          hoverBackgroundColor: '#5a51e5',
-          hoverBorderColor: '#5a51e5'
+          borderRadius: 2,
+          hoverBackgroundColor: isSelected ? '#5a51e5' : '#C5CDD6',
+          hoverBorderColor: isSelected ? '#5a51e5' : '#C5CDD6'
         }]
       };
     }
@@ -728,15 +1498,26 @@ const ReportDetail = () => {
     const buckets = Array(bucketCount).fill(0);
     const bucketLabels = [];
     
-    // Create bucket labels
+    // Create bucket labels with proper formatting based on column type
     for (let i = 0; i < bucketCount; i++) {
       const start = min + (i * bucketSize);
       const end = min + ((i + 1) * bucketSize);
-      if (bucketSize >= 1) {
-        bucketLabels.push(`${Math.round(start)}-${Math.round(end)}`);
+      
+      let startFormatted, endFormatted;
+      if (column) {
+        startFormatted = formatChartValue(start, column);
+        endFormatted = formatChartValue(end, column);
       } else {
-        bucketLabels.push(`${start.toFixed(1)}-${end.toFixed(1)}`);
+        if (bucketSize >= 1) {
+          startFormatted = Math.round(start).toLocaleString();
+          endFormatted = Math.round(end).toLocaleString();
+        } else {
+          startFormatted = start.toFixed(1);
+          endFormatted = end.toFixed(1);
+        }
       }
+      
+      bucketLabels.push(`${startFormatted} - ${endFormatted}`);
     }
     
     // Distribute values into buckets
@@ -749,11 +1530,28 @@ const ReportDetail = () => {
       labels: bucketLabels,
       datasets: [{
         data: buckets,
-        backgroundColor: '#635bff',
-        borderColor: '#635bff',
+        backgroundColor: bucketLabels.map(label => {
+          if (selectedValue === label) return '#635bff';
+          if (selectedValue) return '#F5F6F8';
+          return '#D8DEE4';
+        }),
+        borderColor: bucketLabels.map(label => {
+          if (selectedValue === label) return '#635bff';
+          if (selectedValue) return '#F5F6F8';
+          return '#D8DEE4';
+        }),
         borderWidth: 1,
-        hoverBackgroundColor: '#5a51e5',
-        hoverBorderColor: '#5a51e5'
+        borderRadius: 2,
+        hoverBackgroundColor: bucketLabels.map(label => {
+          if (selectedValue === label) return '#5a51e5';
+          if (selectedValue) return '#E8EAED';
+          return '#C5CDD6';
+        }),
+        hoverBorderColor: bucketLabels.map(label => {
+          if (selectedValue === label) return '#5a51e5';
+          if (selectedValue) return '#E8EAED';
+          return '#C5CDD6';
+        })
       }]
     };
   };
@@ -764,14 +1562,17 @@ const ReportDetail = () => {
       labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
       datasets: [{
         data: [10, 15, 12, 8],
-        backgroundColor: '#635bff',
-        borderColor: '#635bff',
-        borderWidth: 1
+        backgroundColor: '#57B2F9',
+        borderColor: '#57B2F9',
+        borderWidth: 1,
+        borderRadius: 2,
+        hoverBackgroundColor: '#4A9FE7',
+        hoverBorderColor: '#4A9FE7'
       }]
     };
   };
 
-  const getChartOptions = (type) => {
+  const getChartOptions = useCallback((type, categoryData = null, columnId = null, selectedValue = null, column = null) => {
     const baseOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -779,24 +1580,57 @@ const ReportDetail = () => {
         intersect: false,
         mode: 'point'
       },
+      onClick: (event, activeElements, chart) => {
+        if (activeElements.length > 0 && columnId) {
+          const activeElement = activeElements[0];
+          const index = activeElement.index;
+          const label = chart.data.labels[index];
+          const value = chart.data.datasets[activeElement.datasetIndex].data[index];
+          
+          // For line charts, use the label; for bar charts, use a range or specific value
+          if (type === 'line') {
+            toggleFilter(columnId, label);
+          } else if (type === 'bar') {
+            // For bar charts, we'll filter by the bucket/range
+            toggleFilter(columnId, label);
+          }
+        }
+      },
+      onHover: (event, activeElements, chart) => {
+        // Change cursor to pointer when hovering over clickable elements
+        const canvas = chart.canvas;
+        if (activeElements.length > 0) {
+          canvas.style.cursor = 'pointer';
+        } else {
+          canvas.style.cursor = 'default';
+        }
+        
+        // Hide all tooltips first
+        hideAllTooltips();
+        
+        // If no elements are active, keep all tooltips hidden
+        if (activeElements.length === 0) {
+          return;
+        }
+        
+        // Show custom tooltip for active element
+        if (activeElements.length > 0) {
+          const activeElement = activeElements[0];
+          const datasetIndex = activeElement.datasetIndex;
+          const index = activeElement.index;
+          const dataset = chart.data.datasets[datasetIndex];
+          const value = dataset.data[index];
+          const label = chart.data.labels[index];
+          
+          showCustomTooltip(event, label, value, chart, column);
+        }
+      },
       plugins: {
         legend: { 
           display: false 
         },
         tooltip: {
-          enabled: true,
-          mode: 'nearest',
-          intersect: false,
-          backgroundColor: '#000',
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: '#635bff',
-          borderWidth: 1,
-          cornerRadius: 4,
-          padding: 6,
-          titleFont: { size: 11 },
-          bodyFont: { size: 10 },
-          displayColors: false
+          enabled: false // Completely disable Chart.js tooltips
         }
       },
       scales: {
@@ -809,9 +1643,29 @@ const ReportDetail = () => {
       },
       elements: {
         point: { 
-          radius: 0,
-          hoverRadius: 3,
-          hitRadius: 10
+          radius: (context) => {
+            if (type === 'line' && selectedValue) {
+              const label = context.chart.data.labels[context.dataIndex];
+              return selectedValue === label ? 6 : 2;
+            }
+            return 2;
+          },
+          hoverRadius: 4,
+          hitRadius: 10,
+          backgroundColor: (context) => {
+            if (type === 'line' && selectedValue) {
+              const label = context.chart.data.labels[context.dataIndex];
+              return selectedValue === label ? '#635bff' : '#57B2F9';
+            }
+            return '#57B2F9';
+          },
+          borderColor: (context) => {
+            if (type === 'line' && selectedValue) {
+              const label = context.chart.data.labels[context.dataIndex];
+              return selectedValue === label ? '#635bff' : '#57B2F9';
+            }
+            return '#57B2F9';
+          }
         },
         line: { 
           borderWidth: 2,
@@ -826,12 +1680,41 @@ const ReportDetail = () => {
     if (type === 'horizontalBar') {
       return {
         ...baseOptions,
-        indexAxis: 'y'
+        indexAxis: 'y',
+        layout: {
+          padding: {
+            left: 0,
+            right: 0,
+            top: 2,
+            bottom: 2
+          }
+        },
+        plugins: {
+          ...baseOptions.plugins,
+          datalabels: {
+            display: true,
+            anchor: 'start',
+            align: 'start',
+            color: '#333',
+            font: {
+              size: 11,
+              weight: '500'
+            },
+            formatter: (value, context) => {
+              if (categoryData) {
+                const label = context.chart.data.labels[context.dataIndex];
+                return `${label} ${value}`;
+              }
+              return value;
+            },
+            offset: 8
+          }
+        }
       };
     }
 
     return baseOptions;
-  };
+  }, [hideAllTooltips, showCustomTooltip, toggleFilter]);
 
   // Reporting controls
   const [reportingControls, setReportingControls] = useState({
@@ -975,7 +1858,47 @@ const ReportDetail = () => {
   
   // Sort and paginate the data
   const sortedData = useMemo(() => {
-    return [...customerData].sort((a, b) => {
+    // First apply filters
+    let filteredData = [...customerData];
+    
+    Object.entries(columnFilters).forEach(([columnId, filterValue]) => {
+      filteredData = filteredData.filter(row => {
+        const cellValue = row[columnId];
+        
+        // Handle null/undefined values
+        if (cellValue === null || cellValue === undefined) {
+          return false;
+        }
+        
+        // For string/category columns, exact match
+        if (typeof cellValue === 'string') {
+          return cellValue === filterValue;
+        }
+        
+        // For number columns, check if value falls within the range
+        if (typeof cellValue === 'number') {
+          // If filterValue is a range (contains ' - ')
+          if (typeof filterValue === 'string' && filterValue.includes(' - ')) {
+            // Remove currency symbols, commas, percentages, and parse the range
+            const cleanFilterValue = filterValue.replace(/[$,%]/g, '');
+            const [minStr, maxStr] = cleanFilterValue.split(' - ');
+            const min = parseFloat(minStr);
+            const max = parseFloat(maxStr);
+            return cellValue >= min && cellValue < max; // Changed to < max to avoid overlap
+          }
+          // If filterValue is a single number
+          const numericFilterValue = typeof filterValue === 'string' ? 
+            parseFloat(filterValue.replace(/[$,%]/g, '')) : filterValue;
+          return cellValue === numericFilterValue;
+        }
+        
+        // For other types, try string comparison
+        return String(cellValue) === String(filterValue);
+      });
+    });
+    
+    // Then sort the filtered data
+    return filteredData.sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
       
@@ -993,7 +1916,7 @@ const ReportDetail = () => {
       
       return 0;
     });
-  }, [customerData, sortField, sortDirection]);
+  }, [customerData, sortField, sortDirection, columnFilters]);
   
   // Get current page of data
   const currentData = useMemo(() => {
@@ -1028,11 +1951,6 @@ const ReportDetail = () => {
     return sortDirection === 'asc' ? '↑' : '↓';
   };
   
-  // Format currency
-  const formatCurrency = (value) => {
-    return `$${value.toFixed(2)}`;
-  };
-  
   // Handle period change
   const handlePeriodChange = (period) => {
     setReportingControls(prev => ({ ...prev, period }));
@@ -1053,7 +1971,7 @@ const ReportDetail = () => {
     if (value === undefined || value === null) return '-';
     
     if (column.isCurrency) {
-      return formatCurrency(value);
+      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : value;
     }
     
     if (column.isTrend) {
@@ -1066,12 +1984,595 @@ const ReportDetail = () => {
       );
     }
     
-    if (column.isNumber) {
-      return value.toLocaleString();
+    if (column.isNumber || column.dataType === 'number') {
+      return typeof value === 'number' ? value.toLocaleString('en-US') : value;
     }
     
     return value;
   };
+
+  // Generate reasonable default chart based on data
+  const generateDefaultChart = () => {
+    const columns = getReportData.columns;
+    const reportId = params.reportId;
+    
+    // Find the best columns for charting
+    const categoryColumn = columns.find(col => col.dataType === 'category');
+    const currencyColumns = columns.filter(col => col.isCurrency);
+    const trendColumn = columns.find(col => col.isTrend);
+    const numberColumns = columns.filter(col => col.dataType === 'number' && !col.isCurrency && !col.isTrend);
+    
+    let chartType = 'bar';
+    let xAxis = null;
+    let yAxis = null;
+    let title = '';
+    let description = '';
+    
+    // Report-specific chart suggestions
+    switch (reportId) {
+      case 'churn-risk':
+        if (categoryColumn && currencyColumns.length > 0) {
+          chartType = 'bar';
+          xAxis = categoryColumn;
+          yAxis = currencyColumns.find(col => col.id === 'current_mrr') || currencyColumns[0];
+          title = `MRR at Risk by ${categoryColumn.label}`;
+          description = 'Bar chart showing monthly recurring revenue at risk segmented by product or category';
+        } else if (trendColumn) {
+          chartType = 'histogram';
+          xAxis = trendColumn;
+          title = 'Usage Trend Distribution';
+          description = 'Distribution of usage trends showing patterns in customer behavior';
+        }
+        break;
+        
+      case 'high-usage-growth':
+        if (trendColumn && currencyColumns.length > 0) {
+          chartType = 'scatter';
+          xAxis = currencyColumns.find(col => col.id === 'current_mrr') || currencyColumns[0];
+          yAxis = trendColumn;
+          title = 'Usage Growth vs MRR';
+          description = 'Scatter plot showing the relationship between current MRR and usage growth percentage';
+        } else if (categoryColumn && trendColumn) {
+          chartType = 'bar';
+          xAxis = categoryColumn;
+          yAxis = trendColumn;
+          title = `Usage Growth by ${categoryColumn.label}`;
+          description = 'Bar chart showing average usage growth rates by product category';
+        }
+        break;
+        
+      case 'revenue-composition':
+        if (currencyColumns.length >= 3) {
+          chartType = 'stacked-bar';
+          xAxis = { label: 'Customer', id: 'name' };
+          yAxis = currencyColumns;
+          title = 'Revenue Composition by Customer';
+          description = 'Stacked bar chart showing breakdown of subscription, usage, and add-on revenue';
+        } else if (categoryColumn && currencyColumns.length > 0) {
+          chartType = 'bar';
+          xAxis = categoryColumn;
+          yAxis = currencyColumns[0];
+          title = `Revenue by ${categoryColumn.label}`;
+          description = 'Bar chart showing total revenue by product category';
+        }
+        break;
+        
+      case 'monthly-sales':
+      case 'top-selling':
+        if (categoryColumn && currencyColumns.length > 0) {
+          chartType = 'bar';
+          xAxis = categoryColumn;
+          yAxis = currencyColumns.find(col => col.id === 'current_mrr') || currencyColumns[0];
+          title = `Revenue by ${categoryColumn.label}`;
+          description = 'Bar chart showing revenue performance by product or category';
+        }
+        break;
+        
+      case 'new-subscribers':
+      case 'new-free-trials':
+        if (categoryColumn && numberColumns.length > 0) {
+          chartType = 'bar';
+          xAxis = categoryColumn;
+          yAxis = numberColumns.find(col => col.id === 'included_units') || numberColumns[0];
+          title = `${numberColumns[0]?.label || 'Units'} by ${categoryColumn.label}`;
+          description = 'Bar chart showing distribution of plan features by product type';
+        } else if (categoryColumn) {
+          chartType = 'pie';
+          xAxis = categoryColumn;
+          title = `Distribution by ${categoryColumn.label}`;
+          description = 'Pie chart showing the distribution of new subscribers by plan type';
+        }
+        break;
+        
+      default:
+        // Generic logic for other reports
+        if (categoryColumn && currencyColumns.length > 0) {
+          chartType = 'bar';
+          xAxis = categoryColumn;
+          yAxis = currencyColumns[0];
+          title = `${currencyColumns[0].label} by ${categoryColumn.label}`;
+          description = `Bar chart showing ${currencyColumns[0].label.toLowerCase()} broken down by ${categoryColumn.label.toLowerCase()}`;
+        } else if (categoryColumn && numberColumns.length > 0) {
+          chartType = 'bar';
+          xAxis = categoryColumn;
+          yAxis = numberColumns[0];
+          title = `${numberColumns[0].label} by ${categoryColumn.label}`;
+          description = `Bar chart showing ${numberColumns[0].label.toLowerCase()} by ${categoryColumn.label.toLowerCase()}`;
+        } else if (categoryColumn && trendColumn) {
+          chartType = 'bar';
+          xAxis = categoryColumn;
+          yAxis = trendColumn;
+          title = `${trendColumn.label} by ${categoryColumn.label}`;
+          description = `Bar chart showing ${trendColumn.label.toLowerCase()} by ${categoryColumn.label.toLowerCase()}`;
+        } else if (currencyColumns.length > 0) {
+          chartType = 'histogram';
+          xAxis = currencyColumns[0];
+          title = `${currencyColumns[0].label} Distribution`;
+          description = `Histogram showing the distribution of ${currencyColumns[0].label.toLowerCase()} values`;
+        } else if (trendColumn) {
+          chartType = 'histogram';
+          xAxis = trendColumn;
+          title = `${trendColumn.label} Distribution`;
+          description = `Histogram showing the distribution of ${trendColumn.label.toLowerCase()} values`;
+        } else if (categoryColumn) {
+          chartType = 'pie';
+          xAxis = categoryColumn;
+          title = `Count by ${categoryColumn.label}`;
+          description = `Pie chart showing the count distribution by ${categoryColumn.label.toLowerCase()}`;
+        } else {
+          chartType = 'metric';
+          title = 'Total Count';
+          description = 'Single metric showing the total count of records';
+        }
+    }
+    
+    return {
+      type: chartType,
+      title,
+      xAxis,
+      yAxis,
+      description,
+      reportType: reportId
+    };
+  };
+
+  // Generate chart data based on the suggestion
+  const generateChartData = (suggestion) => {
+    const data = sortedData;
+    
+    switch (suggestion.type) {
+      case 'bar':
+        return generateBarChartData(data, suggestion);
+      case 'line':
+        return generateLineChartData(data, suggestion);
+      case 'scatter':
+        return generateScatterChartData(data, suggestion);
+      case 'pie':
+        return generatePieChartData(data, suggestion);
+      case 'histogram':
+        return generateHistogramChartData(data, suggestion);
+      case 'stacked-bar':
+        return generateStackedBarChartData(data, suggestion);
+      default:
+        return generateBarChartData(data, suggestion);
+    }
+  };
+
+  const generateLineChartData = (data, suggestion) => {
+    if (!suggestion.xAxis || !suggestion.yAxis) return null;
+    
+    // Group data by x-axis values (same as bar chart but with line styling)
+    const groupedData = {};
+    data.forEach(row => {
+      const xValue = row[suggestion.xAxis.id];
+      const yValue = row[suggestion.yAxis.id];
+      
+      if (xValue && typeof yValue === 'number' && !isNaN(yValue)) {
+        if (!groupedData[xValue]) {
+          groupedData[xValue] = [];
+        }
+        groupedData[xValue].push(yValue);
+      }
+    });
+    
+    // Calculate averages for each group
+    const labels = Object.keys(groupedData);
+    const values = labels.map(label => {
+      const values = groupedData[label];
+      return values.reduce((sum, val) => sum + val, 0) / values.length;
+    });
+    
+    return {
+      labels,
+      datasets: [{
+        label: suggestion.yAxis.label,
+        data: values,
+        borderColor: '#635bff',
+        backgroundColor: 'rgba(99, 91, 255, 0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#635bff',
+        pointBorderColor: '#635bff',
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    };
+  };
+
+  const generateBarChartData = (data, suggestion) => {
+    if (!suggestion.xAxis || !suggestion.yAxis) return null;
+    
+    // Group data by x-axis values
+    const groupedData = {};
+    data.forEach(row => {
+      const xValue = row[suggestion.xAxis.id];
+      const yValue = row[suggestion.yAxis.id];
+      
+      if (xValue && typeof yValue === 'number' && !isNaN(yValue)) {
+        if (!groupedData[xValue]) {
+          groupedData[xValue] = [];
+        }
+        groupedData[xValue].push(yValue);
+      }
+    });
+    
+    // Calculate averages for each group
+    const labels = Object.keys(groupedData);
+    const values = labels.map(label => {
+      const values = groupedData[label];
+      return values.reduce((sum, val) => sum + val, 0) / values.length;
+    });
+    
+    return {
+      labels,
+      datasets: [{
+        label: suggestion.yAxis.label,
+        data: values,
+        backgroundColor: '#635bff',
+        borderColor: '#635bff',
+        borderWidth: 1,
+        borderRadius: 4,
+        hoverBackgroundColor: '#5a51e5',
+        hoverBorderColor: '#5a51e5'
+      }]
+    };
+  };
+
+  const generateScatterChartData = (data, suggestion) => {
+    if (!suggestion.xAxis || !suggestion.yAxis) return null;
+    
+    const scatterData = data.map(row => ({
+      x: row[suggestion.xAxis.id],
+      y: row[suggestion.yAxis.id]
+    })).filter(point => typeof point.x === 'number' && typeof point.y === 'number' && !isNaN(point.x) && !isNaN(point.y));
+    
+    return {
+      datasets: [{
+        label: `${suggestion.yAxis.label} vs ${suggestion.xAxis.label}`,
+        data: scatterData,
+        backgroundColor: '#635bff',
+        borderColor: '#635bff',
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    };
+  };
+
+  const generatePieChartData = (data, suggestion) => {
+    if (!suggestion.xAxis) return null;
+    
+    // Count occurrences of each category
+    const categoryCount = {};
+    data.forEach(row => {
+      const category = row[suggestion.xAxis.id];
+      if (category) {
+        categoryCount[category] = (categoryCount[category] || 0) + 1;
+      }
+    });
+    
+    const labels = Object.keys(categoryCount);
+    const values = Object.values(categoryCount);
+    const colors = [
+      '#635bff', '#57B2F9', '#4CAF50', '#FF9800', 
+      '#F44336', '#9C27B0', '#607D8B', '#795548'
+    ];
+    
+    return {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors.slice(0, labels.length),
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    };
+  };
+
+  const generateHistogramChartData = (data, suggestion) => {
+    if (!suggestion.xAxis) return null;
+    
+    const values = data.map(row => row[suggestion.xAxis.id])
+      .filter(val => typeof val === 'number' && !isNaN(val));
+    
+    if (values.length === 0) return null;
+    
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const bucketCount = 10;
+    const bucketSize = (max - min) / bucketCount;
+    
+    const buckets = Array(bucketCount).fill(0);
+    const bucketLabels = [];
+    
+    for (let i = 0; i < bucketCount; i++) {
+      const start = min + (i * bucketSize);
+      const end = min + ((i + 1) * bucketSize);
+      bucketLabels.push(`${Math.round(start)}-${Math.round(end)}`);
+    }
+    
+    values.forEach(value => {
+      const bucketIndex = Math.min(Math.floor((value - min) / bucketSize), bucketCount - 1);
+      buckets[bucketIndex]++;
+    });
+    
+    return {
+      labels: bucketLabels,
+      datasets: [{
+        label: 'Count',
+        data: buckets,
+        backgroundColor: '#635bff',
+        borderColor: '#635bff',
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    };
+  };
+
+  const generateStackedBarChartData = (data, suggestion) => {
+    if (!suggestion.yAxis || !Array.isArray(suggestion.yAxis)) return null;
+    
+    // For stacked bar, we'll show top 10 customers
+    const topCustomers = data.slice(0, 10);
+    const labels = topCustomers.map(row => row.name);
+    
+    const datasets = suggestion.yAxis.map((column, index) => {
+      const colors = ['#635bff', '#57B2F9', '#4CAF50', '#FF9800'];
+      return {
+        label: column.label,
+        data: topCustomers.map(row => row[column.id] || 0),
+        backgroundColor: colors[index % colors.length],
+        borderColor: colors[index % colors.length],
+        borderWidth: 1
+      };
+    });
+    
+    return {
+      labels,
+      datasets
+    };
+  };
+
+  const handleAddChart = () => {
+    const chartSuggestion = generateDefaultChart();
+    const chartData = generateChartData(chartSuggestion);
+    
+    if (chartData) {
+      setGeneratedChart({
+        ...chartSuggestion,
+        data: chartData,
+        timestamp: Date.now()
+      });
+    }
+  };
+
+  const handleRemoveChart = () => {
+    setGeneratedChart(null);
+  };
+
+  const handleChartTypeChange = (newType) => {
+    if (generatedChart) {
+      const updatedSettings = {
+        type: newType,
+        xAxis: generatedChart.xAxis,
+        yAxis: generatedChart.yAxis
+      };
+      
+      updateChartWithSettings(updatedSettings);
+    }
+  };
+
+  const handleAxisChange = (axisType, column) => {
+    if (generatedChart) {
+      const updatedSettings = {
+        type: generatedChart.type,
+        xAxis: axisType === 'x' ? column : generatedChart.xAxis,
+        yAxis: axisType === 'y' ? column : generatedChart.yAxis
+      };
+      
+      updateChartWithSettings(updatedSettings);
+    }
+  };
+
+  // Helper function to update chart with new settings
+  const updateChartWithSettings = (settings) => {
+    if (!generatedChart) return;
+    
+    const updatedSuggestion = {
+      ...generatedChart,
+      type: settings.type,
+      xAxis: settings.xAxis,
+      yAxis: settings.yAxis
+    };
+    
+    // Update the title and description based on new settings
+    if (updatedSuggestion.type === 'pie') {
+      if (updatedSuggestion.xAxis) {
+        updatedSuggestion.title = `Distribution by ${updatedSuggestion.xAxis.label}`;
+        updatedSuggestion.description = `Pie chart showing the distribution by ${updatedSuggestion.xAxis.label.toLowerCase()}`;
+      }
+    } else if (updatedSuggestion.type === 'histogram') {
+      if (updatedSuggestion.xAxis) {
+        updatedSuggestion.title = `${updatedSuggestion.xAxis.label} Distribution`;
+        updatedSuggestion.description = `Histogram showing the distribution of ${updatedSuggestion.xAxis.label.toLowerCase()} values`;
+      }
+    } else if (updatedSuggestion.xAxis && updatedSuggestion.yAxis) {
+      updatedSuggestion.title = `${updatedSuggestion.yAxis.label} by ${updatedSuggestion.xAxis.label}`;
+      updatedSuggestion.description = `${updatedSuggestion.type} chart showing ${updatedSuggestion.yAxis.label.toLowerCase()} broken down by ${updatedSuggestion.xAxis.label.toLowerCase()}`;
+    }
+    
+    const newChartData = generateChartData(updatedSuggestion);
+    
+    if (newChartData) {
+      const updatedChart = {
+        ...updatedSuggestion,
+        data: newChartData,
+        timestamp: Date.now()
+      };
+      
+      setGeneratedChart(updatedChart);
+    }
+  };
+
+  const applyChartSettings = () => {
+    // Since the chart is already updated in real-time, we just need to:
+    // 1. Update the original settings to match current pending settings
+    // 2. Close the settings panel
+    setOriginalChartSettings({
+      type: pendingChartSettings.type,
+      xAxis: pendingChartSettings.xAxis,
+      yAxis: pendingChartSettings.yAxis
+    });
+    
+    setShowChartSettings(false);
+  };
+
+  const cancelChartSettings = () => {
+    // Revert the chart to the original settings
+    if (generatedChart && originalChartSettings.type) {
+      updateChartWithSettings(originalChartSettings);
+      
+      // Reset pending settings to original settings
+      setPendingChartSettings({
+        type: originalChartSettings.type,
+        xAxis: originalChartSettings.xAxis,
+        yAxis: originalChartSettings.yAxis
+      });
+    }
+    
+    setShowChartSettings(false);
+  };
+
+  const removeChart = () => {
+    setGeneratedChart(null);
+    setShowChartSettings(false);
+  };
+
+  // Helper function to create consistent tooltip options for charts
+  const getChartTooltipOptions = () => ({
+    enabled: false, // Disable default tooltip since we're using external
+    external: function(context) {
+      // Get the tooltip element
+      const {chart, tooltip} = context;
+      
+      // Get or create tooltip element
+      let tooltipEl = document.getElementById('chart-tooltip');
+      if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'chart-tooltip';
+        tooltipEl.style.position = 'absolute';
+        tooltipEl.style.pointerEvents = 'none';
+        tooltipEl.style.zIndex = '1000';
+        tooltipEl.style.transition = 'all 0.1s ease';
+        document.body.appendChild(tooltipEl);
+      }
+      
+      // Hide tooltip if no data points
+      if (tooltip.opacity === 0) {
+        tooltipEl.style.opacity = '0';
+        return;
+      }
+      
+      // Set tooltip styling
+      tooltipEl.style.backgroundColor = 'white';
+      tooltipEl.style.color = '#333';
+      tooltipEl.style.border = '1px solid #e3e8ee';
+      tooltipEl.style.borderRadius = '6px';
+      tooltipEl.style.padding = '10px 14px';
+      tooltipEl.style.fontSize = '12px';
+      tooltipEl.style.fontWeight = '500';
+      tooltipEl.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.15)';
+      tooltipEl.style.whiteSpace = 'nowrap';
+      
+      // Set tooltip content
+      if (tooltip.body) {
+        const titleLines = tooltip.title || [];
+        const bodyLines = tooltip.body.map(b => b.lines);
+        
+        let innerHtml = '';
+        
+        // Add title
+        if (titleLines.length > 0) {
+          innerHtml += `<div style="color: #635bff; font-weight: 600; margin-bottom: 4px;">${titleLines[0]}</div>`;
+        }
+        
+        // Add body
+        bodyLines.forEach(body => {
+          innerHtml += `<div>${body}</div>`;
+        });
+        
+        tooltipEl.innerHTML = innerHtml;
+      }
+      
+      // Position tooltip relative to the actual cursor position
+      const tooltipWidth = tooltipEl.offsetWidth;
+      const tooltipHeight = tooltipEl.offsetHeight;
+      
+      // Use the stored mouse position
+      const mouseX = mousePosition.x;
+      const mouseY = mousePosition.y;
+      
+      // Position tooltip 20px above the cursor, centered horizontally
+      let tooltipX = mouseX - (tooltipWidth / 2);
+      let tooltipY = mouseY - tooltipHeight - 20;
+      
+      // Keep tooltip within viewport bounds
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Adjust horizontal position if tooltip would go off screen
+      if (tooltipX < 10) {
+        tooltipX = 10;
+      } else if (tooltipX + tooltipWidth > viewportWidth - 10) {
+        tooltipX = viewportWidth - tooltipWidth - 10;
+      }
+      
+      // Adjust vertical position if tooltip would go off screen
+      if (tooltipY < 10) {
+        // If there's no room above, position below the cursor
+        tooltipY = mouseY + 20;
+      }
+      
+      tooltipEl.style.left = tooltipX + 'px';
+      tooltipEl.style.top = tooltipY + 'px';
+      tooltipEl.style.opacity = '1';
+    },
+    callbacks: {
+      title: function(context) {
+        return context[0].label;
+      },
+      label: function(context) {
+        const value = context.parsed.y || context.parsed;
+        
+        // Format value based on chart type and axis
+        if (generatedChart && generatedChart.yAxis) {
+          return formatChartValue(value, generatedChart.yAxis);
+        }
+        
+        return value.toLocaleString();
+      }
+    }
+  });
 
   return (
     <Container
@@ -1090,7 +2591,7 @@ const ReportDetail = () => {
         <ReportDetailHeader>
           <ReportDetailTitle>{getReportData.title}</ReportDetailTitle>
           <HeaderActions>
-            <Button>
+            <Button onClick={() => setIsShareModalOpen(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M4 12V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M16 6L12 2L8 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1131,8 +2632,266 @@ const ReportDetail = () => {
             onPeriodChange={handlePeriodChange}
             onIntervalChange={handleIntervalChange}
             onComparisonChange={handleComparisonChange}
+            chartType={generatedChart ? generatedChart.type : null}
+            chartSettings={generatedChart ? {
+              type: generatedChart.type,
+              xAxis: generatedChart.xAxis,
+              yAxis: generatedChart.yAxis
+            } : null}
+            availableColumns={getReportData.columns}
+            onChartTypeChange={handleChartTypeChange}
+            onChartAxisChange={handleAxisChange}
+            onRemoveChart={handleRemoveChart}
+            customContent={
+              !generatedChart && (
+                <ChartChip onClick={handleAddChart}>
+                  <ChartIconWrapper>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="#6772e5" strokeWidth="2" />
+                      <path d="M12 8V16M8 12H16" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </ChartIconWrapper>
+                  <ChartChipValue>Chart</ChartChipValue>
+                </ChartChip>
+              )
+            }
           />
         </ControlsContainer>
+        
+        {generatedChart && (
+          <>
+            <ChartSectionContainer>
+              <GeneratedChartWrapper>
+                {generatedChart.type === 'bar' && (
+                  <Bar 
+                    key={`bar-${generatedChart.timestamp || 0}-${generatedChart.type}-${generatedChart.xAxis?.id}-${generatedChart.yAxis?.id}`}
+                    data={generatedChart.data} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      onHover: (event, activeElements, chart) => {
+                        // Update mouse position for tooltip
+                        if (event.native) {
+                          setMousePosition({ x: event.native.clientX, y: event.native.clientY });
+                        }
+                        
+                        // Hide custom tooltip if no active elements
+                        if (activeElements.length === 0) {
+                          const chartTooltip = document.getElementById('chart-tooltip');
+                          if (chartTooltip) {
+                            chartTooltip.style.opacity = '0';
+                          }
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          display: false
+                        },
+                        tooltip: getChartTooltipOptions()
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            color: '#f0f0f0'
+                          }
+                        },
+                        x: {
+                          grid: {
+                            display: false
+                          }
+                        }
+                      }
+                    }}
+                  />
+                )}
+                {generatedChart.type === 'line' && (
+                  <Line 
+                    key={`line-${generatedChart.timestamp || 0}-${generatedChart.type}-${generatedChart.xAxis?.id}-${generatedChart.yAxis?.id}`}
+                    data={generatedChart.data} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      onHover: (event, activeElements, chart) => {
+                        // Update mouse position for tooltip
+                        if (event.native) {
+                          setMousePosition({ x: event.native.clientX, y: event.native.clientY });
+                        }
+                        
+                        // Hide custom tooltip if no active elements
+                        if (activeElements.length === 0) {
+                          const chartTooltip = document.getElementById('chart-tooltip');
+                          if (chartTooltip) {
+                            chartTooltip.style.opacity = '0';
+                          }
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          display: false
+                        },
+                        tooltip: getChartTooltipOptions()
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            color: '#f0f0f0'
+                          }
+                        },
+                        x: {
+                          grid: {
+                            color: '#f0f0f0'
+                          }
+                        }
+                      },
+                      elements: {
+                        line: {
+                          tension: 0.4
+                        }
+                      }
+                    }}
+                  />
+                )}
+                {generatedChart.type === 'pie' && (
+                  <Pie 
+                    key={`pie-${generatedChart.timestamp || 0}-${generatedChart.type}-${generatedChart.xAxis?.id}`}
+                    data={generatedChart.data} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      onHover: (event, activeElements, chart) => {
+                        // Update mouse position for tooltip
+                        if (event.native) {
+                          setMousePosition({ x: event.native.clientX, y: event.native.clientY });
+                        }
+                        
+                        // Hide custom tooltip if no active elements
+                        if (activeElements.length === 0) {
+                          const chartTooltip = document.getElementById('chart-tooltip');
+                          if (chartTooltip) {
+                            chartTooltip.style.opacity = '0';
+                          }
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          display: true,
+                          position: 'right'
+                        },
+                        tooltip: getChartTooltipOptions()
+                      }
+                    }}
+                  />
+                )}
+              </GeneratedChartWrapper>
+            </ChartSectionContainer>
+            
+            <SummaryTableSection>
+              <ResultsHeader>
+                <SectionTitle>Summary</SectionTitle>
+                <ExportButton>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Export
+                </ExportButton>
+              </ResultsHeader>
+              
+              {generatedChart.type === 'pie' ? (
+                <SummaryTableContainer>
+                  <SummaryTable>
+                    <thead>
+                      <tr>
+                        <SummaryTableHeaderCell className="first-column">Category</SummaryTableHeaderCell>
+                        <SummaryTableHeaderCell>Count</SummaryTableHeaderCell>
+                        <SummaryTableHeaderCell>Percentage</SummaryTableHeaderCell>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {generatedChart.data.labels.map((label, index) => {
+                        const value = generatedChart.data.datasets[0].data[index];
+                        const total = generatedChart.data.datasets[0].data.reduce((sum, val) => sum + val, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return (
+                          <tr key={index}>
+                            <SummaryTableCell className="header first-column">
+                              <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <div 
+                                  style={{ 
+                                    width: '12px', 
+                                    height: '12px', 
+                                    backgroundColor: generatedChart.data.datasets[0].backgroundColor[index], 
+                                    borderRadius: '3px',
+                                    marginRight: '8px'
+                                  }} 
+                                />
+                                {label}
+                              </div>
+                            </SummaryTableCell>
+                            <SummaryTableCell 
+                              className="value-cell"
+                              isValue={true}
+                              value={value}
+                            >
+                              {value}
+                            </SummaryTableCell>
+                            <SummaryTableCell 
+                              className="value-cell"
+                              isValue={true}
+                              value={percentage}
+                            >
+                              {percentage}%
+                            </SummaryTableCell>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </SummaryTable>
+                </SummaryTableContainer>
+              ) : (
+                <SummaryTableContainer>
+                  <SummaryTable>
+                    <thead>
+                      <tr>
+                        <SummaryTableHeaderCell className="first-column">
+                          {generatedChart.xAxis?.label || 'Category'}
+                        </SummaryTableHeaderCell>
+                        {generatedChart.data.labels.map((label, index) => (
+                          <SummaryTableHeaderCell key={index}>
+                            {label}
+                          </SummaryTableHeaderCell>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <SummaryTableCell className="header first-column">
+                          {generatedChart.yAxis?.label || 'Value'}
+                        </SummaryTableCell>
+                        {generatedChart.data.datasets[0].data.map((value, index) => (
+                          <SummaryTableCell 
+                            key={index} 
+                            className="value-cell"
+                            isValue={true}
+                            value={value}
+                          >
+                            {generatedChart.yAxis ? 
+                              formatChartValue(value, generatedChart.yAxis) : 
+                              formatChartValue(value, { dataType: 'number' })
+                            }
+                          </SummaryTableCell>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </SummaryTable>
+                </SummaryTableContainer>
+              )}
+            </SummaryTableSection>
+          </>
+        )}
         
         <ResultsSection>
           <ResultsHeader>
@@ -1157,39 +2916,74 @@ const ReportDetail = () => {
                         <HeaderLabel>
                           {column.label} {getSortIndicator(column.id)}
                         </HeaderLabel>
-                        <DataTypeIcon>
-                          {getDataTypeIcon(column.dataType)}
-                        </DataTypeIcon>
+                        <HeaderIcons>
+                          {columnFilters[column.id] && (
+                            <FilterIcon 
+                              className="remove-filter"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clearFilter(column.id);
+                              }}
+                              title="Remove filter"
+                              onMouseEnter={(e) => {
+                                const svg = e.currentTarget.querySelector('svg');
+                                if (svg) {
+                                  svg.innerHTML = '<path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                const svg = e.currentTarget.querySelector('svg');
+                                if (svg) {
+                                  svg.innerHTML = '<path fillRule="evenodd" clipRule="evenodd" d="M5 9 .9 3.533a2 2 0 0 1-.4-1.2V2a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v.333a2 2 0 0 1-.4 1.2L11 9v2.93a2 2 0 0 1-.89 1.664l-3.358 2.238a1 1 0 0 1-.555.168H5.5a.5.5 0 0 1-.5-.5V9ZM2.5 1.5h11a.5.5 0 0 1 .5.5c0 .213.036.452-.1.633L10.25 7.5h-4.5L2.1 2.633C1.964 2.452 2 2.213 2 2a.5.5 0 0 1 .5-.5Zm7 7.5h-3v5.197l2.777-1.851a.5.5 0 0 0 .223-.416V9Z"></path>';
+                                }
+                              }}
+                            >
+                              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" clipRule="evenodd" d="M5 9 .9 3.533a2 2 0 0 1-.4-1.2V2a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v.333a2 2 0 0 1-.4 1.2L11 9v2.93a2 2 0 0 1-.89 1.664l-3.358 2.238a1 1 0 0 1-.555.168H5.5a.5.5 0 0 1-.5-.5V9ZM2.5 1.5h11a.5.5 0 0 1 .5.5c0 .213.036.452-.1.633L10.25 7.5h-4.5L2.1 2.633C1.964 2.452 2 2.213 2 2a.5.5 0 0 1 .5-.5Zm7 7.5h-3v5.197l2.777-1.851a.5.5 0 0 0 .223-.416V9Z"></path>
+                              </svg>
+                            </FilterIcon>
+                          )}
+                          <DataTypeIcon>
+                            {getDataTypeIcon(column.dataType)}
+                          </DataTypeIcon>
+                        </HeaderIcons>
                       </HeaderCellContent>
                     </th>
                   ))}
                 </tr>
                 <SummaryRow>
                   {getReportData.columns.map((column) => {
-                    const analysis = analyzeColumnData(sortedData, column);
+                    const analysis = analyzeColumnData(customerData, column, sortedData);
                     return (
                       <SummaryCell key={`summary-${column.id}`}>
-                        <ChartContainer>
-                          {analysis.type === 'line' && (
-                            <Line
-                              data={analysis.chartData}
-                              options={getChartOptions('line')}
-                            />
-                          )}
-                          {analysis.type === 'bar' && (
-                            <Bar
-                              data={analysis.chartData}
-                              options={getChartOptions('bar')}
-                            />
-                          )}
-                          {analysis.type === 'horizontalBar' && (
-                            <Bar
-                              data={analysis.chartData}
-                              options={getChartOptions('horizontalBar')}
-                            />
-                          )}
-                        </ChartContainer>
-                        <SummaryText>{analysis.summary}</SummaryText>
+                        <SummaryCellContent>
+                          <ChartContainer onMouseLeave={hideAllTooltips} chartType={analysis.type}>
+                            {analysis.type === 'line' && (
+                              <Line
+                                data={analysis.chartData}
+                                options={getChartOptions('line', null, column.id, columnFilters[column.id], column)}
+                              />
+                            )}
+                            {analysis.type === 'bar' && (
+                              <Bar
+                                data={analysis.chartData}
+                                options={getChartOptions('bar', null, column.id, columnFilters[column.id], column)}
+                              />
+                            )}
+                            {analysis.type === 'category' && (
+                              <CategoryChart
+                                data={analysis.rawData}
+                                totalResults={customerData.length}
+                                onCategoryClick={(value) => toggleFilter(column.id, value)}
+                                selectedCategory={columnFilters[column.id]}
+                              />
+                            )}
+                          </ChartContainer>
+                          <SummaryText>
+                            <SummaryTextLeft>{analysis.summary}</SummaryTextLeft>
+                            <SummaryTextRight>{analysis.medianSummary || ''}</SummaryTextRight>
+                          </SummaryText>
+                        </SummaryCellContent>
                       </SummaryCell>
                     );
                   })}
@@ -1264,6 +3058,12 @@ const ReportDetail = () => {
           </Pagination>
         </ResultsSection>
       </ReportDetailContainer>
+      
+      <ShareModal 
+        isOpen={isShareModalOpen} 
+        onClose={() => setIsShareModalOpen(false)}
+        title={getReportData.title}
+      />
     </Container>
   );
 };
