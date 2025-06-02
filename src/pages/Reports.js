@@ -54,6 +54,29 @@ const NewButton = styled.button`
   }
 `;
 
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+`;
+
+const ManageGroupsButton = styled.button`
+  background-color: white;
+  color: #424770;
+  border: 1px solid #e6ebf1;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  
+  &:hover {
+    background-color: #f7fafc;
+  }
+`;
+
 const SectionTitleRow = styled.div`
   display: flex;
   justify-content: space-between;
@@ -709,14 +732,18 @@ const Reports = () => {
       transition={{ duration: 0.3 }}
     >
       <HeaderRow>
-        <PageTitle>Reports</PageTitle>
-        <NewButton>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 5V19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M5 12H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          New
-        </NewButton>
+        <PageTitle>Data studio</PageTitle>
+        <ButtonGroup>
+          <NewButton>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" clipRule="evenodd" d="M4.67 1.25A2.33 2.33 0 0 0 2.44 2.9L.179 10.302A4.097 4.097 0 0 0 0 11.5a3.5 3.5 0 1 0 7 0V9.394C7.47 9.093 7.786 9 8 9c.214 0 .53.093 1 .394V11.5a3.5 3.5 0 1 0 7 0 4.1 4.1 0 0 0-.179-1.197L13.56 2.899A2.33 2.33 0 0 0 9 3.58v.581A3.127 3.127 0 0 0 8 4c-.348 0-.683.055-1 .161v-.58A2.33 2.33 0 0 0 4.67 1.25Zm.83 7.377V3.58a.83.83 0 0 0-1.625-.242l-1.478 4.84A3.497 3.497 0 0 1 3.5 8c.744 0 1.433.232 2 .627Zm-4 2.873a2 2 0 1 0 4 0 2 2 0 0 0-4 0Zm11 2a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm0-5.5c.386 0 .757.062 1.103.177l-1.479-4.84a.83.83 0 0 0-1.624.243v5.047a3.484 3.484 0 0 1 2-.627ZM7 5.838v1.868c.33-.131.664-.206 1-.206.336 0 .67.075 1 .206V5.838A1.615 1.615 0 0 0 8 5.5c-.358 0-.692.106-1 .338Z" fill="white"/>
+            </svg>
+            Open explorer
+          </NewButton>
+          <ManageGroupsButton>
+            Manage groups
+          </ManageGroupsButton>
+        </ButtonGroup>
       </HeaderRow>
       
       <SectionTitleRow>
@@ -745,7 +772,7 @@ const Reports = () => {
       {expandedSections.trending && (
         <TrendingGrid>
           {trendingReports.map(report => (
-            <TrendingCard key={report.id} onClick={() => navigate(`/reports/${report.id}`)}>
+            <TrendingCard key={report.id} onClick={() => navigate(`/data-studio/${report.id}`)}>
               <ExploreAction className="explore-action">
                 Explore
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -822,7 +849,7 @@ const Reports = () => {
               return (
                 <tr 
                   key={report.id} 
-                  onClick={() => navigate(`/reports/${report.id}`)}
+                  onClick={() => navigate(`/data-studio/${report.id}`)}
                 >
                   <PinColumn onClick={(e) => e.stopPropagation()}>
                     <PinButton 
@@ -961,7 +988,7 @@ const Reports = () => {
               {currentReports.map((report, index) => (
                 <tr 
                   key={report.id} 
-                  onClick={() => navigate(`/reports/${report.id}`)}
+                  onClick={() => navigate(`/data-studio/${report.id}`)}
                 >
                   <PinColumn onClick={(e) => e.stopPropagation()}>
                     <PinButton 

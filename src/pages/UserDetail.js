@@ -612,8 +612,8 @@ const UserDetail = () => {
       <UserDetailContainer>
         <BreadcrumbNav>
           <Breadcrumbs>
-            <BreadcrumbLink to="/reports">Reports</BreadcrumbLink>
-            <BreadcrumbLink to={`/reports/${reportId}`}>{reportTitle}</BreadcrumbLink>
+            <BreadcrumbLink to="/data-studio">Data studio</BreadcrumbLink>
+            <BreadcrumbLink to={`/data-studio/${reportId}`}>{reportTitle}</BreadcrumbLink>
           </Breadcrumbs>
         </BreadcrumbNav>
         

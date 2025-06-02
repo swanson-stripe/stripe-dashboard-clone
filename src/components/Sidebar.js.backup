@@ -81,21 +81,25 @@ const NavItem = styled(NavLink)`
 `;
 
 const NavItemWithSubmenu = styled.div`
-  position: relative;
-  width: 38px;
-  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${props => props.className && props.className.includes('active') ? '#635bff' : '#6b7c93'};
-  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  color: #697386; /* Medium gray */
+  margin: 2px 0;
   border-radius: 6px;
-  transition: all 0.2s ease;
-  margin-bottom: 4px;
+  position: relative;
+  cursor: pointer;
+  
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
   
   &:hover {
     background-color: rgba(0, 0, 0, 0.04);
-    color: #4f5e7b;
     
     .submenu {
       display: block;
@@ -103,13 +107,8 @@ const NavItemWithSubmenu = styled.div`
   }
   
   &.active {
-    color: #635bff;
-    background-color: rgba(103, 114, 229, 0.1);
-  }
-  
-  svg {
-    width: 16px;
-    height: 16px;
+    color: #635bff; /* Purple */
+    background-color: rgba(99, 91, 255, 0.08);
   }
 `;
 
@@ -181,7 +180,10 @@ const Sidebar = () => {
   const [activeSubmenu, setActiveSubmenu] = useState(null);
   
   // Check if a specific section is active based on the current path
-  const isDataStudioActive = location.pathname.includes("/data-studio");
+  const isReportingActive = location.pathname.includes('/reporting') || 
+                           location.pathname.includes('/metrics') || 
+                           location.pathname.includes('/reports') || 
+                           location.pathname.includes('/explorer');
   
   const isBillingActive = location.pathname.includes('/billing');
   
@@ -224,15 +226,6 @@ const Sidebar = () => {
         <NavItem to="/products" data-tooltip="Product catalog">
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
             <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M7.973 0a2 2 0 0 0-.894.211L1.607 2.947A2 2 0 0 0 .5 4.737v6.568a2 2 0 0 0 1.052 1.761l4.782 2.575A3 3 0 0 0 7.757 16h.488a3 3 0 0 0 1.422-.359l4.781-2.575a2 2 0 0 0 1.052-1.76v-6.57a2 2 0 0 0-1.105-1.789L8.922.211A2 2 0 0 0 8.03 0h-.056ZM14 11.306V5.62L8.75 8.448v5.964c.07-.025.14-.056.206-.091l4.781-2.575a.5.5 0 0 0 .263-.44ZM8.252 1.553l5.257 2.629-2.06 1.109-5.38-2.898 1.68-.84a.5.5 0 0 1 .224-.053h.056a.5.5 0 0 1 .223.053ZM4.756 3.05 2.491 4.182 8 7.148l2.184-1.176L4.756 3.05ZM7.25 8.448 2 5.622v5.683a.5.5 0 0 0 .263.44l4.782 2.576c.066.035.134.066.204.09V8.449Z"></path>
-          </svg>
-        </NavItem>
-        
-        <NavItem to="/data-studio" data-tooltip="Data studio" className={isDataStudioActive ? "active" : ""}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2.00488 12.1025C2.05278 12.573 2.42703 12.9472 2.89746 12.9951L3 13H13L13.1025 12.9951C13.573 12.9472 13.9472 12.573 13.9951 12.1025L14 12V4C14 3.48232 13.6067 3.05621 13.1025 3.00488L13 3V1.5C14.3807 1.5 15.5 2.61929 15.5 4V12C15.5 13.3807 14.3807 14.5 13 14.5H3C1.61929 14.5 0.5 13.3807 0.5 12V4C0.5 2.61929 1.61929 1.5 3 1.5V3L2.89746 3.00488C2.39333 3.05621 2 3.48232 2 4V12L2.00488 12.1025ZM13 1.5V3H3V1.5H13Z" fill="currentColor"/>
-            <path d="M15 5.5V7H1V5.5H15Z" fill="currentColor"/>
-            <path d="M8.75 14L7.25 14L7.25 2L8.75 2L8.75 14Z" fill="currentColor"/>
-            <path d="M15 9V10.5H1V9H15Z" fill="currentColor"/>
           </svg>
         </NavItem>
       </NavigationSection>
@@ -295,6 +288,22 @@ const Sidebar = () => {
           </Submenu>
         </NavItemWithSubmenu>
         
+        <NavItemWithSubmenu 
+          className={isReportingActive ? 'active' : ''}
+        >
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M14 1.875a.875.875 0 0 0-1.75 0v8.75a.875.875 0 0 0 1.75 0v-8.75Z"></path>
+            <path fill="currentColor" d="M2.6 1.875a.8.8 0 1 0-1.6 0V13.2A1.8 1.8 0 0 0 2.8 15h11.827a.8.8 0 0 0 0-1.6H2.8a.2.2 0 0 1-.2-.2V1.875Z"></path>
+            <path fill="currentColor" d="M9.125 3.5c.483 0 .875.392.875.875v6.25a.875.875 0 0 1-1.75 0v-6.25c0-.483.392-.875.875-.875ZM6 6.875a.875.875 0 1 0-1.75 0v3.75a.875.875 0 0 0 1.75 0v-3.75Z"></path>
+          </svg>
+          <SubmenuHoverArea />
+          <Submenu className="submenu">
+            <SubmenuTitle>Reporting</SubmenuTitle>
+            <SubmenuItem to="/reports">Reports</SubmenuItem>
+            <SubmenuItem to="/metrics">Metrics</SubmenuItem>
+            <SubmenuItem to="/explorer">Explorer</SubmenuItem>
+          </Submenu>
+        </NavItemWithSubmenu>
         
         <NavItem to="/more" data-tooltip="More">
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">

@@ -156,22 +156,22 @@ const ReportingControls = ({
   const [chartPopoverOpen, setChartPopoverOpen] = useState(false);
   
   // State for pending chart settings (for cancel/apply functionality)
-  const [pendingChartSettings, setPendingChartSettings] = useState({
-    type: null,
-    xAxis: null,
-    yAxis: null
-  });
+  const [pendingChartSettings, setPendingChartSettings] = useState(() => ({
+    type: chartSettings?.type || null,
+    xAxis: chartSettings?.xAxis || null,
+    yAxis: chartSettings?.yAxis || null
+  }));
   
-  // Initialize pending settings when popover opens
+  // Keep pending settings in sync with actual chart settings
   useEffect(() => {
-    if (chartPopoverOpen && chartSettings) {
+    if (chartSettings) {
       setPendingChartSettings({
         type: chartSettings.type,
         xAxis: chartSettings.xAxis,
         yAxis: chartSettings.yAxis
       });
     }
-  }, [chartPopoverOpen, chartSettings]);
+  }, [chartSettings]);
   
   // Refs for detecting clicks outside popovers
   const periodRef = useRef(null);
@@ -472,7 +472,7 @@ const ReportingControls = ({
                     color: '#424770'
                   }}
                 >
-                  {availableColumns.filter(col => col.dataType === 'number' || col.isCurrency || col.isTrend).map(column => (
+                  {availableColumns.filter(col => col.dataType === 'number' || col.isCurrency || col.isTrend || col.isPercentage).map(column => (
                     <option key={column.id} value={column.id}>{column.label}</option>
                   ))}
                 </select>

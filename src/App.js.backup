@@ -72,9 +72,7 @@ const DocumentTitle = () => {
 
 function App() {
   const location = useLocation();
-  const metricEditorRoute = useMatch("/metrics/:metricId/edit");
-  const reportEditorRoute = useMatch("/data-studio/:reportId/edit");
-  const isEditorRoute = metricEditorRoute || reportEditorRoute;
+  const isEditorRoute = useMatch('/metrics/:metricId/edit');
 
   return (
     <TooltipProvider>
@@ -99,9 +97,8 @@ function App() {
                   <Route path="/data" element={<Data />} />
                   
                   {/* Reports */}
-                  <Route path="/data-studio" element={<Reports />} />
-                  <Route path="/data-studio/:reportId" element={<ReportDetail />} />
-                  <Route path="/data-studio/:reportId/edit" element={<MetricEditor />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/reports/:reportId" element={<ReportDetail />} />
                   <Route path="/users/:userId/:reportId" element={<UserDetail />} />
                   
                   {/* Main Menu */}
