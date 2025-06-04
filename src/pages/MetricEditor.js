@@ -1471,7 +1471,7 @@ ORDER BY 1 DESC;`;
                 <SectionContent className={moreDatasetsSectionExpanded ? '' : 'collapsed'}>
                   {getMoreDatasets().map(([key, dataset]) => (
                     <DatasetItem key={key}>
-                      <DatasetHeader onClick={() => toggleDatasetSelection(key)}>
+                      <DatasetHeader onClick={() => toggleDatasetExpanded(key)}>
                         <DatasetName>{dataset.name}</DatasetName>
                         <ExpandIcon 
                           className={expandedDatasets[key] ? 'expanded' : ''}
@@ -1485,8 +1485,8 @@ ORDER BY 1 DESC;`;
                           </svg>
                         </ExpandIcon>
                       </DatasetHeader>
-                      <DatasetMeta onClick={() => toggleDatasetSelection(key)}>{getColumnCountText(key, dataset)}</DatasetMeta>
-                      <DatasetTags onClick={() => toggleDatasetSelection(key)}>
+                      <DatasetMeta>{getColumnCountText(key, dataset)}</DatasetMeta>
+                      <DatasetTags>
                         {dataset.keyEntities.slice(0, 2).map(entity => (
                           <DatasetTag key={entity}>{entity}</DatasetTag>
                         ))}
