@@ -1,15 +1,157 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData';
+
+// Dataset definitions based on the attached image
+const DATASETS = {
+  'payments-general': {
+    name: 'Payments (General)',
+    keyEntities: ['charge_id', 'amount', 'status', 'payment_method', 'currency', 'created_at', 'customer_id'],
+    derivedFields: ['net_revenue', 'success_rate', 'retry_outcome'],
+    columnCount: 10
+  },
+  'customers': {
+    name: 'Customers',
+    keyEntities: ['customer_id', 'email', 'created_at', 'metadata', 'default_payment_method', 'last_seen'],
+    derivedFields: ['LTV', 'first_payment_date', 'churn_flag', 'MRR (if applicable)'],
+    columnCount: 10
+  },
+  'payments-refunds-disputes': {
+    name: 'Payments (Refunds & Disputes)',
+    keyEntities: ['refund_id', 'dispute_id', 'status', 'reason', 'amount', 'charge_id'],
+    derivedFields: ['refund_rate', 'dispute_rate', 'recovery_rate'],
+    columnCount: 9
+  },
+  'orders-line-items': {
+    name: 'Orders & Line Items',
+    keyEntities: ['order_id', 'product_id', 'quantity', 'subtotal', 'tax', 'total', 'customer_id'],
+    derivedFields: ['AOV (average_order_value)', 'SKU_level_revenue'],
+    columnCount: 9
+  },
+  'revenue-summary': {
+    name: 'Revenue Summary',
+    keyEntities: ['payments', 'subscriptions', 'adjustments'],
+    derivedFields: ['gross_revenue', 'net_revenue'],
+    columnCount: 5
+  },
+  'mrr-customer-revenue': {
+    name: 'MRR & Customer Revenue',
+    keyEntities: ['subscription', 'invoice', 'product'],
+    derivedFields: ['MRR', 'churned_MRR', 'upgrades_downgrades'],
+    columnCount: 6
+  },
+  'invoices': {
+    name: 'Invoices',
+    keyEntities: ['invoice_id', 'due_date', 'paid', 'forgiven', 'subscription_id'],
+    derivedFields: ['invoice_aging', 'collection_rate', 'average_invoice_size'],
+    columnCount: 8
+  },
+  'products-plans': {
+    name: 'Products & Plans',
+    keyEntities: ['product_id', 'plan_id', 'amount', 'interval', 'tiers', 'metadata'],
+    derivedFields: ['catalog_size', 'usage_type'],
+    columnCount: 8
+  },
+  'payouts': {
+    name: 'Payouts',
+    keyEntities: ['payout_id', 'amount', 'method', 'status', 'arrival_date'],
+    derivedFields: ['time_to_settle', 'payout_frequency'],
+    columnCount: 7
+  },
+  'connected-accounts': {
+    name: 'Connected Accounts',
+    keyEntities: ['account_id', 'type', 'capabilities', 'charges_enabled', 'payouts_enabled'],
+    derivedFields: ['onboarding_rate', 'active_accounts'],
+    columnCount: 7
+  },
+  'transfers-payouts': {
+    name: 'Transfers & Payouts',
+    keyEntities: ['transfer_id', 'destination', 'amount', 'created_at', 'associated_charges'],
+    derivedFields: ['transfer_margin', 'time_to_payout'],
+    columnCount: 7
+  },
+  'fraud-signals-scores': {
+    name: 'Fraud Signals & Scores',
+    keyEntities: ['risk_level', 'fraud_score', 'rule_triggered', 'charge_id'],
+    derivedFields: ['avg_score_by_country', 'rule_performance'],
+    columnCount: 6
+  },
+  'rule-outcomes': {
+    name: 'Rule Outcomes',
+    keyEntities: ['rule_id', 'action_taken', 'false_positive', 'true_positive'],
+    derivedFields: ['block_rate', 'rule_effectiveness'],
+    columnCount: 6
+  },
+  'in-person-payments': {
+    name: 'In-Person Payments',
+    keyEntities: ['terminal_reader_id', 'location', 'payment_id', 'device_type'],
+    derivedFields: ['in_person_revenue_share', 'location_performance'],
+    columnCount: 6
+  },
+  'subscription-lifecycle': {
+    name: 'Subscription Lifecycle',
+    keyEntities: ['subscription_id', 'status', 'start', 'end', 'cancellation_reason'],
+    derivedFields: ['subscription_age', 'lifecycle_stage', 'churn_trigger'],
+    columnCount: 8
+  },
+  'subscription-events': {
+    name: 'Subscription Events',
+    keyEntities: ['subscription_schedule', 'subscription_item', 'phase'],
+    derivedFields: ['plan_change_rate', 'average_plan_value_change'],
+    columnCount: 6
+  },
+  'hybrid-billing-summary': {
+    name: 'Hybrid Billing Summary',
+    keyEntities: ['usage_record', 'invoice_line_item', 'subscription_item', 'plan'],
+    derivedFields: ['MRR', 'usage_overage', 'effective_ARPU', 'blended_churn'],
+    columnCount: 8
+  }
+};
+
+// Column mapping - maps dataset column names to display names and data keys
+const COLUMN_MAPPING = {
+  // Payments (General) columns
+  'charge_id': { display: 'Charge ID', key: 'charge_id' },
+  'amount': { display: 'Amount', key: 'amount' },
+  'status': { display: 'Status', key: 'status' },
+  'payment_method': { display: 'Payment Method', key: 'payment_method' },
+  'currency': { display: 'Currency', key: 'currency' },
+  'created_at': { display: 'Date', key: 'date' },
+  'customer_id': { display: 'Customer ID', key: 'customer_id' },
+  'net_revenue': { display: 'Net Revenue', key: 'net_revenue' },
+  'success_rate': { display: 'Success Rate', key: 'success_rate' },
+  'retry_outcome': { display: 'Retry Outcome', key: 'retry_outcome' },
+  
+  // Customers columns
+  'email': { display: 'Email', key: 'email' },
+  'metadata': { display: 'Metadata', key: 'metadata' },
+  'default_payment_method': { display: 'Default Payment', key: 'default_payment_method' },
+  'last_seen': { display: 'Last Seen', key: 'last_seen' },
+  'LTV': { display: 'LTV', key: 'ltv' },
+  'first_payment_date': { display: 'First Payment', key: 'first_payment_date' },
+  'churn_flag': { display: 'Churn Flag', key: 'churn_flag' },
+  'MRR (if applicable)': { display: 'MRR', key: 'mrr' },
+  
+  // Other dataset columns
+  'refund_id': { display: 'Refund ID', key: 'refund_id' },
+  'dispute_id': { display: 'Dispute ID', key: 'dispute_id' },
+  'reason': { display: 'Reason', key: 'reason' },
+  'order_id': { display: 'Order ID', key: 'order_id' },
+  'product_id': { display: 'Product ID', key: 'product_id' },
+  'quantity': { display: 'Quantity', key: 'quantity' },
+  'subtotal': { display: 'Subtotal', key: 'subtotal' },
+  'tax': { display: 'Tax', key: 'tax' },
+  'total': { display: 'Total', key: 'total' }
+};
 
 const EditorContainer = styled.div`
   display: flex;
   height: 100vh;
   width: 100vw;
   background-color: white;
-  background-image: url("/dot-grid-bg.svg");
-  background-size: 20px 20px;
+  position: relative;
+  overflow: hidden;
 `;
 
 const TopNavBar = styled.div`
@@ -21,7 +163,7 @@ const TopNavBar = styled.div`
   background-color: white;
   border-bottom: 1px solid var(--border-color);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   padding: 0 24px;
   z-index: 1000;
@@ -32,41 +174,19 @@ const NavControls = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  position: ${props => props.side === 'right' ? 'absolute' : 'static'};
-  right: ${props => props.side === 'right' ? '24px' : 'auto'};
-  left: ${props => props.side === 'left' ? '24px' : 'auto'};
 `;
 
-const ViewToggle = styled.div`
-  display: flex;
-  background-color: #f0f1f5;
-  border-radius: 6px;
-  padding: 4px;
+const TitleSeparator = styled.div`
+  width: 1px;
+  height: 24px;
+  background-color: #e5e7eb;
+  margin: 0 16px;
 `;
 
-const ToggleButton = styled.button`
-  background-color: ${props => props.active ? 'white' : 'transparent'};
-  color: ${props => props.active ? 'var(--primary-color)' : 'var(--text-secondary)'};
-  border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-size: 14px;
+const PageTitle = styled.div`
+  font-size: 16px;
   font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: ${props => props.active ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'};
-  transition: all 0.2s ease;
-  
-  &:hover {
-    color: ${props => props.active ? 'var(--primary-color)' : 'var(--text-color)'};
-  }
-  
-  svg {
-    width: 16px;
-    height: 16px;
-  }
+  color: #374151;
 `;
 
 const SaveButton = styled.button`
@@ -108,6 +228,58 @@ const CloseNavButton = styled.button`
   }
 `;
 
+const CanvasContainer = styled.div`
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: white;
+  background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+  background-size: ${props => 20 * props.zoom}px ${props => 20 * props.zoom}px;
+  background-position: ${props => props.panX}px ${props => props.panY}px;
+  cursor: ${props => props.isDragging ? 'grabbing' : 'grab'};
+`;
+
+const CanvasContent = styled.div`
+  position: absolute;
+  transform: translate(${props => props.panX}px, ${props => props.panY}px) scale(${props => props.zoom});
+  transform-origin: 0 0;
+  margin-top: 64px;
+  padding: 32px;
+  min-width: 100vw;
+  min-height: calc(100vh - 64px);
+  pointer-events: ${props => props.isDragging ? 'none' : 'auto'};
+`;
+
+const ZoomControls = styled.div`
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ZoomButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  
+  &:hover {
+    background-color: #f5f7fa;
+  }
+`;
+
 const EditorPanel = styled.div`
   margin-top: 64px;
   overflow-y: auto;
@@ -128,138 +300,177 @@ const ModuleContainer = styled.div`
   max-width: 320px;
 `;
 
-const AIPromptContainer = styled(ModuleContainer)`
-  margin-bottom: 16px;
+const DatasetModule = styled(ModuleContainer)`
+  display: flex;
+  flex-direction: column;
   border-radius: 12px;
   box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
-  overflow: visible;
   border: 1px solid rgba(192, 200, 210, 0.2);
+  height: 100%;
+  max-height: calc(100vh - 160px);
 `;
 
-const AIPromptLabel = styled.div`
+const DatasetSection = styled.div`
+  border-bottom: 1px solid var(--border-color);
+  
+  &:last-child {
+    border-bottom: none;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+`;
+
+const SectionHeader = styled.div`
+  padding: 16px;
+  background-color: #f9fafc;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  
+  &.expandable {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    
+    &:hover {
+      background-color: #f1f3f4;
+    }
+  }
+`;
+
+const SectionContent = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  
+  &.collapsed {
+    display: none;
+  }
+`;
+
+const DatasetItem = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  
+  &:hover {
+    background-color: #f9fafc;
+  }
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const DatasetHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+`;
+
+const DatasetName = styled.div`
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-color);
+  flex: 1;
+`;
+
+const DatasetMeta = styled.div`
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+`;
+
+const DatasetTags = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
+
+const DatasetTag = styled.span`
+  background-color: #f1f3f4;
+  color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+`;
+
+const ExpandIcon = styled.span`
+  font-size: 16px;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+  
+  &.expanded {
+    transform: rotate(90deg);
+  }
+`;
+
+const ColumnList = styled.div`
+  margin: 8px 0 0 28px;
+  padding: 8px 0;
+  border-top: 1px solid #f0f0f0;
+`;
+
+const ColumnItem = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-color);
-  padding: 16px 16px 0;
-`;
-
-const AIPromptBox = styled.div`
-  border: 1px solid rgba(192, 200, 210, 0.2);
-  border-radius: 12px;
-  overflow: visible;
-  background-color: #F5F6F8;
-  margin: 0 16px 16px;
-  position: relative;
-`;
-
-const AIPromptInput = styled.textarea`
-  width: 100%;
-  padding: 9px 16px;
-  border: none;
-  resize: none;
-  font-size: 14px;
-  height: 38px;
-  min-height: 38px;
-  line-height: 20px;
-  font-family: inherit;
-  background: transparent;
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-  
-  &:focus {
-    outline: none;
-  }
-  
-  &::placeholder {
-    color: #6E7583;
-  }
-`;
-
-const ConfigModule = styled(ModuleContainer)`
-  display: flex;
-  flex-direction: column;
-  border-radius: 12px;
-  box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
-  border: 1px solid rgba(192, 200, 210, 0.2);
-`;
-
-const TabContent = styled.div`
-  padding: 16px;
-  flex: 1;
-  overflow-y: auto;
-`;
-
-const EditorForm = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const Label = styled.label`
-  font-size: 14px;
+  padding: 4px 0;
+  font-size: 12px;
   color: var(--text-secondary);
 `;
 
-const Select = styled.select`
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 14px;
-  background-color: white;
+const ColumnCheckbox = styled.input`
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+`;
+
+const BulkActionLink = styled.button`
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 8px;
   
-  &:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 1px var(--primary-color);
+  &:hover {
+    color: #574ae2;
   }
 `;
 
-const PreviewContainer = styled.div`
-  flex: 1;
-  margin-top: 64px;
-  padding: 32px;
-  height: calc(100vh - 64px);
-  overflow-y: auto;
-  background-color: white;
-  background-image: url("/dot-grid-bg.svg");
-  background-size: 20px 20px;
-`;
-
 const PreviewCard = styled.div`
-  background: white;
+  background: transparent;
   border-radius: 8px;
-  padding: 24px;
-  border: 1px solid rgba(192, 200, 210, 0.2);
-  max-width: 1000px;
-  flex: 1;
+  padding: 0;
+  width: fit-content;
+  min-width: 400px;
 `;
 
 const TableContainer = styled.div`
-  width: 100%;
-  overflow-x: auto;
-  margin-top: 24px;
-  border: 1px solid rgba(192, 200, 210, 0.2);
+  width: fit-content;
+  overflow: visible;
   border-radius: 8px;
+  background: white;
+  box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
+  border: 1px solid rgba(192, 200, 210, 0.2);
   
   table {
-    width: 100%;
+    width: auto;
     border-collapse: collapse;
     
     th, td {
-      padding: 12px;
+      padding: 12px 16px;
       text-align: left;
       border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+      min-width: fit-content;
     }
     
     th {
@@ -275,120 +486,11 @@ const TableContainer = styled.div`
   }
 `;
 
-const Pagination = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  flex-wrap: wrap;
-  gap: 16px;
-`;
-
-const PageInfo = styled.div`
-  font-size: 14px;
-  color: var(--text-secondary);
-`;
-
-const PageNav = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const PageButton = styled.button`
-  padding: 6px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: ${props => props.active ? 'var(--primary-color)' : 'white'};
-  color: ${props => props.active ? 'white' : 'var(--text-secondary)'};
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  opacity: ${props => props.disabled ? 0.5 : 1};
-  font-size: 14px;
-  
-  &:hover:not(:disabled) {
-    background: ${props => props.active ? 'var(--primary-color)' : '#f5f7fa'};
-  }
-`;
-
 const TransactionsSection = styled.div`
-  margin-top: 32px;
+  margin-top: 0;
 `;
 
-const TransactionsHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 18px;
-  font-weight: 500;
-  margin: 0;
-`;
-
-const CodeViewContainer = styled.div`
-  flex: 1;
-  margin-top: 64px;
-  padding: 32px;
-  height: calc(100vh - 64px);
-  overflow-y: auto;
-  background-color: white;
-  background-image: url("/dot-grid-bg.svg");
-  background-size: 20px 20px;
-`;
-
-const SqlQueryContainer = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  padding: 24px;
-  border: 1px solid rgba(192, 200, 210, 0.2);
-  box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
-  max-width: 1000px;
-  margin-bottom: 24px;
-`;
-
-const SqlEditor = styled.textarea`
-  width: 100%;
-  min-height: 200px;
-  padding: 16px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #2a2f45;
-  background-color: #f5f7fa;
-  border: none;
-  border-radius: 6px;
-  resize: vertical;
-  outline: none;
-  
-  &:focus {
-    box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.2);
-  }
-`;
-
-const ResultsHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  
-  h3 {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    margin: 0;
-  }
-`;
-
-const QueryResultsContainer = styled.div`
-  background-color: white;
-  border-radius: 8px;
-  padding: 24px;
-  border: 1px solid rgba(192, 200, 210, 0.2);
-  box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
-  max-width: 1000px;
-`;
-
+// Schema module components for code view
 const SchemaModuleContainer = styled(ModuleContainer)`
   border-radius: 12px;
   box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
@@ -494,27 +596,6 @@ const ExpanderIcon = styled.span`
   flex-shrink: 0;
 `;
 
-const ColumnList = styled.div`
-  margin-left: 36px;
-`;
-
-const ColumnItem = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
-  
-  span.column-type {
-    margin-left: auto;
-    color: var(--text-tertiary);
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-`;
-
 const ShowAllTablesButton = styled.button`
   display: flex;
   justify-content: space-between;
@@ -532,6 +613,53 @@ const ShowAllTablesButton = styled.button`
   }
 `;
 
+const CodeViewContainer = styled.div`
+  flex: 1;
+  margin-top: 64px;
+  padding: 32px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  background-color: white;
+  background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+  background-size: 20px 20px;
+`;
+
+const SqlQueryContainer = styled.div`
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
+  max-width: 1000px;
+  margin-bottom: 24px;
+`;
+
+const SqlEditor = styled.textarea`
+  width: 100%;
+  min-height: 200px;
+  padding: 16px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #2a2f45;
+  background-color: #f5f7fa;
+  border: none;
+  border-radius: 6px;
+  resize: vertical;
+  outline: none;
+  
+  &:focus {
+    box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.2);
+  }
+`;
+
+const QueryResultsContainer = styled.div`
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
+  max-width: 1000px;
+`;
+
 const MetricEditor = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -543,16 +671,27 @@ const MetricEditor = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sqlQuery, setSqlQuery] = useState('');
   
-  // Form data state
-  const [formData, setFormData] = useState({
-    dataSource: 'stripe_payments',
-    unit: 'currency',
-    aggregation: 'sum',
-    format: 'currency',
-    timeRange: '30d'
+  // Canvas pan/zoom state
+  const [zoom, setZoom] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const canvasRef = useRef(null);
+  
+  // Current table columns for matching
+  const currentTableColumns = ['date', 'amount', 'customer', 'status'];
+  
+  // Dataset state - only include datasets that have default selected columns
+  const [selectedDatasets, setSelectedDatasets] = useState(['payments-general', 'customers']);
+  const [expandedDatasets, setExpandedDatasets] = useState({});
+  const [selectedColumns, setSelectedColumns] = useState({
+    'payments-general': ['created_at', 'amount', 'customer_id', 'status'],
+    'customers': ['customer_id']
   });
+  const [moreDatasetsSectionExpanded, setMoreDatasetsSectionExpanded] = useState(false);
 
-  // Schema selection state
+  // Schema selection state (keeping for code view)
   const [schemaSelection, setSchemaSelection] = useState({
     subscription_item_change_events: {
       expanded: true,
@@ -576,18 +715,383 @@ const MetricEditor = () => {
     }
   });
 
-  // Sample transaction data
+  // Canvas pan/zoom functions
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    
+    if (e.metaKey || e.ctrlKey) {
+      // Zoom
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      setZoom(prev => Math.min(Math.max(prev * zoomFactor, 0.25), 4));
+    } else {
+      // Pan
+      setPanX(prev => prev - e.deltaX);
+      setPanY(prev => prev - e.deltaY);
+    }
+  }, []);
+
+  const handleMouseDown = useCallback((e) => {
+    if (e.target === canvasRef.current || canvasRef.current?.contains(e.target)) {
+      setIsDragging(true);
+      setLastMousePos({ x: e.clientX, y: e.clientY });
+    }
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (isDragging) {
+      const deltaX = e.clientX - lastMousePos.x;
+      const deltaY = e.clientY - lastMousePos.y;
+      setPanX(prev => prev + deltaX);
+      setPanY(prev => prev + deltaY);
+      setLastMousePos({ x: e.clientX, y: e.clientY });
+    }
+  }, [isDragging, lastMousePos]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const resetZoom = () => {
+    setZoom(1);
+  };
+
+  const resetView = () => {
+    setZoom(1);
+    setPanX(0);
+    setPanY(0);
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '0') {
+        e.preventDefault();
+        resetZoom();
+      } else if (e.shiftKey && e.key === '1') {
+        e.preventDefault();
+        resetView();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Canvas event listeners
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('wheel', handleWheel, { passive: false });
+      window.addEventListener('mousedown', handleMouseDown);
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      
+      return () => {
+        canvas.removeEventListener('wheel', handleWheel);
+        window.removeEventListener('mousedown', handleMouseDown);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [handleWheel, handleMouseDown, handleMouseMove, handleMouseUp]);
+
+  // Function to get all currently selected columns for the table
+  const getCurrentTableColumns = () => {
+    const columns = [];
+    
+    selectedDatasets.forEach(datasetKey => {
+      const datasetColumns = selectedColumns[datasetKey] || [];
+      datasetColumns.forEach(columnName => {
+        const mapping = COLUMN_MAPPING[columnName];
+        if (mapping) {
+          columns.push({
+            datasetKey,
+            columnName,
+            display: mapping.display,
+            key: mapping.key
+          });
+        }
+      });
+    });
+    
+    return columns;
+  };
+
+  // Function to get cell value for a given column
+  const getCellValue = (transaction, columnKey) => {
+    switch (columnKey) {
+      case 'date':
+        return transaction.date;
+      case 'amount':
+        return transaction.amount;
+      case 'customer_id':
+        return transaction.customer;
+      case 'status':
+        return transaction.status;
+      case 'charge_id':
+        return transaction.id;
+      case 'payment_method':
+        return transaction.payment_method || 'Card';
+      case 'currency':
+        return transaction.currency || 'USD';
+      case 'email':
+        return transaction.email || `${transaction.customer.toLowerCase().replace(/[^a-z]/g, '')}@company.com`;
+      case 'net_revenue':
+        return transaction.net_revenue || transaction.amount;
+      case 'success_rate':
+        return transaction.success_rate || (transaction.status === 'Succeeded' ? '100%' : '0%');
+      case 'ltv':
+        return transaction.ltv || '$12,500';
+      case 'first_payment_date':
+        return transaction.first_payment_date || '2023-08-15';
+      case 'churn_flag':
+        return transaction.churn_flag || 'No';
+      case 'mrr':
+        return transaction.mrr || '$500';
+      default:
+        return '-';
+    }
+  };
+
+  // Get datasets in use vs more datasets - only show datasets with selected columns in first section
+  const getDatasetsInUse = () => {
+    return Object.entries(DATASETS).filter(([key, dataset]) => 
+      selectedDatasets.includes(key) && selectedColumns[key] && selectedColumns[key].length > 0
+    );
+  };
+
+  const getMoreDatasets = () => {
+    const inUseKeys = getDatasetsInUse().map(([key]) => key);
+    return Object.entries(DATASETS).filter(([key]) => !inUseKeys.includes(key));
+  };
+
+  const toggleDatasetSelection = (datasetKey) => {
+    setSelectedDatasets(prev => {
+      if (prev.includes(datasetKey)) {
+        return prev.filter(key => key !== datasetKey);
+      } else {
+        return [...prev, datasetKey];
+      }
+    });
+  };
+
+  const toggleDatasetExpanded = (datasetKey) => {
+    setExpandedDatasets(prev => ({
+      ...prev,
+      [datasetKey]: !prev[datasetKey]
+    }));
+  };
+
+  const toggleColumnSelection = (datasetKey, columnName) => {
+    setSelectedColumns(prev => ({
+      ...prev,
+      [datasetKey]: prev[datasetKey] 
+        ? prev[datasetKey].includes(columnName)
+          ? prev[datasetKey].filter(col => col !== columnName)
+          : [...prev[datasetKey], columnName]
+        : [columnName]
+    }));
+  };
+
+  // Bulk actions
+  const handleBulkAction = (datasetKey, dataset) => {
+    const currentColumns = selectedColumns[datasetKey] || [];
+    const allColumns = [...dataset.keyEntities, ...dataset.derivedFields];
+    
+    if (currentColumns.length === allColumns.length) {
+      // Remove all
+      setSelectedColumns(prev => ({
+        ...prev,
+        [datasetKey]: []
+      }));
+    } else {
+      // Add all
+      setSelectedColumns(prev => ({
+        ...prev,
+        [datasetKey]: allColumns
+      }));
+      
+      // Also add to selected datasets if not already there
+      if (!selectedDatasets.includes(datasetKey)) {
+        setSelectedDatasets(prev => [...prev, datasetKey]);
+      }
+    }
+  };
+
+  const getBulkActionText = (datasetKey, dataset) => {
+    const currentColumns = selectedColumns[datasetKey] || [];
+    const allColumns = [...dataset.keyEntities, ...dataset.derivedFields];
+    
+    if (currentColumns.length === allColumns.length) {
+      return 'Remove all';
+    } else {
+      return 'Add all';
+    }
+  };
+
+  const getColumnCountText = (datasetKey, dataset) => {
+    const currentColumns = selectedColumns[datasetKey] || [];
+    const totalColumns = dataset.columnCount;
+    
+    if (currentColumns.length > 0) {
+      return `${currentColumns.length} of ${totalColumns} columns`;
+    } else {
+      return `${totalColumns} columns`;
+    }
+  };
+
+  // Enhanced sample transaction data with more fields
   const [filteredTransactions] = useState([
-    { id: 1, date: '2024-01-15', amount: '$2,450.00', customer: 'Acme Corp', status: 'Succeeded' },
-    { id: 2, date: '2024-01-14', amount: '$1,200.00', customer: 'TechStart Inc', status: 'Succeeded' },
-    { id: 3, date: '2024-01-14', amount: '$890.00', customer: 'Global Solutions', status: 'Failed' },
-    { id: 4, date: '2024-01-13', amount: '$3,200.00', customer: 'Enterprise Co', status: 'Succeeded' },
-    { id: 5, date: '2024-01-13', amount: '$750.00', customer: 'StartupXYZ', status: 'Refunded' },
-    { id: 6, date: '2024-01-12', amount: '$1,800.00', customer: 'MegaCorp', status: 'Succeeded' },
-    { id: 7, date: '2024-01-12', amount: '$950.00', customer: 'SmallBiz LLC', status: 'Succeeded' },
-    { id: 8, date: '2024-01-11', amount: '$2,100.00', customer: 'TechGiant', status: 'Succeeded' },
-    { id: 9, date: '2024-01-11', amount: '$650.00', customer: 'LocalShop', status: 'Failed' },
-    { id: 10, date: '2024-01-10', amount: '$4,200.00', customer: 'BigClient Inc', status: 'Succeeded' }
+    { 
+      id: 'ch_1234', 
+      date: '2024-01-15', 
+      amount: '$2,450.00', 
+      customer: 'Acme Corp', 
+      status: 'Succeeded',
+      payment_method: 'Card',
+      currency: 'USD',
+      net_revenue: '$2,350.00',
+      success_rate: '100%',
+      ltv: '$15,000',
+      first_payment_date: '2023-08-15',
+      churn_flag: 'No',
+      mrr: '$750'
+    },
+    { 
+      id: 'ch_1235', 
+      date: '2024-01-14', 
+      amount: '$1,200.00', 
+      customer: 'TechStart Inc', 
+      status: 'Succeeded',
+      payment_method: 'ACH',
+      currency: 'USD',
+      net_revenue: '$1,150.00',
+      success_rate: '100%',
+      ltv: '$8,500',
+      first_payment_date: '2023-10-20',
+      churn_flag: 'No',
+      mrr: '$400'
+    },
+    { 
+      id: 'ch_1236', 
+      date: '2024-01-14', 
+      amount: '$890.00', 
+      customer: 'Global Solutions', 
+      status: 'Failed',
+      payment_method: 'Card',
+      currency: 'USD',
+      net_revenue: '$0.00',
+      success_rate: '0%',
+      ltv: '$0',
+      first_payment_date: '2024-01-14',
+      churn_flag: 'Yes',
+      mrr: '$0'
+    },
+    { 
+      id: 'ch_1237', 
+      date: '2024-01-13', 
+      amount: '$3,200.00', 
+      customer: 'Enterprise Co', 
+      status: 'Succeeded',
+      payment_method: 'Wire',
+      currency: 'USD',
+      net_revenue: '$3,100.00',
+      success_rate: '100%',
+      ltv: '$25,000',
+      first_payment_date: '2022-05-10',
+      churn_flag: 'No',
+      mrr: '$1,200'
+    },
+    { 
+      id: 'ch_1238', 
+      date: '2024-01-13', 
+      amount: '$750.00', 
+      customer: 'StartupXYZ', 
+      status: 'Refunded',
+      payment_method: 'Card',
+      currency: 'USD',
+      net_revenue: '$0.00',
+      success_rate: '0%',
+      ltv: '$2,200',
+      first_payment_date: '2023-12-01',
+      churn_flag: 'No',
+      mrr: '$250'
+    },
+    { 
+      id: 'ch_1239', 
+      date: '2024-01-12', 
+      amount: '$1,800.00', 
+      customer: 'MegaCorp', 
+      status: 'Succeeded',
+      payment_method: 'Card',
+      currency: 'USD',
+      net_revenue: '$1,720.00',
+      success_rate: '100%',
+      ltv: '$18,000',
+      first_payment_date: '2021-03-15',
+      churn_flag: 'No',
+      mrr: '$600'
+    },
+    { 
+      id: 'ch_1240', 
+      date: '2024-01-12', 
+      amount: '$950.00', 
+      customer: 'SmallBiz LLC', 
+      status: 'Succeeded',
+      payment_method: 'ACH',
+      currency: 'USD',
+      net_revenue: '$920.00',
+      success_rate: '100%',
+      ltv: '$4,800',
+      first_payment_date: '2023-09-22',
+      churn_flag: 'No',
+      mrr: '$320'
+    },
+    { 
+      id: 'ch_1241', 
+      date: '2024-01-11', 
+      amount: '$2,100.00', 
+      customer: 'TechGiant', 
+      status: 'Succeeded',
+      payment_method: 'Card',
+      currency: 'USD',
+      net_revenue: '$2,020.00',
+      success_rate: '100%',
+      ltv: '$22,000',
+      first_payment_date: '2020-11-08',
+      churn_flag: 'No',
+      mrr: '$850'
+    },
+    { 
+      id: 'ch_1242', 
+      date: '2024-01-11', 
+      amount: '$650.00', 
+      customer: 'LocalShop', 
+      status: 'Failed',
+      payment_method: 'Card',
+      currency: 'USD',
+      net_revenue: '$0.00',
+      success_rate: '0%',
+      ltv: '$1,200',
+      first_payment_date: '2023-11-30',
+      churn_flag: 'Yes',
+      mrr: '$0'
+    },
+    { 
+      id: 'ch_1243', 
+      date: '2024-01-10', 
+      amount: '$4,200.00', 
+      customer: 'BigClient Inc', 
+      status: 'Succeeded',
+      payment_method: 'Wire',
+      currency: 'USD',
+      net_revenue: '$4,050.00',
+      success_rate: '100%',
+      ltv: '$35,000',
+      first_payment_date: '2019-07-12',
+      churn_flag: 'No',
+      mrr: '$1,500'
+    }
   ]);
 
   // Pagination
@@ -596,14 +1100,6 @@ const MetricEditor = () => {
   const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
   const currentTransactions = filteredTransactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
   const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
 
   const handleCancel = () => {
     navigate(isEditingReport ? `/data-studio/${currentId}` : `/metrics/${currentId}`);
@@ -692,22 +1188,13 @@ const MetricEditor = () => {
     if (totalSelected > 3) groupByClause += ", 4";
     if (totalSelected > 4) groupByClause += ", 5";
     
-    // Get interval based on time range
-    let interval;
-    switch(formData.timeRange) {
-      case '7d': interval = '7 days'; break;
-      case '14d': interval = '14 days'; break;
-      case '30d': interval = '30 days'; break;
-      default: interval = '90 days';
-    }
-    
     return `-- SQL Query for Data Analysis
 SELECT 
 ${columnsStr}
 FROM subscription_item_change_events se
 JOIN customers c ON se.customer_id = c.id
 WHERE 
-  se.event_timestamp >= current_date - interval '${interval}'
+  se.event_timestamp >= current_date - interval '30 days'
 ${groupByClause}
 ORDER BY 1 DESC;`;
   };
@@ -715,7 +1202,7 @@ ORDER BY 1 DESC;`;
   // Update SQL query when schema selection changes
   useEffect(() => {
     setSqlQuery(generateSqlStatement());
-  }, [schemaSelection, formData.timeRange]);
+  }, [schemaSelection]);
 
   // Handle SQL query change
   const handleSqlQueryChange = (e) => {
@@ -725,132 +1212,108 @@ ORDER BY 1 DESC;`;
   return (
     <>
       <TopNavBar>
-        <NavControls side="left">
-          {/* Empty left side for balance */}
-        </NavControls>
-        
-        <ViewToggle>
-          <ToggleButton 
-            active={editorView === 'visual'} 
-            onClick={() => setEditorView('visual')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 5L5 12M5 12L12 19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Visual
-          </ToggleButton>
-          <ToggleButton 
-            active={editorView === 'code'} 
-            onClick={() => setEditorView('code')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 18L22 12L16 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M8 6L2 12L8 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Code
-          </ToggleButton>
-        </ViewToggle>
-        
-        <NavControls side="right">
-          <SaveButton onClick={handleSave}>
-            Save
-          </SaveButton>
+        <NavControls>
           <CloseNavButton onClick={handleCancel}>
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </CloseNavButton>
+          <TitleSeparator />
+          <PageTitle>
+            {currentId === 'new-customers' ? 'Recent Customers' : 'Recent Transactions'}
+          </PageTitle>
+        </NavControls>
+        
+        <NavControls>
+          <SaveButton onClick={handleSave}>
+            Save
+          </SaveButton>
         </NavControls>
       </TopNavBar>
     
       <EditorContainer>
         <EditorPanel>
-          <AIPromptContainer>
-            <AIPromptLabel>
-              Build with Assistant
-            </AIPromptLabel>
-            <AIPromptBox>
-              <AIPromptInput 
-                placeholder="What do you want to do" 
-                value={aiPrompt} 
-                onChange={handleAIPromptChange}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleAIPromptSubmit();
-                  }
-                }}
-              />
-            </AIPromptBox>
-          </AIPromptContainer>
-          
           {editorView === 'visual' ? (
-            <ConfigModule>
-              <TabContent>
-                <EditorForm>
-                  <FormGroup>
-                    <Label htmlFor="dataSource">Data Source</Label>
-                    <Select 
-                      id="dataSource" 
-                      name="dataSource" 
-                      value={formData.dataSource} 
-                      onChange={handleChange}
-                    >
-                      <option value="stripe_payments">Stripe Payments</option>
-                      <option value="stripe_subscriptions">Stripe Subscriptions</option>
-                      <option value="stripe_customers">Stripe Customers</option>
-                      <option value="manual">Manual Data Entry</option>
-                    </Select>
-                  </FormGroup>
-                  
-                  <FormGroup>
-                    <Label htmlFor="unit">Unit</Label>
-                    <Select 
-                      id="unit" 
-                      name="unit" 
-                      value={formData.unit} 
-                      onChange={handleChange}
-                    >
-                      <option value="currency">Currency</option>
-                      <option value="number">Number</option>
-                      <option value="percentage">Percentage</option>
-                    </Select>
-                  </FormGroup>
-                  
-                  <FormGroup>
-                    <Label htmlFor="aggregation">Aggregation</Label>
-                    <Select 
-                      id="aggregation" 
-                      name="aggregation" 
-                      value={formData.aggregation} 
-                      onChange={handleChange}
-                    >
-                      <option value="sum">Sum</option>
-                      <option value="average">Average</option>
-                      <option value="count">Count</option>
-                      <option value="min">Minimum</option>
-                      <option value="max">Maximum</option>
-                    </Select>
-                  </FormGroup>
-                  
-                  <FormGroup>
-                    <Label htmlFor="format">Value Format</Label>
-                    <Select 
-                      id="format" 
-                      name="format" 
-                      value={formData.format} 
-                      onChange={handleChange}
-                    >
-                      <option value="currency">Currency ($)</option>
-                      <option value="number">Number</option>
-                      <option value="percentage">Percentage (%)</option>
-                      <option value="decimal">Decimal (0.00)</option>
-                    </Select>
-                  </FormGroup>
-                </EditorForm>
-              </TabContent>
-            </ConfigModule>
+            <DatasetModule>
+              <DatasetSection>
+                <SectionHeader>Datasets in use</SectionHeader>
+                <SectionContent>
+                  {getDatasetsInUse().map(([key, dataset]) => (
+                    <DatasetItem key={key}>
+                      <DatasetHeader>
+                        <DatasetName>{dataset.name}</DatasetName>
+                        <ExpandIcon 
+                          className={expandedDatasets[key] ? 'expanded' : ''}
+                          onClick={() => toggleDatasetExpanded(key)}
+                        >
+                          ▶
+                        </ExpandIcon>
+                      </DatasetHeader>
+                      <DatasetMeta>{getColumnCountText(key, dataset)}</DatasetMeta>
+                      <DatasetTags>
+                        {dataset.keyEntities.slice(0, 2).map(entity => (
+                          <DatasetTag key={entity}>{entity}</DatasetTag>
+                        ))}
+                        {dataset.derivedFields.length > 0 && (
+                          <DatasetTag>{dataset.derivedFields[0]}</DatasetTag>
+                        )}
+                      </DatasetTags>
+                      
+                      {expandedDatasets[key] && (
+                        <>
+                          <BulkActionLink onClick={() => handleBulkAction(key, dataset)}>
+                            {getBulkActionText(key, dataset)}
+                          </BulkActionLink>
+                          <ColumnList>
+                            {[...dataset.keyEntities, ...dataset.derivedFields].map(column => (
+                              <ColumnItem key={column}>
+                                <ColumnCheckbox 
+                                  type="checkbox"
+                                  checked={selectedColumns[key]?.includes(column) || false}
+                                  onChange={() => toggleColumnSelection(key, column)}
+                                />
+                                {column}
+                              </ColumnItem>
+                            ))}
+                          </ColumnList>
+                        </>
+                      )}
+                    </DatasetItem>
+                  ))}
+                </SectionContent>
+              </DatasetSection>
+              
+              <DatasetSection>
+                <SectionHeader 
+                  className="expandable"
+                  onClick={() => setMoreDatasetsSectionExpanded(!moreDatasetsSectionExpanded)}
+                >
+                  More datasets
+                  <ExpandIcon className={moreDatasetsSectionExpanded ? 'expanded' : ''}>
+                    ▶
+                  </ExpandIcon>
+                </SectionHeader>
+                <SectionContent className={moreDatasetsSectionExpanded ? '' : 'collapsed'}>
+                  {getMoreDatasets().map(([key, dataset]) => (
+                    <DatasetItem key={key} onClick={() => toggleDatasetSelection(key)}>
+                      <DatasetHeader>
+                        <DatasetName>{dataset.name}</DatasetName>
+                      </DatasetHeader>
+                      <DatasetMeta>{getColumnCountText(key, dataset)}</DatasetMeta>
+                      <DatasetTags>
+                        {dataset.keyEntities.slice(0, 2).map(entity => (
+                          <DatasetTag key={entity}>{entity}</DatasetTag>
+                        ))}
+                        {dataset.derivedFields.length > 0 && (
+                          <DatasetTag>{dataset.derivedFields[0]}</DatasetTag>
+                        )}
+                      </DatasetTags>
+                    </DatasetItem>
+                  ))}
+                </SectionContent>
+              </DatasetSection>
+            </DatasetModule>
           ) : (
             <SchemaModuleContainer>
               <SchemaSearchContainer>
@@ -1000,100 +1463,63 @@ ORDER BY 1 DESC;`;
         </EditorPanel>
         
         {editorView === 'visual' ? (
-          <PreviewContainer>
-            <PreviewCard>
-              <TransactionsSection>
-                <TransactionsHeader>
-                  <SectionTitle>
-                    {currentId === 'new-customers' ? 'Recent Customers' : 'Recent Transactions'}
-                  </SectionTitle>
-                </TransactionsHeader>
-                
-                <TableContainer>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        {currentId !== 'new-customers' && <th>Amount</th>}
-                        <th>Customer</th>
-                        {currentId === 'new-customers' ? <th>Email</th> : <th>Status</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentTransactions.map((transaction) => (
-                        <tr key={transaction.id}>
-                          <td>{transaction.date}</td>
-                          {currentId !== 'new-customers' && <td>{transaction.amount}</td>}
-                          <td>{transaction.customer}</td>
-                          {currentId === 'new-customers' ? 
-                            <td>{transaction.email}</td> :
-                            <td>
-                              <span style={{ 
-                                color: transaction.status === 'Succeeded' ? 'var(--success-color)' : 
-                                      transaction.status === 'Failed' ? 'var(--danger-color)' :
-                                      transaction.status === 'Refunded' ? 'var(--warning-color)' : 
-                                      'var(--text-secondary)'
-                              }}>
-                                {transaction.status}
-                              </span>
-                            </td>
-                          }
+          <CanvasContainer 
+            ref={canvasRef}
+            zoom={zoom}
+            panX={panX}
+            panY={panY}
+            isDragging={isDragging}
+          >
+            <CanvasContent 
+              zoom={zoom}
+              panX={panX}
+              panY={panY}
+              isDragging={isDragging}
+            >
+              <PreviewCard>
+                <TransactionsSection>
+                  <TableContainer>
+                    <table>
+                      <thead>
+                        <tr>
+                          {getCurrentTableColumns().map((column, index) => (
+                            <th key={`${column.datasetKey}-${column.columnName}-${index}`}>
+                              {column.display}
+                            </th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </TableContainer>
-                
-                <Pagination>
-                  <PageInfo>
-                    Showing {indexOfFirstTransaction + 1}-{Math.min(indexOfLastTransaction, filteredTransactions.length)} of {filteredTransactions.length} transactions
-                  </PageInfo>
-                  <PageNav>
-                    <PageButton 
-                      onClick={() => paginate(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </PageButton>
-                    
-                    {[...Array(Math.min(5, totalPages))].map((_, index) => {
-                      let pageNumber;
-                      
-                      if (totalPages <= 5) {
-                        pageNumber = index + 1;
-                      } else if (currentPage <= 3) {
-                        pageNumber = index + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNumber = totalPages - 4 + index;
-                      } else {
-                        pageNumber = currentPage - 2 + index;
-                      }
-                      
-                      if (pageNumber > 0 && pageNumber <= totalPages) {
-                        return (
-                          <PageButton
-                            key={pageNumber}
-                            active={currentPage === pageNumber}
-                            onClick={() => paginate(pageNumber)}
-                          >
-                            {pageNumber}
-                          </PageButton>
-                        );
-                      }
-                      return null;
-                    })}
-                    
-                    <PageButton 
-                      onClick={() => paginate(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </PageButton>
-                  </PageNav>
-                </Pagination>
-              </TransactionsSection>
-            </PreviewCard>
-          </PreviewContainer>
+                      </thead>
+                      <tbody>
+                        {currentTransactions.map((transaction) => (
+                          <tr key={transaction.id}>
+                            {getCurrentTableColumns().map((column, index) => {
+                              const value = getCellValue(transaction, column.key);
+                              return (
+                                <td key={`${column.datasetKey}-${column.columnName}-${index}`}>
+                                  {column.key === 'status' ? (
+                                    <span style={{ 
+                                      color: value === 'Succeeded' ? 'var(--success-color)' : 
+                                            value === 'Failed' ? 'var(--danger-color)' :
+                                            value === 'Refunded' ? 'var(--warning-color)' : 
+                                            'var(--text-secondary)'
+                                    }}>
+                                      {value}
+                                    </span>
+                                  ) : (
+                                    value
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableContainer>
+                </TransactionsSection>
+              </PreviewCard>
+            </CanvasContent>
+          </CanvasContainer>
         ) : (
           <CodeViewContainer>
             <SqlQueryContainer>
@@ -1105,10 +1531,6 @@ ORDER BY 1 DESC;`;
             </SqlQueryContainer>
             
             <QueryResultsContainer>
-              <ResultsHeader>
-                <h3>{filteredTransactions.length} results</h3>
-              </ResultsHeader>
-              
               <TableContainer>
                 <table>
                   <thead>
@@ -1140,57 +1562,15 @@ ORDER BY 1 DESC;`;
                   </tbody>
                 </table>
               </TableContainer>
-              
-              <Pagination>
-                <PageInfo>
-                  Showing {indexOfFirstTransaction + 1}-{Math.min(indexOfLastTransaction, filteredTransactions.length)} of {filteredTransactions.length} transactions
-                </PageInfo>
-                <PageNav>
-                  <PageButton 
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </PageButton>
-                  
-                  {[...Array(Math.min(5, totalPages))].map((_, index) => {
-                    let pageNumber;
-                    
-                    if (totalPages <= 5) {
-                      pageNumber = index + 1;
-                    } else if (currentPage <= 3) {
-                      pageNumber = index + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNumber = totalPages - 4 + index;
-                    } else {
-                      pageNumber = currentPage - 2 + index;
-                    }
-                    
-                    if (pageNumber > 0 && pageNumber <= totalPages) {
-                      return (
-                        <PageButton
-                          key={pageNumber}
-                          active={currentPage === pageNumber}
-                          onClick={() => paginate(pageNumber)}
-                        >
-                          {pageNumber}
-                        </PageButton>
-                      );
-                    }
-                    return null;
-                  })}
-                  
-                  <PageButton 
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </PageButton>
-                </PageNav>
-              </Pagination>
             </QueryResultsContainer>
           </CodeViewContainer>
         )}
+
+        <ZoomControls>
+          <ZoomButton onClick={() => setZoom(prev => Math.max(prev * 0.9, 0.25))}>−</ZoomButton>
+          <span>{Math.round(zoom * 100)}%</span>
+          <ZoomButton onClick={() => setZoom(prev => Math.min(prev * 1.1, 4))}>+</ZoomButton>
+        </ZoomControls>
       </EditorContainer>
     </>
   );
