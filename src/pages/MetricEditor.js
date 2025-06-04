@@ -548,6 +548,11 @@ const ColumnItem = styled.div`
   padding: 4px 0;
   font-size: 12px;
   color: var(--text-secondary);
+  cursor: pointer;
+  
+  &:hover {
+    color: var(--text-color);
+  }
 `;
 
 const ColumnCheckbox = styled.input`
@@ -1061,6 +1066,14 @@ const MetricEditor = () => {
           : [...prev[datasetKey], columnName]
         : [columnName]
     }));
+    
+    // Add dataset to selectedDatasets if not already there and we're adding a column
+    const currentColumns = selectedColumns[datasetKey] || [];
+    const isAdding = !currentColumns.includes(columnName);
+    
+    if (isAdding && !selectedDatasets.includes(datasetKey)) {
+      setSelectedDatasets(prev => [...prev, datasetKey]);
+    }
   };
 
   // Bulk actions
@@ -1439,7 +1452,10 @@ ORDER BY 1 DESC;`;
                           </BulkActionLink>
                           <ColumnList>
                             {[...dataset.keyEntities, ...dataset.derivedFields].map(column => (
-                              <ColumnItem key={column}>
+                              <ColumnItem 
+                                key={column}
+                                onClick={() => toggleColumnSelection(key, column)}
+                              >
                                 <ColumnCheckbox 
                                   type="checkbox"
                                   checked={selectedColumns[key]?.includes(column) || false}
@@ -1502,7 +1518,10 @@ ORDER BY 1 DESC;`;
                           </BulkActionLink>
                           <ColumnList>
                             {[...dataset.keyEntities, ...dataset.derivedFields].map(column => (
-                              <ColumnItem key={column}>
+                              <ColumnItem 
+                                key={column}
+                                onClick={() => toggleColumnSelection(key, column)}
+                              >
                                 <ColumnCheckbox 
                                   type="checkbox"
                                   checked={selectedColumns[key]?.includes(column) || false}
@@ -1782,3 +1801,4 @@ ORDER BY 1 DESC;`;
 };
 
 export default MetricEditor; 
+
