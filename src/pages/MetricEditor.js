@@ -145,6 +145,120 @@ const COLUMN_MAPPING = {
   'total': { display: 'Total', key: 'total' }
 };
 
+// Function to convert column names to human readable format
+const getHumanReadableColumnName = (columnName) => {
+  const mapping = {
+    'charge_id': 'Charge ID',
+    'amount': 'Amount',
+    'status': 'Status',
+    'payment_method': 'Payment method',
+    'currency': 'Currency',
+    'created_at': 'Created at',
+    'customer_id': 'Customer ID',
+    'net_revenue': 'Net revenue',
+    'success_rate': 'Success rate',
+    'retry_outcome': 'Retry outcome',
+    'email': 'Email',
+    'metadata': 'Metadata',
+    'default_payment_method': 'Default payment method',
+    'last_seen': 'Last seen',
+    'LTV': 'LTV',
+    'first_payment_date': 'First payment date',
+    'churn_flag': 'Churn flag',
+    'MRR (if applicable)': 'MRR (if applicable)',
+    'refund_id': 'Refund ID',
+    'dispute_id': 'Dispute ID',
+    'reason': 'Reason',
+    'refund_rate': 'Refund rate',
+    'dispute_rate': 'Dispute rate',
+    'recovery_rate': 'Recovery rate',
+    'order_id': 'Order ID',
+    'product_id': 'Product ID',
+    'quantity': 'Quantity',
+    'subtotal': 'Subtotal',
+    'tax': 'Tax',
+    'total': 'Total',
+    'AOV (average_order_value)': 'AOV (average order value)',
+    'SKU_level_revenue': 'SKU level revenue',
+    'payments': 'Payments',
+    'subscriptions': 'Subscriptions',
+    'adjustments': 'Adjustments',
+    'gross_revenue': 'Gross revenue',
+    'subscription': 'Subscription',
+    'invoice': 'Invoice',
+    'product': 'Product',
+    'MRR': 'MRR',
+    'churned_MRR': 'Churned MRR',
+    'upgrades_downgrades': 'Upgrades/downgrades',
+    'invoice_id': 'Invoice ID',
+    'due_date': 'Due date',
+    'paid': 'Paid',
+    'forgiven': 'Forgiven',
+    'subscription_id': 'Subscription ID',
+    'invoice_aging': 'Invoice aging',
+    'collection_rate': 'Collection rate',
+    'average_invoice_size': 'Average invoice size',
+    'plan_id': 'Plan ID',
+    'interval': 'Interval',
+    'tiers': 'Tiers',
+    'catalog_size': 'Catalog size',
+    'usage_type': 'Usage type',
+    'payout_id': 'Payout ID',
+    'method': 'Method',
+    'arrival_date': 'Arrival date',
+    'time_to_settle': 'Time to settle',
+    'payout_frequency': 'Payout frequency',
+    'account_id': 'Account ID',
+    'type': 'Type',
+    'capabilities': 'Capabilities',
+    'charges_enabled': 'Charges enabled',
+    'payouts_enabled': 'Payouts enabled',
+    'onboarding_rate': 'Onboarding rate',
+    'active_accounts': 'Active accounts',
+    'transfer_id': 'Transfer ID',
+    'destination': 'Destination',
+    'associated_charges': 'Associated charges',
+    'transfer_margin': 'Transfer margin',
+    'time_to_payout': 'Time to payout',
+    'risk_level': 'Risk level',
+    'fraud_score': 'Fraud score',
+    'rule_triggered': 'Rule triggered',
+    'avg_score_by_country': 'Avg score by country',
+    'rule_performance': 'Rule performance',
+    'rule_id': 'Rule ID',
+    'action_taken': 'Action taken',
+    'false_positive': 'False positive',
+    'true_positive': 'True positive',
+    'block_rate': 'Block rate',
+    'rule_effectiveness': 'Rule effectiveness',
+    'terminal_reader_id': 'Terminal reader ID',
+    'location': 'Location',
+    'payment_id': 'Payment ID',
+    'device_type': 'Device type',
+    'in_person_revenue_share': 'In-person revenue share',
+    'location_performance': 'Location performance',
+    'start': 'Start',
+    'end': 'End',
+    'cancellation_reason': 'Cancellation reason',
+    'subscription_age': 'Subscription age',
+    'lifecycle_stage': 'Lifecycle stage',
+    'churn_trigger': 'Churn trigger',
+    'subscription_schedule': 'Subscription schedule',
+    'subscription_item': 'Subscription item',
+    'phase': 'Phase',
+    'plan_change_rate': 'Plan change rate',
+    'average_plan_value_change': 'Average plan value change',
+    'usage_record': 'Usage record',
+    'invoice_line_item': 'Invoice line item',
+    'plan': 'Plan',
+    'usage_overage': 'Usage overage',
+    'effective_ARPU': 'Effective ARPU',
+    'blended_churn': 'Blended churn'
+  };
+  
+  return mapping[columnName] || columnName;
+};
+
 const EditorContainer = styled.div`
   display: flex;
   height: 100vh;
@@ -357,10 +471,6 @@ const DatasetItem = styled.div`
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   
-  &:hover {
-    background-color: #f9fafc;
-  }
-  
   &:last-child {
     border-bottom: none;
   }
@@ -369,7 +479,7 @@ const DatasetItem = styled.div`
 const DatasetHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   margin-bottom: 8px;
 `;
 
@@ -400,12 +510,27 @@ const DatasetTag = styled.span`
   font-size: 11px;
 `;
 
-const ExpandIcon = styled.span`
-  font-size: 16px;
-  color: var(--text-secondary);
-  transition: transform 0.2s ease;
+const ExpandIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  transition: color 0.2s ease;
   
-  &.expanded {
+  svg {
+    width: 12px;
+    height: 12px;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+  }
+  
+  &:hover svg {
+    color: var(--primary-color);
+  }
+  
+  &.expanded svg {
     transform: rotate(90deg);
   }
 `;
@@ -1292,7 +1417,9 @@ ORDER BY 1 DESC;`;
                           className={expandedDatasets[key] ? 'expanded' : ''}
                           onClick={() => toggleDatasetExpanded(key)}
                         >
-                          ▶
+                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
                         </ExpandIcon>
                       </DatasetHeader>
                       <DatasetMeta>{getColumnCountText(key, dataset)}</DatasetMeta>
@@ -1318,7 +1445,7 @@ ORDER BY 1 DESC;`;
                                   checked={selectedColumns[key]?.includes(column) || false}
                                   onChange={() => toggleColumnSelection(key, column)}
                                 />
-                                {column}
+                                {getHumanReadableColumnName(column)}
                               </ColumnItem>
                             ))}
                           </ColumnList>
@@ -1336,7 +1463,9 @@ ORDER BY 1 DESC;`;
                 >
                   More datasets
                   <ExpandIcon className={moreDatasetsSectionExpanded ? 'expanded' : ''}>
-                    ▶
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </ExpandIcon>
                 </SectionHeader>
                 <SectionContent className={moreDatasetsSectionExpanded ? '' : 'collapsed'}>
@@ -1351,7 +1480,9 @@ ORDER BY 1 DESC;`;
                             toggleDatasetExpanded(key);
                           }}
                         >
-                          ▶
+                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
                         </ExpandIcon>
                       </DatasetHeader>
                       <DatasetMeta onClick={() => toggleDatasetSelection(key)}>{getColumnCountText(key, dataset)}</DatasetMeta>
@@ -1377,7 +1508,7 @@ ORDER BY 1 DESC;`;
                                   checked={selectedColumns[key]?.includes(column) || false}
                                   onChange={() => toggleColumnSelection(key, column)}
                                 />
-                                {column}
+                                {getHumanReadableColumnName(column)}
                               </ColumnItem>
                             ))}
                           </ColumnList>
