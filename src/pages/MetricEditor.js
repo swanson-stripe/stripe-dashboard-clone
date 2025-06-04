@@ -306,7 +306,8 @@ const DatasetModule = styled(ModuleContainer)`
   border-radius: 12px;
   box-shadow: 0px 2px 6px rgba(110, 117, 131, 0.2);
   border: 1px solid rgba(192, 200, 210, 0.2);
-  height: 100%;
+  height: auto;
+  min-height: 300px;
   max-height: calc(100vh - 160px);
 `;
 
@@ -715,12 +716,15 @@ const MetricEditor = () => {
     }
   });
 
+  // Zoom intervals - 10% increments
+  const ZOOM_LEVELS = [0.25, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.5, 4.0];
+
   // Canvas pan/zoom functions
   const handleWheel = useCallback((e) => {
     e.preventDefault();
     
     if (e.metaKey || e.ctrlKey) {
-      // Zoom
+      // Zoom with smooth increments for mouse wheel
       const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
       setZoom(prev => Math.min(Math.max(prev * zoomFactor, 0.25), 4));
     } else {
@@ -751,6 +755,29 @@ const MetricEditor = () => {
     setIsDragging(false);
   }, []);
 
+  const getNextZoomLevel = (currentZoom, direction) => {
+    const currentIndex = ZOOM_LEVELS.findIndex(level => level >= currentZoom);
+    
+    if (direction === 'in') {
+      // Zoom in - get next higher level
+      if (currentIndex === -1) return ZOOM_LEVELS[0];
+      return ZOOM_LEVELS[Math.min(currentIndex + 1, ZOOM_LEVELS.length - 1)] || currentZoom;
+    } else {
+      // Zoom out - get next lower level
+      if (currentIndex === -1) return ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
+      if (currentIndex === 0) return ZOOM_LEVELS[0];
+      return ZOOM_LEVELS[Math.max(currentIndex - 1, 0)] || currentZoom;
+    }
+  };
+
+  const zoomIn = () => {
+    setZoom(prev => getNextZoomLevel(prev, 'in'));
+  };
+
+  const zoomOut = () => {
+    setZoom(prev => getNextZoomLevel(prev, 'out'));
+  };
+
   const resetZoom = () => {
     setZoom(1);
   };
@@ -767,6 +794,12 @@ const MetricEditor = () => {
       if ((e.metaKey || e.ctrlKey) && e.key === '0') {
         e.preventDefault();
         resetZoom();
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        zoomIn();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === '-') {
+        e.preventDefault();
+        zoomOut();
       } else if (e.shiftKey && e.key === '1') {
         e.preventDefault();
         resetView();
@@ -873,6 +906,18 @@ const MetricEditor = () => {
         return [...prev, datasetKey];
       }
     });
+    
+    // Also add some default columns when selecting a dataset
+    if (!selectedDatasets.includes(datasetKey)) {
+      const dataset = DATASETS[datasetKey];
+      if (dataset) {
+        const defaultColumns = dataset.keyEntities.slice(0, 3); // Take first 3 key entities as defaults
+        setSelectedColumns(prev => ({
+          ...prev,
+          [datasetKey]: defaultColumns
+        }));
+      }
+    }
   };
 
   const toggleDatasetExpanded = (datasetKey) => {
@@ -1296,12 +1341,21 @@ ORDER BY 1 DESC;`;
                 </SectionHeader>
                 <SectionContent className={moreDatasetsSectionExpanded ? '' : 'collapsed'}>
                   {getMoreDatasets().map(([key, dataset]) => (
-                    <DatasetItem key={key} onClick={() => toggleDatasetSelection(key)}>
-                      <DatasetHeader>
+                    <DatasetItem key={key}>
+                      <DatasetHeader onClick={() => toggleDatasetSelection(key)}>
                         <DatasetName>{dataset.name}</DatasetName>
+                        <ExpandIcon 
+                          className={expandedDatasets[key] ? 'expanded' : ''}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDatasetExpanded(key);
+                          }}
+                        >
+                          ▶
+                        </ExpandIcon>
                       </DatasetHeader>
-                      <DatasetMeta>{getColumnCountText(key, dataset)}</DatasetMeta>
-                      <DatasetTags>
+                      <DatasetMeta onClick={() => toggleDatasetSelection(key)}>{getColumnCountText(key, dataset)}</DatasetMeta>
+                      <DatasetTags onClick={() => toggleDatasetSelection(key)}>
                         {dataset.keyEntities.slice(0, 2).map(entity => (
                           <DatasetTag key={entity}>{entity}</DatasetTag>
                         ))}
@@ -1309,6 +1363,26 @@ ORDER BY 1 DESC;`;
                           <DatasetTag>{dataset.derivedFields[0]}</DatasetTag>
                         )}
                       </DatasetTags>
+                      
+                      {expandedDatasets[key] && (
+                        <>
+                          <BulkActionLink onClick={() => handleBulkAction(key, dataset)}>
+                            {getBulkActionText(key, dataset)}
+                          </BulkActionLink>
+                          <ColumnList>
+                            {[...dataset.keyEntities, ...dataset.derivedFields].map(column => (
+                              <ColumnItem key={column}>
+                                <ColumnCheckbox 
+                                  type="checkbox"
+                                  checked={selectedColumns[key]?.includes(column) || false}
+                                  onChange={() => toggleColumnSelection(key, column)}
+                                />
+                                {column}
+                              </ColumnItem>
+                            ))}
+                          </ColumnList>
+                        </>
+                      )}
                     </DatasetItem>
                   ))}
                 </SectionContent>
@@ -1567,9 +1641,9 @@ ORDER BY 1 DESC;`;
         )}
 
         <ZoomControls>
-          <ZoomButton onClick={() => setZoom(prev => Math.max(prev * 0.9, 0.25))}>−</ZoomButton>
+          <ZoomButton onClick={zoomOut}>−</ZoomButton>
           <span>{Math.round(zoom * 100)}%</span>
-          <ZoomButton onClick={() => setZoom(prev => Math.min(prev * 1.1, 4))}>+</ZoomButton>
+          <ZoomButton onClick={zoomIn}>+</ZoomButton>
         </ZoomControls>
       </EditorContainer>
     </>
