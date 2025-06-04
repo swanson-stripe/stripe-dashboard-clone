@@ -189,6 +189,9 @@ const Sidebar = () => {
   const isConnectActive = location.pathname.includes('/connect');
   const isPaymentsActive = location.pathname.includes('/payments');
   
+  // Add check for Reporting paths  
+  const isReportingActive = location.pathname.includes('/reporting');
+  
   return (
     <SidebarContainer>
       <Logo>
@@ -227,12 +230,18 @@ const Sidebar = () => {
           </svg>
         </NavItem>
         
-        <NavItem to="/data-studio" data-tooltip="Data studio" className={isDataStudioActive ? "active" : ""}>
+        <NavItem to="/data-studio" data-tooltip="Analytics" className={isDataStudioActive ? "active" : ""}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2.00488 12.1025C2.05278 12.573 2.42703 12.9472 2.89746 12.9951L3 13H13L13.1025 12.9951C13.573 12.9472 13.9472 12.573 13.9951 12.1025L14 12V4C14 3.48232 13.6067 3.05621 13.1025 3.00488L13 3V1.5C14.3807 1.5 15.5 2.61929 15.5 4V12C15.5 13.3807 14.3807 14.5 13 14.5H3C1.61929 14.5 0.5 13.3807 0.5 12V4C0.5 2.61929 1.61929 1.5 3 1.5V3L2.89746 3.00488C2.39333 3.05621 2 3.48232 2 4V12L2.00488 12.1025ZM13 1.5V3H3V1.5H13Z" fill="currentColor"/>
-            <path d="M15 5.5V7H1V5.5H15Z" fill="currentColor"/>
-            <path d="M8.75 14L7.25 14L7.25 2L8.75 2L8.75 14Z" fill="currentColor"/>
-            <path d="M15 9V10.5H1V9H15Z" fill="currentColor"/>
+            <g clipPath="url(#clip0_370_197226)">
+              <path d="M0 14.25V1.25C0 0.835786 0.335786 0.5 0.75 0.5C1.16421 0.5 1.5 0.835786 1.5 1.25V14.25C1.5 14.3881 1.61193 14.5 1.75 14.5H14.75C15.1642 14.5 15.5 14.8358 15.5 15.25C15.5 15.6642 15.1642 16 14.75 16H1.75C0.783502 16 0 15.2165 0 14.25Z" fill="currentColor"/>
+              <path d="M13.9307 7.81641C14.272 8.05069 14.359 8.5179 14.125 8.85938C13.8907 9.20084 13.4235 9.2879 13.082 9.05371L12.0225 8.32617L13.0352 7.20117L13.9307 7.81641ZM10.54 5.48926L9.52734 6.61426L8.43945 5.86816L3.83496 8.1709L3.76465 8.20117C3.40928 8.33576 3.00272 8.1822 2.8291 7.83496C2.65572 7.48775 2.77677 7.07063 3.09766 6.86719L3.16504 6.8291L8.55957 4.13086L10.54 5.48926Z" fill="currentColor"/>
+              <path d="M2.78174 11.7158C2.67018 11.3439 2.8608 10.9529 3.21186 10.8074L3.28416 10.7818L8.08202 9.3424L12.9493 3.93381L13.0028 3.87924C13.2843 3.62377 13.7198 3.61803 14.0085 3.87777C14.3163 4.15483 14.3408 4.62966 14.0638 4.93755L9.05738 10.5016L8.91682 10.6583L8.71554 10.7189L3.71575 12.2182L3.64116 12.2368C3.26791 12.3088 2.89346 12.0876 2.78174 11.7158Z" fill="currentColor"/>
+            </g>
+            <defs>
+              <clipPath id="clip0_370_197226">
+                <rect width="16" height="16" fill="white"/>
+              </clipPath>
+            </defs>
           </svg>
         </NavItem>
       </NavigationSection>
@@ -295,6 +304,28 @@ const Sidebar = () => {
           </Submenu>
         </NavItemWithSubmenu>
         
+        <NavItemWithSubmenu
+          className={isReportingActive ? 'active' : ''}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g clipPath="url(#clip0_370_197185)">
+              <path d="M11.8357 9.21855C12.0944 8.8951 12.042 8.42313 11.7185 8.16438C11.3951 7.90562 10.9231 7.95806 10.6644 8.28151L9.21636 10.0915L7.55748 8.2483C7.41525 8.09027 7.21262 8.00003 7.00001 8.00003C6.78739 8.00003 6.58477 8.09027 6.44254 8.2483L4.19254 10.7483C3.91544 11.0562 3.9404 11.5304 4.24828 11.8075C4.55617 12.0846 5.03038 12.0596 5.30748 11.7518L7.00001 9.87116L8.69254 11.7518C8.83985 11.9154 9.05166 12.0061 9.27178 11.9997C9.4919 11.9933 9.69809 11.8905 9.83566 11.7185L11.8357 9.21855Z" fill="currentColor"/>
+              <path fillRule="evenodd" clipRule="evenodd" d="M14.5 13.5V2.5C14.5 1.11929 13.3807 0 12 0H6.32843C5.79799 0 5.28929 0.210714 4.91421 0.585786L2.08579 3.41421C1.71071 3.78929 1.5 4.29799 1.5 4.82843V13.5C1.5 14.8807 2.61929 16 4 16H12C13.3807 16 14.5 14.8807 14.5 13.5ZM13 13.5V2.5C13 1.94772 12.5523 1.5 12 1.5H8V4.75C8 5.7165 7.2165 6.5 6.25 6.5H3V13.5C3 14.0523 3.44772 14.5 4 14.5H12C12.5523 14.5 13 14.0523 13 13.5ZM6.32843 1.5H6.5V4.75C6.5 4.88807 6.38807 5 6.25 5H3V4.82843C3 4.69582 3.05268 4.56864 3.14645 4.47487L5.97487 1.64645C6.06864 1.55268 6.19582 1.5 6.32843 1.5Z" fill="currentColor"/>
+            </g>
+            <defs>
+              <clipPath id="clip0_370_197185">
+                <rect width="16" height="16" fill="white"/>
+              </clipPath>
+            </defs>
+          </svg>
+          <SubmenuHoverArea />
+          <Submenu className="submenu">
+            <SubmenuTitle>Reporting</SubmenuTitle>
+            <SubmenuItem to="/reporting/statement-reports">Statement reports</SubmenuItem>
+            <SubmenuItem to="/reporting/operational-reports">Operational reports</SubmenuItem>
+            <SubmenuItem to="/reporting/revenue-recognition">Revenue recognition</SubmenuItem>
+          </Submenu>
+        </NavItemWithSubmenu>
         
         <NavItem to="/more" data-tooltip="More">
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">

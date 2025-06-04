@@ -810,20 +810,30 @@ const CategoryBarCount = styled.div`
 `;
 
 const CategoryChart = ({ data, totalResults, onCategoryClick, selectedCategory }) => {
+  // Safety checks for data
+  if (!data || typeof data !== 'object') {
+    return <div>No data available</div>;
+  }
+
   const categories = Object.keys(data);
   const values = Object.values(data);
   const hasSelection = !!selectedCategory;
   
+  // Safety check for categories and values
+  if (!Array.isArray(categories) || !Array.isArray(values) || categories.length === 0) {
+    return <div>No categories available</div>;
+  }
+  
   // Create array of category objects and sort by count in descending order
   const sortedCategories = categories.map((category, index) => ({
     name: category,
-    count: values[index]
+    count: values[index] || 0
   })).sort((a, b) => b.count - a.count);
-  
+
   return (
     <div>
       {sortedCategories.map((category) => {
-        const percentage = totalResults ? (category.count / totalResults) * 100 : 0;
+        const percentage = totalResults && totalResults > 0 ? (category.count / totalResults) * 100 : 0;
         const isSelected = selectedCategory === category.name;
         
         return (
@@ -1082,10 +1092,15 @@ const ReportDetail = () => {
 
     return {
       ...report,
-      columns
+      columns: Array.isArray(columns) ? columns : [], // Ensure columns is always an array
+      title: report.title || "Report",
+      count: report.count || 0,
+      trend: report.trend || 0,
+      isNegative: report.isNegative || false,
+      description: report.description || "No description available"
     };
   }, [params.reportId]);
-  
+
   // Filter state management
   const [columnFilters, setColumnFilters] = useState({});
 
@@ -1252,6 +1267,312 @@ const ReportDetail = () => {
     };
   }, [hideAllTooltips]);
 
+  // Reporting controls
+  const [reportingControls, setReportingControls] = useState({
+    period: 'last_7_days',
+    interval: 'daily',
+    comparison: 'previous_period'
+  });
+  
+  // Table state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState('current_mrr');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const itemsPerPage = 10;
+  
+  // Generate sample customer data
+  const customerData = useMemo(() => {
+    // Safety check for params and reportSamples
+    if (!params || !params.reportId || !reportSamples) {
+      return [];
+    }
+
+    // Get the count from the report sample
+    const count = reportSamples[params.reportId]?.count || 413;
+    
+    // Generate a base template for a customer
+    const generateCustomer = (id) => ({
+      id,
+      name: `Customer ${id}`,
+      current_mrr: 100 + Math.floor(Math.random() * 600),
+      projected_ltv: 3000 + Math.floor(Math.random() * 15000),
+      product: ['Starter', 'Pro', 'Developer', 'Enterprise'][Math.floor(Math.random() * 4)],
+      overage_revenue: 40 + Math.floor(Math.random() * 180),
+      usage_growth: Math.floor(Math.random() * 100) - 50,
+      included_units: 500000 + Math.floor(Math.random() * 1500000)
+    });
+    
+    // Create a list of base customers with enough entries to match the count
+    const baseCustomers = Array.from({ length: count }, (_, i) => {
+      // Use predefined names for the first 15 customers for consistency
+      const predefinedNames = [
+        'ApexCloud', 'SynthCore', 'FunnelPilot', 'Lexio AI', 'InsightLoop',
+        'BrightNova', 'ComposeAI', 'CloudNova', 'DataSpring', 'OrbitML',
+        'PixelWave', 'QuantumLink', 'CyberSphere', 'VelocityAI', 'PulsarTech'
+      ];
+      
+      const customer = generateCustomer(i + 1);
+      
+      // Use predefined names for first 15 customers
+      if (i < predefinedNames.length) {
+        customer.name = predefinedNames[i];
+      } else {
+        // Generate company names for remaining customers
+        const prefixes = ['Tech', 'Data', 'Cloud', 'AI', 'Cyber', 'Digital', 'Net', 'Web', 'Dev', 'Soft'];
+        const suffixes = ['Systems', 'Solutions', 'Labs', 'Works', 'Tech', 'Group', 'Inc', 'Logic', 'Hub', 'Core'];
+        customer.name = `${prefixes[i % 10]}${suffixes[Math.floor(i / 10) % 10]}`;
+      }
+      
+      return customer;
+    });
+    
+    // Modify data based on report type
+    switch (params.reportId) {
+      case 'high-usage-growth':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          usage_growth: Math.abs(customer.usage_growth) * 2,
+          overage_revenue: customer.overage_revenue * 1.5
+        }));
+        
+      case 'monthly-sales':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          current_mrr: customer.current_mrr * 1.2,
+          projected_ltv: customer.projected_ltv * 1.1
+        }));
+        
+      case 'new-subscribers':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          current_mrr: customer.current_mrr * 0.9,
+          projected_ltv: customer.projected_ltv * 1.2
+        }));
+        
+      case 'weekly-churned':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          usage_growth: customer.usage_growth < 0 ? customer.usage_growth * 1.5 : -customer.usage_growth,
+          overage_revenue: customer.overage_revenue * 0.5
+        }));
+        
+      case 'top-selling':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          current_mrr: customer.current_mrr * 1.3, // Higher MRR for top sellers
+          projected_ltv: customer.projected_ltv * 1.4
+        })).sort((a, b) => b.current_mrr - a.current_mrr);
+        
+      case 'high-value':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          current_mrr: customer.id % 3 === 0 ? customer.current_mrr * 2 : customer.current_mrr,
+          projected_ltv: customer.projected_ltv * 1.5
+        }));
+        
+      case 'new-products':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          product: customer.product === 'Pro' ? 'Pro+' : customer.product === 'Enterprise' ? 'Enterprise+' : customer.product,
+          current_mrr: customer.current_mrr * 1.1
+        }));
+        
+      case 'mrr-growth':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          current_mrr: customer.current_mrr * 1.25,
+          usage_growth: Math.abs(customer.usage_growth) * 0.5
+        }));
+        
+      case 'upsell-opportunities':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          projected_ltv: customer.projected_ltv * 1.8
+        }));
+        
+      case 'new-free-trials':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          current_mrr: 0,
+          overage_revenue: 0,
+          usage_growth: 100,
+          included_units: 500000
+        }));
+        
+      case 'revenue-composition':
+        return baseCustomers.map(customer => ({
+          ...customer,
+          subscription_revenue: customer.current_mrr * 0.7,
+          usage_revenue: customer.current_mrr * 0.2,
+          add_on_revenue: customer.current_mrr * 0.1
+        }));
+        
+      default: // churn-risk or any other
+        return baseCustomers;
+    }
+  }, [params.reportId]);
+  
+  // Sort and paginate the data
+  const sortedData = useMemo(() => {
+    // Safety check for customerData
+    if (!customerData || !Array.isArray(customerData)) {
+      return [];
+    }
+
+    // First apply filters
+    let filteredData = [...customerData];
+    
+    // Safety check for columnFilters
+    if (columnFilters && typeof columnFilters === 'object') {
+      Object.entries(columnFilters).forEach(([columnId, filterValue]) => {
+        if (Array.isArray(filteredData)) {
+          filteredData = filteredData.filter(row => {
+            if (!row || typeof row !== 'object') return false;
+            
+            const cellValue = row[columnId];
+            
+            // Handle null/undefined values
+            if (cellValue === null || cellValue === undefined) {
+              return false;
+            }
+            
+            // For string/category columns, exact match
+            if (typeof cellValue === 'string') {
+              return cellValue === filterValue;
+            }
+            
+            // For number columns, check if value falls within the range
+            if (typeof cellValue === 'number') {
+              // If filterValue is a range (contains ' - ')
+              if (typeof filterValue === 'string' && filterValue.includes(' - ')) {
+                // Remove currency symbols, commas, percentages, and parse the range
+                const cleanFilterValue = filterValue.replace(/[$,%]/g, '');
+                const [minStr, maxStr] = cleanFilterValue.split(' - ');
+                const min = parseFloat(minStr);
+                const max = parseFloat(maxStr);
+                return cellValue >= min && cellValue < max; // Changed to < max to avoid overlap
+              }
+              // If filterValue is a single number
+              const numericFilterValue = typeof filterValue === 'string' ? 
+                parseFloat(filterValue.replace(/[$,%]/g, '')) : filterValue;
+              return cellValue === numericFilterValue;
+            }
+            
+            // For other types, try string comparison
+            return String(cellValue) === String(filterValue);
+          });
+        }
+      });
+    }
+    
+    // Ensure filteredData is still an array after filtering
+    if (!Array.isArray(filteredData)) {
+      filteredData = [];
+    }
+    
+    // Then sort the filtered data
+    return filteredData.sort((a, b) => {
+      if (!a || !b || typeof a !== 'object' || typeof b !== 'object') {
+        return 0;
+      }
+      
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+      
+      // Handle numeric values
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string values
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue) 
+          : bValue.localeCompare(aValue);
+      }
+      
+      return 0;
+    });
+  }, [customerData, sortField, sortDirection, columnFilters]);
+  
+  // Get current page of data
+  const currentData = useMemo(() => {
+    // Safety check for sortedData
+    if (!sortedData || !Array.isArray(sortedData)) {
+      return [];
+    }
+
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    return sortedData.slice(indexOfFirstItem, indexOfLastItem);
+  }, [sortedData, currentPage, itemsPerPage]);
+  
+  // Calculate total pages
+  const totalPages = Math.ceil((sortedData && Array.isArray(sortedData) ? sortedData.length : 0) / itemsPerPage);
+  
+  // Change page
+  const paginate = (pageNumber) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+  
+  // Handle sort change
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc'); // Default to descending when changing fields
+    }
+  };
+  
+  // Get sort indicator
+  const getSortIndicator = (field) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' ? '↑' : '↓';
+  };
+  
+  // Handle period change
+  const handlePeriodChange = (period) => {
+    setReportingControls(prev => ({ ...prev, period }));
+  };
+  
+  // Handle interval change
+  const handleIntervalChange = (interval) => {
+    setReportingControls(prev => ({ ...prev, interval }));
+  };
+  
+  // Handle comparison change
+  const handleComparisonChange = (comparison) => {
+    setReportingControls(prev => ({ ...prev, comparison }));
+  };
+
+  // Format table cell data based on column type
+  const formatCellValue = (value, column) => {
+    if (value === undefined || value === null) return '-';
+    
+    if (column.isCurrency) {
+      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : value;
+    }
+    
+    if (column.isTrend) {
+      const isNegative = value < 0;
+      const displayClass = column.isPositive ? !isNegative : isNegative;
+      return (
+        <UsageValue negative={displayClass}>
+          {value > 0 ? '+' : ''}{value}%
+        </UsageValue>
+      );
+    }
+    
+    if (column.isNumber || column.dataType === 'number') {
+      return typeof value === 'number' ? value.toLocaleString('en-US') : value;
+    }
+    
+    return value;
+  };
+
   // Helper functions for data analysis and visualization
   const getDataTypeIcon = (dataType) => {
     switch (dataType) {
@@ -1326,8 +1647,24 @@ const ReportDetail = () => {
   };
 
   const analyzeColumnData = (data, column, filteredData) => {
-    const values = data.map(row => row[column.id]).filter(val => val !== null && val !== undefined);
-    const filteredValues = filteredData.map(row => row[column.id]).filter(val => val !== null && val !== undefined);
+    // Safety checks for input parameters
+    if (!data || !Array.isArray(data) || !column || !filteredData || !Array.isArray(filteredData)) {
+      return {
+        type: 'bar',
+        summary: 'No data available',
+        chartData: { 
+          labels: ['No data'], 
+          datasets: [{ 
+            data: [0], 
+            backgroundColor: '#F5F6F8',
+            borderRadius: 2
+          }] 
+        }
+      };
+    }
+
+    const values = data.map(row => row && row[column.id]).filter(val => val !== null && val !== undefined);
+    const filteredValues = filteredData.map(row => row && row[column.id]).filter(val => val !== null && val !== undefined);
     
     if (values.length === 0) {
       return {
@@ -1728,282 +2065,7 @@ const ReportDetail = () => {
     }
 
     return baseOptions;
-  }, [hideAllTooltips, showCustomTooltip, toggleFilter]);
-
-  // Reporting controls
-  const [reportingControls, setReportingControls] = useState({
-    period: 'last_7_days',
-    interval: 'daily',
-    comparison: 'previous_period'
-  });
-  
-  // Table state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState('current_mrr');
-  const [sortDirection, setSortDirection] = useState('desc');
-  const itemsPerPage = 10;
-  
-  // Generate sample customer data
-  const customerData = useMemo(() => {
-    // Get the count from the report sample
-    const count = reportSamples[params.reportId]?.count || 413;
-    
-    // Generate a base template for a customer
-    const generateCustomer = (id) => ({
-      id,
-      name: `Customer ${id}`,
-      current_mrr: 100 + Math.floor(Math.random() * 600),
-      projected_ltv: 3000 + Math.floor(Math.random() * 15000),
-      product: ['Starter', 'Pro', 'Developer', 'Enterprise'][Math.floor(Math.random() * 4)],
-      overage_revenue: 40 + Math.floor(Math.random() * 180),
-      usage_growth: Math.floor(Math.random() * 100) - 50,
-      included_units: 500000 + Math.floor(Math.random() * 1500000)
-    });
-    
-    // Create a list of base customers with enough entries to match the count
-    const baseCustomers = Array.from({ length: count }, (_, i) => {
-      // Use predefined names for the first 15 customers for consistency
-      const predefinedNames = [
-        'ApexCloud', 'SynthCore', 'FunnelPilot', 'Lexio AI', 'InsightLoop',
-        'BrightNova', 'ComposeAI', 'CloudNova', 'DataSpring', 'OrbitML',
-        'PixelWave', 'QuantumLink', 'CyberSphere', 'VelocityAI', 'PulsarTech'
-      ];
-      
-      const customer = generateCustomer(i + 1);
-      
-      // Use predefined names for first 15 customers
-      if (i < predefinedNames.length) {
-        customer.name = predefinedNames[i];
-      } else {
-        // Generate company names for remaining customers
-        const prefixes = ['Tech', 'Data', 'Cloud', 'AI', 'Cyber', 'Digital', 'Net', 'Web', 'Dev', 'Soft'];
-        const suffixes = ['Systems', 'Solutions', 'Labs', 'Works', 'Tech', 'Group', 'Inc', 'Logic', 'Hub', 'Core'];
-        customer.name = `${prefixes[i % 10]}${suffixes[Math.floor(i / 10) % 10]}`;
-      }
-      
-      return customer;
-    });
-    
-    // Modify data based on report type
-    switch (params.reportId) {
-      case 'high-usage-growth':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          usage_growth: Math.abs(customer.usage_growth) * 2,
-          overage_revenue: customer.overage_revenue * 1.5
-        }));
-        
-      case 'monthly-sales':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          current_mrr: customer.current_mrr * 1.2,
-          projected_ltv: customer.projected_ltv * 1.1
-        }));
-        
-      case 'new-subscribers':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          current_mrr: customer.current_mrr * 0.9,
-          projected_ltv: customer.projected_ltv * 1.2
-        }));
-        
-      case 'weekly-churned':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          usage_growth: customer.usage_growth < 0 ? customer.usage_growth * 1.5 : -customer.usage_growth,
-          overage_revenue: customer.overage_revenue * 0.5
-        }));
-        
-      case 'top-selling':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          current_mrr: customer.current_mrr * 1.3, // Higher MRR for top sellers
-          projected_ltv: customer.projected_ltv * 1.4
-        })).sort((a, b) => b.current_mrr - a.current_mrr);
-        
-      case 'high-value':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          current_mrr: customer.id % 3 === 0 ? customer.current_mrr * 2 : customer.current_mrr,
-          projected_ltv: customer.projected_ltv * 1.5
-        }));
-        
-      case 'new-products':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          product: customer.product === 'Pro' ? 'Pro+' : customer.product === 'Enterprise' ? 'Enterprise+' : customer.product,
-          current_mrr: customer.current_mrr * 1.1
-        }));
-        
-      case 'mrr-growth':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          current_mrr: customer.current_mrr * 1.25,
-          usage_growth: Math.abs(customer.usage_growth) * 0.5
-        }));
-        
-      case 'upsell-opportunities':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          projected_ltv: customer.projected_ltv * 1.8
-        }));
-        
-      case 'new-free-trials':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          current_mrr: 0,
-          overage_revenue: 0,
-          usage_growth: 100,
-          included_units: 500000
-        }));
-        
-      case 'revenue-composition':
-        return baseCustomers.map(customer => ({
-          ...customer,
-          subscription_revenue: customer.current_mrr * 0.7,
-          usage_revenue: customer.current_mrr * 0.2,
-          add_on_revenue: customer.current_mrr * 0.1
-        }));
-        
-      default: // churn-risk or any other
-        return baseCustomers;
-    }
-  }, [params.reportId]);
-  
-  // Sort and paginate the data
-  const sortedData = useMemo(() => {
-    // First apply filters
-    let filteredData = [...customerData];
-    
-    Object.entries(columnFilters).forEach(([columnId, filterValue]) => {
-      filteredData = filteredData.filter(row => {
-        const cellValue = row[columnId];
-        
-        // Handle null/undefined values
-        if (cellValue === null || cellValue === undefined) {
-          return false;
-        }
-        
-        // For string/category columns, exact match
-        if (typeof cellValue === 'string') {
-          return cellValue === filterValue;
-        }
-        
-        // For number columns, check if value falls within the range
-        if (typeof cellValue === 'number') {
-          // If filterValue is a range (contains ' - ')
-          if (typeof filterValue === 'string' && filterValue.includes(' - ')) {
-            // Remove currency symbols, commas, percentages, and parse the range
-            const cleanFilterValue = filterValue.replace(/[$,%]/g, '');
-            const [minStr, maxStr] = cleanFilterValue.split(' - ');
-            const min = parseFloat(minStr);
-            const max = parseFloat(maxStr);
-            return cellValue >= min && cellValue < max; // Changed to < max to avoid overlap
-          }
-          // If filterValue is a single number
-          const numericFilterValue = typeof filterValue === 'string' ? 
-            parseFloat(filterValue.replace(/[$,%]/g, '')) : filterValue;
-          return cellValue === numericFilterValue;
-        }
-        
-        // For other types, try string comparison
-        return String(cellValue) === String(filterValue);
-      });
-    });
-    
-    // Then sort the filtered data
-    return filteredData.sort((a, b) => {
-      let aValue = a[sortField];
-      let bValue = b[sortField];
-      
-      // Handle numeric values
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      
-      // Handle string values
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
-          ? aValue.localeCompare(bValue) 
-          : bValue.localeCompare(aValue);
-      }
-      
-      return 0;
-    });
-  }, [customerData, sortField, sortDirection, columnFilters]);
-  
-  // Get current page of data
-  const currentData = useMemo(() => {
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    return sortedData.slice(indexOfFirstItem, indexOfLastItem);
-  }, [sortedData, currentPage, itemsPerPage]);
-  
-  // Calculate total pages
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
-  
-  // Change page
-  const paginate = (pageNumber) => {
-    if (pageNumber > 0 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-    }
-  };
-  
-  // Handle sort change
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('desc'); // Default to descending when changing fields
-    }
-  };
-  
-  // Get sort indicator
-  const getSortIndicator = (field) => {
-    if (sortField !== field) return null;
-    return sortDirection === 'asc' ? '↑' : '↓';
-  };
-  
-  // Handle period change
-  const handlePeriodChange = (period) => {
-    setReportingControls(prev => ({ ...prev, period }));
-  };
-  
-  // Handle interval change
-  const handleIntervalChange = (interval) => {
-    setReportingControls(prev => ({ ...prev, interval }));
-  };
-  
-  // Handle comparison change
-  const handleComparisonChange = (comparison) => {
-    setReportingControls(prev => ({ ...prev, comparison }));
-  };
-
-  // Format table cell data based on column type
-  const formatCellValue = (value, column) => {
-    if (value === undefined || value === null) return '-';
-    
-    if (column.isCurrency) {
-      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : value;
-    }
-    
-    if (column.isTrend) {
-      const isNegative = value < 0;
-      const displayClass = column.isPositive ? !isNegative : isNegative;
-      return (
-        <UsageValue negative={displayClass}>
-          {value > 0 ? '+' : ''}{value}%
-        </UsageValue>
-      );
-    }
-    
-    if (column.isNumber || column.dataType === 'number') {
-      return typeof value === 'number' ? value.toLocaleString('en-US') : value;
-    }
-    
-    return value;
-  };
+  }, [toggleFilter, setMousePosition]);
 
   // Generate reasonable default chart based on data
   const generateDefaultChart = () => {
@@ -2530,6 +2592,7 @@ const ReportDetail = () => {
         
         let innerHtml = '';
         
+        
         // Add title
         if (titleLines.length > 0 && titleLines[0]) {
           innerHtml += `<div style="color: #635bff; font-weight: 600; margin-bottom: 4px;">${titleLines[0]}</div>`;
@@ -2619,6 +2682,22 @@ const ReportDetail = () => {
     }
   });
 
+  // Early return with loading state if data is not ready - MOVED AFTER ALL HOOKS
+  if (!getReportData || !Array.isArray(getReportData.columns)) {
+    return (
+      <Container
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <ReportDetailContainer>
+          <div>Loading...</div>
+        </ReportDetailContainer>
+      </Container>
+    );
+  }
+
   return (
     <Container
       initial={{ opacity: 0 }}
@@ -2629,7 +2708,7 @@ const ReportDetail = () => {
       <ReportDetailContainer>
         <BreadcrumbNav>
           <Breadcrumbs>
-            <BreadcrumbLink to="/data-studio">Data studio</BreadcrumbLink>
+            <BreadcrumbLink to="/data-studio">Analytics</BreadcrumbLink>
           </Breadcrumbs>
         </BreadcrumbNav>
         
@@ -2645,8 +2724,8 @@ const ReportDetail = () => {
               Share
             </Button>
             <EditButton to={`/data-studio/${params.reportId}/edit`}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" clipRule="evenodd" d="M4.67 1.25A2.33 2.33 0 0 0 2.44 2.9L.179 10.302A4.097 4.097 0 0 0 0 11.5a3.5 3.5 0 1 0 7 0V9.394C7.47 9.093 7.786 9 8 9c.214 0 .53.093 1 .394V11.5a3.5 3.5 0 1 0 7 0 4.1 4.1 0 0 0-.179-1.197L13.56 2.899A2.33 2.33 0 0 0 9 3.58v.581A3.127 3.127 0 0 0 8 4c-.348 0-.683.055-1 .161v-.58A2.33 2.33 0 0 0 4.67 1.25Zm.83 7.377V3.58a.83.83 0 0 0-1.625-.242l-1.478 4.84A3.497 3.497 0 0 1 3.5 8c.744 0 1.433.232 2 .627Zm-4 2.873a2 2 0 1 0 4 0 2 2 0 0 0-4 0Zm11 2a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm0-5.5c.386 0 .757.062 1.103.177l-1.479-4.84a.83.83 0 0 0-1.624.243v5.047a3.484 3.484 0 0 1 2-.627ZM7 5.838v1.868c.33-.131.664-.206 1-.206.336 0 .67.075 1 .206V5.838A1.615 1.615 0 0 0 8 5.5c-.358 0-.692.106-1 .338Z" fill="currentColor"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1.25 11.5V10C1.25 9.58579 1.58579 9.25 2 9.25C2.41421 9.25 2.75 9.58579 2.75 10V11.5C2.75 12.4665 3.5335 13.25 4.5 13.25H6C6.41421 13.25 6.75 13.5858 6.75 14C6.75 14.4142 6.41421 14.75 6 14.75H4.5C2.70507 14.75 1.25 13.2949 1.25 11.5ZM13.25 11.5V10C13.25 9.58579 13.5858 9.25 14 9.25C14.4142 9.25 14.75 9.58579 14.75 10V11.5C14.75 13.2949 13.2949 14.75 11.5 14.75H10C9.58579 14.75 9.25 14.4142 9.25 14C9.25 13.5858 9.58579 13.25 10 13.25H11.5C12.4665 13.25 13.25 12.4665 13.25 11.5ZM1.25 6V4.5C1.25 2.70507 2.70507 1.25 4.5 1.25H6C6.41421 1.25 6.75 1.58579 6.75 2C6.75 2.41421 6.41421 2.75 6 2.75H4.5C3.5335 2.75 2.75 3.5335 2.75 4.5V6C2.75 6.41421 2.41421 6.75 2 6.75C1.58579 6.75 1.25 6.41421 1.25 6ZM13.25 6V4.5C13.25 3.5335 12.4665 2.75 11.5 2.75H10C9.58579 2.75 9.25 2.41421 9.25 2C9.25 1.58579 9.58579 1.25 10 1.25H11.5C13.2949 1.25 14.75 2.70507 14.75 4.5V6C14.75 6.41421 14.4142 6.75 14 6.75C13.5858 6.75 13.25 6.41421 13.25 6Z" fill="currentColor"/>
               </svg>
               Open in explorer
             </EditButton>
@@ -2885,10 +2964,14 @@ const ReportDetail = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {generatedChart.data.labels.map((label, index) => {
-                        const value = generatedChart.data.datasets[0].data[index];
-                        const total = generatedChart.data.datasets[0].data.reduce((sum, val) => sum + val, 0);
-                        const percentage = ((value / total) * 100).toFixed(1);
+                      {generatedChart.data?.labels && Array.isArray(generatedChart.data.labels) && generatedChart.data.labels.map((label, index) => {
+                        const value = generatedChart.data?.datasets?.[0]?.data?.[index];
+                        const dataArray = generatedChart.data?.datasets?.[0]?.data;
+                        if (!dataArray || !Array.isArray(dataArray) || value === undefined) {
+                          return null;
+                        }
+                        const total = dataArray.reduce((sum, val) => sum + val, 0);
+                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
                         return (
                           <tr key={index}>
                             <SummaryTableCell className="header first-column">
@@ -2897,7 +2980,7 @@ const ReportDetail = () => {
                                   style={{ 
                                     width: '12px', 
                                     height: '12px', 
-                                    backgroundColor: generatedChart.data.datasets[0].backgroundColor[index], 
+                                    backgroundColor: generatedChart.data?.datasets?.[0]?.backgroundColor?.[index] || '#ccc', 
                                     borderRadius: '3px',
                                     marginRight: '8px'
                                   }} 
@@ -2933,7 +3016,7 @@ const ReportDetail = () => {
                         <SummaryTableHeaderCell className="first-column">
                           {generatedChart.xAxis?.label || 'Category'}
                         </SummaryTableHeaderCell>
-                        {generatedChart.data.labels.map((label, index) => (
+                        {generatedChart.data?.labels && Array.isArray(generatedChart.data.labels) && generatedChart.data.labels.map((label, index) => (
                           <SummaryTableHeaderCell key={index}>
                             {label}
                           </SummaryTableHeaderCell>
@@ -2945,7 +3028,7 @@ const ReportDetail = () => {
                         <SummaryTableCell className="header first-column">
                           {generatedChart.yAxis?.label || 'Value'}
                         </SummaryTableCell>
-                        {generatedChart.data.datasets[0].data.map((value, index) => (
+                        {generatedChart.data?.datasets?.[0]?.data && Array.isArray(generatedChart.data.datasets[0].data) && generatedChart.data.datasets[0].data.map((value, index) => (
                           <SummaryTableCell 
                             key={index} 
                             className="value-cell"
@@ -2984,7 +3067,7 @@ const ReportDetail = () => {
             <StyledTable>
               <thead>
                 <tr>
-                  {getReportData.columns.map((column) => (
+                  {getReportData.columns && getReportData.columns.map((column) => (
                     <th key={column.id} onClick={() => handleSort(column.id)}>
                       <HeaderCellContent>
                         <HeaderLabel>
@@ -3026,7 +3109,7 @@ const ReportDetail = () => {
                   ))}
                 </tr>
                 <SummaryRow>
-                  {getReportData.columns.map((column) => {
+                  {getReportData.columns && getReportData.columns.map((column) => {
                     const analysis = analyzeColumnData(customerData, column, sortedData);
                     return (
                       <SummaryCell key={`summary-${column.id}`}>
@@ -3064,17 +3147,17 @@ const ReportDetail = () => {
                 </SummaryRow>
               </thead>
               <tbody>
-                {currentData.map((customer) => (
+                {currentData && Array.isArray(currentData) && currentData.map((customer) => (
                   <tr 
-                    key={customer.id}
-                    onClick={() => navigate(`/users/${customer.id}/${params.reportId}`, { 
+                    key={customer?.id || Math.random()}
+                    onClick={() => customer && navigate(`/users/${customer.id}/${params.reportId}`, { 
                       state: { customerData: customer, reportTitle: getReportData.title } 
                     })}
                     style={{ cursor: 'pointer' }}
                   >
-                    {getReportData.columns.map((column) => (
+                    {getReportData.columns && getReportData.columns.map((column) => (
                       <td key={column.id}>
-                        {formatCellValue(customer[column.id], column)}
+                        {customer ? formatCellValue(customer[column.id], column) : '-'}
                       </td>
                     ))}
                   </tr>
@@ -3085,7 +3168,7 @@ const ReportDetail = () => {
           
           <Pagination>
             <PageInfo>
-              Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, sortedData.length)} of {sortedData.length} results
+              Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, sortedData?.length || 0)} of {sortedData?.length || 0} results
             </PageInfo>
             <PageNav>
               <PageButton 
@@ -3095,7 +3178,7 @@ const ReportDetail = () => {
                 Previous
               </PageButton>
               
-              {[...Array(Math.min(5, totalPages))].map((_, index) => {
+              {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
                 let pageNumber;
                 
                 if (totalPages <= 5) {
