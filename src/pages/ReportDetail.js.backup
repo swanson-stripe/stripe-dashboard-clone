@@ -3,12 +3,11 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import ReportingControls from '../components/ReportingControls';
-import ShareModal from '../components/ShareModal';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Bar, Line, Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend } from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
 
 const Container = styled(motion.div)`
   width: 100%;
@@ -106,28 +105,9 @@ const MoreButton = styled.button`
   
   &:hover {
     background-color: #f7f9fc;
-`;
-
-
-const EditButton = styled(Link)`
-  background-color: white;
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  
-  &:hover {
-    background-color: #f7f9fc;
-    text-decoration: none;
   }
 `;
+
 const ReportDetailValue = styled(motion.div)`
   font-size: 36px;
   font-weight: 700;
@@ -156,9 +136,6 @@ const MetricTrend = styled(motion.div)`
 
 const ControlsContainer = styled.div`
   margin-bottom: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 `;
 
 const ResultsSection = styled.div`
@@ -400,22 +377,21 @@ const SummaryTextRight = styled.span`
 `;
 
 const ChartModule = styled.div`
-  background-color: transparent;
-  border: 1px dotted #d1d5db;
+  background-color: #f8f9fa;
+  border: 2px dashed #d1d5db;
   border-radius: 8px;
   padding: 32px;
   margin: 24px 0;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   min-height: 120px;
-  gap: 12px;
   
   &:hover {
-    background-color: #f9fafb;
+    background-color: #f1f3f4;
     border-color: #9ca3af;
   }
 `;
@@ -423,8 +399,8 @@ const ChartModule = styled.div`
 const ChartModuleIcon = styled.div`
   width: 24px;
   height: 24px;
+  margin-bottom: 12px;
   color: #6b7280;
-  flex-shrink: 0;
   
   svg {
     width: 100%;
@@ -436,109 +412,15 @@ const ChartModuleText = styled.div`
   color: #6b7280;
   font-size: 16px;
   font-weight: 500;
-  text-align: left;
+  text-align: center;
 `;
 
-const GeneratedChartContainer = styled(motion.div)`
+const GeneratedChartContainer = styled.div`
   background: white;
   border-radius: 8px;
   padding: 24px;
   margin: 24px 0;
   border: 1px solid var(--border-color);
-`;
-
-const ChartSectionContainer = styled.div`
-  display: flex;
-  gap: 24px;
-  margin-bottom: 32px;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-`;
-
-const GeneratedChartWrapper = styled.div`
-  flex: ${props => props.showSettings ? '2' : '1'};
-  height: 200px;
-  width: 100%;
-  min-width: 0;
-  transition: all 0.3s ease;
-`;
-
-const SummaryTableSection = styled.div`
-  margin: 32px 0;
-`;
-
-const SummaryTableContainer = styled.div`
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-`;
-
-const SummaryTable = styled.table`
-  font-size: 14px;
-  width: 100%;
-  border-collapse: collapse;
-`;
-
-const SummaryTableCell = styled.td`
-  padding: 12px 16px;
-  border-right: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  background-color: white;
-  transition: all 0.2s ease;
-  font-weight: ${props => props.value !== 0 && props.isValue ? '600' : 'normal'};
-  
-  &:last-child {
-    border-right: none;
-  }
-  
-  &.header {
-    font-weight: 600;
-    position: sticky;
-    left: 0;
-    z-index: 1;
-  }
-  
-  &.first-column {
-    min-width: 180px;
-    width: 180px;
-  }
-  
-  &.value-cell {
-    cursor: pointer;
-    white-space: nowrap;
-    
-    &:hover {
-      background-color: #f2f2f2;
-      text-decoration: underline;
-      text-decoration-style: dotted;
-      text-decoration-color: #777;
-      text-decoration-thickness: 2px;
-    }
-  }
-`;
-
-const SummaryTableHeaderCell = styled.th`
-  padding: 12px 16px;
-  border-right: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  background-color: white;
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-  
-  &:last-child {
-    border-right: none;
-  }
-  
-  &.first-column {
-    min-width: 180px;
-    width: 180px;
-    position: sticky;
-    left: 0;
-    z-index: 1;
-  }
 `;
 
 const GeneratedChartHeader = styled.div`
@@ -561,20 +443,20 @@ const ChartActions = styled.div`
 `;
 
 const ChartActionButton = styled.button`
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #e3e8ee;
-  border-radius: 20px;
-  font-size: 14px;
-  color: #697386;
-  cursor: pointer;
-  gap: 6px;
-  white-space: nowrap;
+  gap: 4px;
   
   &:hover {
-    border-color: #d7dfe8;
+    background-color: #f7f9fc;
+    color: var(--text-color);
   }
   
   svg {
@@ -583,32 +465,10 @@ const ChartActionButton = styled.button`
   }
 `;
 
-const ChartChip = styled.div`
-  display: flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 12px;
-  background-color: transparent;
-  border-radius: 14px;
-  border: 1px dashed #e3e8ee;
-  cursor: pointer;
-  position: relative;
-  
-  &:hover {
-    border-color: #d7dfe8;
-  }
-`;
-
-const ChartChipValue = styled.span`
-  color: #6772e5;
-  font-weight: 600;
-  font-size: 12px;
-`;
-
-const ChartIconWrapper = styled.span`
-  display: flex;
-  align-items: center;
-  margin-right: 8px;
+const GeneratedChartWrapper = styled.div`
+  height: 280px;
+  width: 100%;
+  margin-bottom: 16px;
 `;
 
 const ChartDescription = styled.p`
@@ -616,126 +476,6 @@ const ChartDescription = styled.p`
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.4;
-`;
-
-const ChartSettingsPanel = styled.div`
-  flex: 1;
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 20px;
-  border: 1px solid var(--border-color);
-  max-width: 280px;
-  min-width: 240px;
-  display: flex;
-  flex-direction: column;
-`;
-
-const ChartSettingsHeader = styled.h4`
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 16px 0;
-  color: var(--text-color);
-`;
-
-const ChartSettingsSection = styled.div`
-  margin-bottom: 16px;
-`;
-
-const ChartSettingsLabel = styled.label`
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-color);
-  margin-bottom: 6px;
-`;
-
-const ChartTypeSelector = styled.select`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: white;
-  font-size: 14px;
-  color: var(--text-color);
-  cursor: pointer;
-  
-  &:focus {
-    outline: none;
-    border-color: var(--primary-color);
-  }
-`;
-
-const AxisSelector = styled.select`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: white;
-  font-size: 14px;
-  color: var(--text-color);
-  cursor: pointer;
-  
-  &:focus {
-    outline: none;
-    border-color: var(--primary-color);
-  }
-`;
-
-const ChartSettingsActions = styled.div`
-  margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color);
-`;
-
-const ChartSettingsButtonRow = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-`;
-
-const ChartSettingsButton = styled.button`
-  flex: 1;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid var(--border-color);
-  
-  &.primary {
-    background: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
-    
-    &:hover {
-      background: #5a51e5;
-    }
-  }
-  
-  &.secondary {
-    background: white;
-    color: var(--text-color);
-    
-    &:hover {
-      background: #f7f9fc;
-    }
-  }
-`;
-
-const RemoveChartButton = styled.button`
-  width: 100%;
-  padding: 8px 12px;
-  background: none;
-  border: none;
-  color: var(--danger-color);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 6px;
-  
-  &:hover {
-    background: rgba(220, 53, 69, 0.1);
-  }
 `;
 
 const HeaderCellContent = styled.div`
@@ -754,7 +494,7 @@ const CategoryBarFill = styled.div`
   height: 100%;
   background-color: ${props => 
     props.isSelected ? '#635bff' : 
-    props.hasSelection ? '#F5F6F8' : '#D8DEE4'
+    props.hasSelection ? '#f0f0f0' : '#CDE8FD'
   };
   border-radius: 4px;
   transition: background-color 0.2s ease;
@@ -763,7 +503,7 @@ const CategoryBarFill = styled.div`
   &:hover {
     background-color: ${props => 
       props.isSelected ? '#5a51e5' : 
-      props.hasSelection ? '#E8EAED' : '#C5CDD6'
+      props.hasSelection ? '#e3e8ee' : '#B8DCFA'
     };
   }
 `;
@@ -810,30 +550,20 @@ const CategoryBarCount = styled.div`
 `;
 
 const CategoryChart = ({ data, totalResults, onCategoryClick, selectedCategory }) => {
-  // Safety checks for data
-  if (!data || typeof data !== 'object') {
-    return <div>No data available</div>;
-  }
-
   const categories = Object.keys(data);
   const values = Object.values(data);
   const hasSelection = !!selectedCategory;
   
-  // Safety check for categories and values
-  if (!Array.isArray(categories) || !Array.isArray(values) || categories.length === 0) {
-    return <div>No categories available</div>;
-  }
-  
   // Create array of category objects and sort by count in descending order
   const sortedCategories = categories.map((category, index) => ({
     name: category,
-    count: values[index] || 0
+    count: values[index]
   })).sort((a, b) => b.count - a.count);
-
+  
   return (
     <div>
       {sortedCategories.map((category) => {
-        const percentage = totalResults && totalResults > 0 ? (category.count / totalResults) * 100 : 0;
+        const percentage = totalResults ? (category.count / totalResults) * 100 : 0;
         const isSelected = selectedCategory === category.name;
         
         return (
@@ -1092,56 +822,15 @@ const ReportDetail = () => {
 
     return {
       ...report,
-      columns: Array.isArray(columns) ? columns : [], // Ensure columns is always an array
-      title: report.title || "Report",
-      count: report.count || 0,
-      trend: report.trend || 0,
-      isNegative: report.isNegative || false,
-      description: report.description || "No description available"
+      columns
     };
   }, [params.reportId]);
-
+  
   // Filter state management
   const [columnFilters, setColumnFilters] = useState({});
 
   // Chart state management
   const [generatedChart, setGeneratedChart] = useState(null);
-
-  // Add state for tracking mouse position for tooltips
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  // Add state for share modal
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-
-  // Chart settings panel state
-  const [showChartSettings, setShowChartSettings] = useState(false);
-
-  // Add state for pending chart settings changes
-  const [pendingChartSettings, setPendingChartSettings] = useState({
-    type: null,
-    xAxis: null,
-    yAxis: null
-  });
-
-  // Add state to store original chart settings for cancel functionality
-  const [originalChartSettings, setOriginalChartSettings] = useState({
-    type: null,
-    xAxis: null,
-    yAxis: null
-  });
-
-  // Initialize pending settings when chart is created or settings panel opens
-  useEffect(() => {
-    if (generatedChart && showChartSettings) {
-      const currentSettings = {
-        type: generatedChart.type,
-        xAxis: generatedChart.xAxis,
-        yAxis: generatedChart.yAxis
-      };
-      setPendingChartSettings(currentSettings);
-      setOriginalChartSettings(currentSettings);
-    }
-  }, [generatedChart, showChartSettings]);
 
   const toggleFilter = useCallback((columnId, filterValue) => {
     setColumnFilters(prev => {
@@ -1259,13 +948,491 @@ const ReportDetail = () => {
   useEffect(() => {
     return () => {
       hideAllTooltips();
-      // Also clean up the custom chart tooltip
-      const chartTooltip = document.getElementById('chart-tooltip');
-      if (chartTooltip) {
-        chartTooltip.remove();
-      }
     };
   }, [hideAllTooltips]);
+
+  // Helper functions for data analysis and visualization
+  const getDataTypeIcon = (dataType) => {
+    switch (dataType) {
+      case 'date':
+        return (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
+            <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        );
+      case 'string':
+        return <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>ABC</span>;
+      case 'number':
+        return <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>123</span>;
+      case 'category':
+        return (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="2"/>
+            <line x1="8" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2"/>
+            <line x1="3" y1="6" x2="3.01" y2="6" stroke="currentColor" strokeWidth="2"/>
+            <line x1="3" y1="12" x2="3.01" y2="12" stroke="currentColor" strokeWidth="2"/>
+            <line x1="3" y1="18" x2="3.01" y2="18" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Format values based on column type
+  const formatValue = (value, column) => {
+    if (value === null || value === undefined) return value;
+    
+    if (column.isCurrency) {
+      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : value;
+    }
+    
+    if (column.dataType === 'number' && typeof value === 'number') {
+      return value.toLocaleString('en-US');
+    }
+    
+    return value;
+  };
+
+  // Format values for charts - always returns strings, never React components
+  const formatChartValue = (value, column) => {
+    if (value === null || value === undefined) return String(value);
+    
+    if (column.isCurrency) {
+      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : String(value);
+    }
+    
+    if (column.isTrend) {
+      return typeof value === 'number' ? `${value.toFixed(1)}%` : String(value);
+    }
+    
+    if (column.isNumber || column.dataType === 'number') {
+      return typeof value === 'number' ? value.toLocaleString('en-US') : String(value);
+    }
+    
+    return String(value);
+  };
+
+  // Helper function to calculate median
+  const calculateMedian = (values) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  };
+
+  const analyzeColumnData = (data, column, filteredData) => {
+    const values = data.map(row => row[column.id]).filter(val => val !== null && val !== undefined);
+    const filteredValues = filteredData.map(row => row[column.id]).filter(val => val !== null && val !== undefined);
+    
+    if (values.length === 0) {
+      return {
+        type: 'bar',
+        summary: '0 values',
+        chartData: { 
+          labels: ['No data'], 
+          datasets: [{ 
+            data: [0], 
+            backgroundColor: '#e3e8ee',
+            borderRadius: 2
+          }] 
+        }
+      };
+    }
+    
+    switch (column.dataType) {
+      case 'string':
+        // For strings, we'll show count over time (simulated)
+        const uniqueCount = new Set(filteredValues).size;
+        return {
+          type: 'line',
+          summary: `${uniqueCount} unique values`,
+          chartData: generateTimeSeriesData(values, columnFilters[column.id], column)
+        };
+        
+      case 'category':
+        // Count occurrences of each category in original data
+        const categoryCount = {};
+        values.forEach(val => {
+          categoryCount[val] = (categoryCount[val] || 0) + 1;
+        });
+        
+        // Count filtered categories for summary
+        const filteredCategoryCount = new Set(filteredValues).size;
+        return {
+          type: 'category',
+          summary: `${filteredCategoryCount} ${filteredCategoryCount === 1 ? 'category' : 'categories'}`,
+          chartData: generateCategoryChartData(categoryCount),
+          rawData: categoryCount
+        };
+        
+      case 'number':
+        // Create distribution buckets from original data
+        const numericValues = values.filter(val => typeof val === 'number' && !isNaN(val));
+        const filteredNumericValues = filteredValues.filter(val => typeof val === 'number' && !isNaN(val));
+        if (numericValues.length === 0) {
+          return {
+            type: 'bar',
+            summary: '0 numeric values',
+            chartData: { 
+              labels: ['No data'], 
+              datasets: [{ 
+                data: [0], 
+                backgroundColor: '#e3e8ee',
+                borderRadius: 2
+              }] 
+            }
+          };
+        }
+        const min = Math.min(...numericValues);
+        const max = Math.max(...numericValues);
+        
+        // Format summary based on column type using median
+        let summaryText = `${filteredNumericValues.length} values`;
+        let medianText = '';
+        if (filteredNumericValues.length > 0) {
+          const medianValue = calculateMedian(filteredNumericValues);
+          if (column.isCurrency) {
+            medianText = `median ${formatChartValue(medianValue, column)}`;
+          } else if (column.isTrend) {
+            medianText = `median ${medianValue.toFixed(1)}%`;
+          } else if (column.isNumber) {
+            medianText = `median ${Math.round(medianValue).toLocaleString()}`;
+          }
+        }
+        
+        return {
+          type: 'bar',
+          summary: summaryText,
+          medianSummary: medianText,
+          chartData: generateNumberDistributionData(numericValues, min, max, columnFilters[column.id], column)
+        };
+        
+      case 'date':
+        // Date distribution (if we had date columns)
+        return {
+          type: 'bar',
+          summary: `${filteredValues.length} dates`,
+          chartData: generateDateDistributionData(values)
+        };
+        
+      default:
+        return {
+          type: 'bar',
+          summary: `${filteredValues.length} items`,
+          chartData: { 
+            labels: ['Data'], 
+            datasets: [{ 
+              data: [values.length], 
+              backgroundColor: '#57B2F9',
+              borderColor: '#57B2F9',
+              borderWidth: 1,
+              borderRadius: 2,
+              hoverBackgroundColor: '#4A9FE7',
+              hoverBorderColor: '#4A9FE7'
+            }] 
+          }
+        };
+    }
+  };
+
+  const generateTimeSeriesData = (values, selectedValue = null, column = null) => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const totalCount = values.length;
+    const data = days.map(() => Math.floor(Math.random() * (totalCount / 4)) + 1);
+    
+    return {
+      labels: days,
+      datasets: [{
+        data: data,
+        borderColor: '#57B2F9',
+        backgroundColor: 'rgba(87, 178, 249, 0.1)',
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: days.map(day => selectedValue === day ? 6 : 2),
+        pointBackgroundColor: days.map(day => selectedValue === day ? '#635bff' : '#57B2F9'),
+        pointBorderColor: days.map(day => selectedValue === day ? '#635bff' : '#57B2F9'),
+        pointBorderWidth: days.map(day => selectedValue === day ? 2 : 1),
+        pointHoverRadius: 4,
+        pointHitRadius: 10
+      }]
+    };
+  };
+
+  const generateCategoryChartData = (categoryCount) => {
+    const labels = Object.keys(categoryCount);
+    const data = Object.values(categoryCount);
+    const maxValue = Math.max(...data);
+    
+    return {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: labels.map((label, index) => {
+          // Calculate bar width as percentage of max value
+          const percentage = (data[index] / maxValue) * 100;
+          return `linear-gradient(90deg, #635bff 0%, #635bff ${percentage}%, #f0f0f0 ${percentage}%, #f0f0f0 100%)`;
+        }),
+        borderColor: 'transparent',
+        borderWidth: 0,
+        barThickness: 24,
+        categoryPercentage: 1.0,
+        barPercentage: 1.0,
+        hoverBackgroundColor: labels.map((label, index) => {
+          const percentage = (data[index] / maxValue) * 100;
+          return `linear-gradient(90deg, #5a51e5 0%, #5a51e5 ${percentage}%, #f0f0f0 ${percentage}%, #f0f0f0 100%)`;
+        }),
+        hoverBorderColor: 'transparent'
+      }]
+    };
+  };
+
+  const generateNumberDistributionData = (values, min, max, selectedValue = null, column = null) => {
+    const bucketCount = 10; // Changed to 10 for deciles
+    
+    // Handle edge case where all values are the same
+    if (min === max) {
+      const isSelected = selectedValue === String(min);
+      const formattedValue = column ? formatChartValue(min, column) : formatValue(min, { dataType: 'number' });
+      return {
+        labels: [formattedValue],
+        datasets: [{
+          data: [values.length],
+          backgroundColor: isSelected ? '#635bff' : '#57B2F9',
+          borderColor: isSelected ? '#635bff' : '#57B2F9',
+          borderWidth: 1,
+          borderRadius: 2,
+          hoverBackgroundColor: isSelected ? '#5a51e5' : '#4A9FE7',
+          hoverBorderColor: isSelected ? '#5a51e5' : '#4A9FE7'
+        }]
+      };
+    }
+    
+    const bucketSize = (max - min) / bucketCount;
+    const buckets = Array(bucketCount).fill(0);
+    const bucketLabels = [];
+    
+    // Create bucket labels with proper formatting based on column type
+    for (let i = 0; i < bucketCount; i++) {
+      const start = min + (i * bucketSize);
+      const end = min + ((i + 1) * bucketSize);
+      
+      let startFormatted, endFormatted;
+      if (column) {
+        startFormatted = formatChartValue(start, column);
+        endFormatted = formatChartValue(end, column);
+      } else {
+        if (bucketSize >= 1) {
+          startFormatted = Math.round(start).toLocaleString();
+          endFormatted = Math.round(end).toLocaleString();
+        } else {
+          startFormatted = start.toFixed(1);
+          endFormatted = end.toFixed(1);
+        }
+      }
+      
+      bucketLabels.push(`${startFormatted} - ${endFormatted}`);
+    }
+    
+    // Distribute values into buckets
+    values.forEach(value => {
+      const bucketIndex = Math.min(Math.floor((value - min) / bucketSize), bucketCount - 1);
+      buckets[bucketIndex]++;
+    });
+    
+    return {
+      labels: bucketLabels,
+      datasets: [{
+        data: buckets,
+        backgroundColor: bucketLabels.map(label => {
+          if (selectedValue === label) return '#635bff';
+          if (selectedValue) return '#f0f0f0';
+          return '#57B2F9';
+        }),
+        borderColor: bucketLabels.map(label => {
+          if (selectedValue === label) return '#635bff';
+          if (selectedValue) return '#f0f0f0';
+          return '#57B2F9';
+        }),
+        borderWidth: 1,
+        borderRadius: 2,
+        hoverBackgroundColor: bucketLabels.map(label => {
+          if (selectedValue === label) return '#5a51e5';
+          if (selectedValue) return '#e3e8ee';
+          return '#4A9FE7';
+        }),
+        hoverBorderColor: bucketLabels.map(label => {
+          if (selectedValue === label) return '#5a51e5';
+          if (selectedValue) return '#e3e8ee';
+          return '#4A9FE7';
+        })
+      }]
+    };
+  };
+
+  const generateDateDistributionData = (values) => {
+    // Placeholder for date distribution
+    return {
+      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+      datasets: [{
+        data: [10, 15, 12, 8],
+        backgroundColor: '#57B2F9',
+        borderColor: '#57B2F9',
+        borderWidth: 1,
+        borderRadius: 2,
+        hoverBackgroundColor: '#4A9FE7',
+        hoverBorderColor: '#4A9FE7'
+      }]
+    };
+  };
+
+  const getChartOptions = useCallback((type, categoryData = null, columnId = null, selectedValue = null, column = null) => {
+    const baseOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'point'
+      },
+      onClick: (event, activeElements, chart) => {
+        if (activeElements.length > 0 && columnId) {
+          const activeElement = activeElements[0];
+          const index = activeElement.index;
+          const label = chart.data.labels[index];
+          const value = chart.data.datasets[activeElement.datasetIndex].data[index];
+          
+          // For line charts, use the label; for bar charts, use a range or specific value
+          if (type === 'line') {
+            toggleFilter(columnId, label);
+          } else if (type === 'bar') {
+            // For bar charts, we'll filter by the bucket/range
+            toggleFilter(columnId, label);
+          }
+        }
+      },
+      onHover: (event, activeElements, chart) => {
+        // Change cursor to pointer when hovering over clickable elements
+        const canvas = chart.canvas;
+        if (activeElements.length > 0) {
+          canvas.style.cursor = 'pointer';
+        } else {
+          canvas.style.cursor = 'default';
+        }
+        
+        // Hide all tooltips first
+        hideAllTooltips();
+        
+        // If no elements are active, keep all tooltips hidden
+        if (activeElements.length === 0) {
+          return;
+        }
+        
+        // Show custom tooltip for active element
+        if (activeElements.length > 0) {
+          const activeElement = activeElements[0];
+          const datasetIndex = activeElement.datasetIndex;
+          const index = activeElement.index;
+          const dataset = chart.data.datasets[datasetIndex];
+          const value = dataset.data[index];
+          const label = chart.data.labels[index];
+          
+          showCustomTooltip(event, label, value, chart, column);
+        }
+      },
+      plugins: {
+        legend: { 
+          display: false 
+        },
+        tooltip: {
+          enabled: false // Completely disable Chart.js tooltips
+        }
+      },
+      scales: {
+        x: { 
+          display: false
+        },
+        y: { 
+          display: false
+        }
+      },
+      elements: {
+        point: { 
+          radius: (context) => {
+            if (type === 'line' && selectedValue) {
+              const label = context.chart.data.labels[context.dataIndex];
+              return selectedValue === label ? 6 : 2;
+            }
+            return 2;
+          },
+          hoverRadius: 4,
+          hitRadius: 10,
+          backgroundColor: (context) => {
+            if (type === 'line' && selectedValue) {
+              const label = context.chart.data.labels[context.dataIndex];
+              return selectedValue === label ? '#635bff' : '#57B2F9';
+            }
+            return '#57B2F9';
+          },
+          borderColor: (context) => {
+            if (type === 'line' && selectedValue) {
+              const label = context.chart.data.labels[context.dataIndex];
+              return selectedValue === label ? '#635bff' : '#57B2F9';
+            }
+            return '#57B2F9';
+          }
+        },
+        line: { 
+          borderWidth: 2,
+          tension: 0.4
+        },
+        bar: {
+          borderWidth: 0
+        }
+      }
+    };
+
+    if (type === 'horizontalBar') {
+      return {
+        ...baseOptions,
+        indexAxis: 'y',
+        layout: {
+          padding: {
+            left: 0,
+            right: 0,
+            top: 2,
+            bottom: 2
+          }
+        },
+        plugins: {
+          ...baseOptions.plugins,
+          datalabels: {
+            display: true,
+            anchor: 'start',
+            align: 'start',
+            color: '#333',
+            font: {
+              size: 11,
+              weight: '500'
+            },
+            formatter: (value, context) => {
+              if (categoryData) {
+                const label = context.chart.data.labels[context.dataIndex];
+                return `${label} ${value}`;
+              }
+              return value;
+            },
+            offset: 8
+          }
+        }
+      };
+    }
+
+    return baseOptions;
+  }, [hideAllTooltips, showCustomTooltip, toggleFilter]);
 
   // Reporting controls
   const [reportingControls, setReportingControls] = useState({
@@ -1282,11 +1449,6 @@ const ReportDetail = () => {
   
   // Generate sample customer data
   const customerData = useMemo(() => {
-    // Safety check for params and reportSamples
-    if (!params || !params.reportId || !reportSamples) {
-      return [];
-    }
-
     // Get the count from the report sample
     const count = reportSamples[params.reportId]?.count || 413;
     
@@ -1414,68 +1576,47 @@ const ReportDetail = () => {
   
   // Sort and paginate the data
   const sortedData = useMemo(() => {
-    // Safety check for customerData
-    if (!customerData || !Array.isArray(customerData)) {
-      return [];
-    }
-
     // First apply filters
     let filteredData = [...customerData];
     
-    // Safety check for columnFilters
-    if (columnFilters && typeof columnFilters === 'object') {
-      Object.entries(columnFilters).forEach(([columnId, filterValue]) => {
-        if (Array.isArray(filteredData)) {
-          filteredData = filteredData.filter(row => {
-            if (!row || typeof row !== 'object') return false;
-            
-            const cellValue = row[columnId];
-            
-            // Handle null/undefined values
-            if (cellValue === null || cellValue === undefined) {
-              return false;
-            }
-            
-            // For string/category columns, exact match
-            if (typeof cellValue === 'string') {
-              return cellValue === filterValue;
-            }
-            
-            // For number columns, check if value falls within the range
-            if (typeof cellValue === 'number') {
-              // If filterValue is a range (contains ' - ')
-              if (typeof filterValue === 'string' && filterValue.includes(' - ')) {
-                // Remove currency symbols, commas, percentages, and parse the range
-                const cleanFilterValue = filterValue.replace(/[$,%]/g, '');
-                const [minStr, maxStr] = cleanFilterValue.split(' - ');
-                const min = parseFloat(minStr);
-                const max = parseFloat(maxStr);
-                return cellValue >= min && cellValue < max; // Changed to < max to avoid overlap
-              }
-              // If filterValue is a single number
-              const numericFilterValue = typeof filterValue === 'string' ? 
-                parseFloat(filterValue.replace(/[$,%]/g, '')) : filterValue;
-              return cellValue === numericFilterValue;
-            }
-            
-            // For other types, try string comparison
-            return String(cellValue) === String(filterValue);
-          });
+    Object.entries(columnFilters).forEach(([columnId, filterValue]) => {
+      filteredData = filteredData.filter(row => {
+        const cellValue = row[columnId];
+        
+        // Handle null/undefined values
+        if (cellValue === null || cellValue === undefined) {
+          return false;
         }
+        
+        // For string/category columns, exact match
+        if (typeof cellValue === 'string') {
+          return cellValue === filterValue;
+        }
+        
+        // For number columns, check if value falls within the range
+        if (typeof cellValue === 'number') {
+          // If filterValue is a range (contains ' - ')
+          if (typeof filterValue === 'string' && filterValue.includes(' - ')) {
+            // Remove currency symbols, commas, percentages, and parse the range
+            const cleanFilterValue = filterValue.replace(/[$,%]/g, '');
+            const [minStr, maxStr] = cleanFilterValue.split(' - ');
+            const min = parseFloat(minStr);
+            const max = parseFloat(maxStr);
+            return cellValue >= min && cellValue < max; // Changed to < max to avoid overlap
+          }
+          // If filterValue is a single number
+          const numericFilterValue = typeof filterValue === 'string' ? 
+            parseFloat(filterValue.replace(/[$,%]/g, '')) : filterValue;
+          return cellValue === numericFilterValue;
+        }
+        
+        // For other types, try string comparison
+        return String(cellValue) === String(filterValue);
       });
-    }
-    
-    // Ensure filteredData is still an array after filtering
-    if (!Array.isArray(filteredData)) {
-      filteredData = [];
-    }
+    });
     
     // Then sort the filtered data
     return filteredData.sort((a, b) => {
-      if (!a || !b || typeof a !== 'object' || typeof b !== 'object') {
-        return 0;
-      }
-      
       let aValue = a[sortField];
       let bValue = b[sortField];
       
@@ -1497,18 +1638,13 @@ const ReportDetail = () => {
   
   // Get current page of data
   const currentData = useMemo(() => {
-    // Safety check for sortedData
-    if (!sortedData || !Array.isArray(sortedData)) {
-      return [];
-    }
-
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     return sortedData.slice(indexOfFirstItem, indexOfLastItem);
   }, [sortedData, currentPage, itemsPerPage]);
   
   // Calculate total pages
-  const totalPages = Math.ceil((sortedData && Array.isArray(sortedData) ? sortedData.length : 0) / itemsPerPage);
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   
   // Change page
   const paginate = (pageNumber) => {
@@ -1572,500 +1708,6 @@ const ReportDetail = () => {
     
     return value;
   };
-
-  // Helper functions for data analysis and visualization
-  const getDataTypeIcon = (dataType) => {
-    switch (dataType) {
-      case 'date':
-        return (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
-            <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
-            <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        );
-      case 'string':
-        return <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>ABC</span>;
-      case 'number':
-        return <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>123</span>;
-      case 'category':
-        return (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2"/>
-            <line x1="8" y1="12" x2="18" y2="12" stroke="currentColor" strokeWidth="2"/>
-            <line x1="8" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="2"/>
-            <line x1="3" y1="6" x2="3.01" y2="6" stroke="currentColor" strokeWidth="2"/>
-            <line x1="3" y1="12" x2="3.01" y2="12" stroke="currentColor" strokeWidth="2"/>
-            <line x1="3" y1="18" x2="3.01" y2="18" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Format values based on column type
-  const formatValue = (value, column) => {
-    if (value === null || value === undefined) return value;
-    
-    if (column.isCurrency) {
-      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : value;
-    }
-    
-    if (column.dataType === 'number' && typeof value === 'number') {
-      return value.toLocaleString('en-US');
-    }
-    
-    return value;
-  };
-
-  // Format values for charts - always returns strings, never React components
-  const formatChartValue = (value, column) => {
-    if (value === null || value === undefined) return String(value);
-    
-    if (column.isCurrency) {
-      return typeof value === 'number' ? `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : String(value);
-    }
-    
-    if (column.isTrend) {
-      return typeof value === 'number' ? `${value.toFixed(1)}%` : String(value);
-    }
-    
-    if (column.isNumber || column.dataType === 'number') {
-      return typeof value === 'number' ? value.toLocaleString('en-US') : String(value);
-    }
-    
-    return String(value);
-  };
-
-  // Helper function to calculate median
-  const calculateMedian = (values) => {
-    const sorted = [...values].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  };
-
-  const analyzeColumnData = (data, column, filteredData) => {
-    // Safety checks for input parameters
-    if (!data || !Array.isArray(data) || !column || !filteredData || !Array.isArray(filteredData)) {
-      return {
-        type: 'bar',
-        summary: 'No data available',
-        chartData: { 
-          labels: ['No data'], 
-          datasets: [{ 
-            data: [0], 
-            backgroundColor: '#F5F6F8',
-            borderRadius: 2
-          }] 
-        }
-      };
-    }
-
-    const values = data.map(row => row && row[column.id]).filter(val => val !== null && val !== undefined);
-    const filteredValues = filteredData.map(row => row && row[column.id]).filter(val => val !== null && val !== undefined);
-    
-    if (values.length === 0) {
-      return {
-        type: 'bar',
-        summary: '0 values',
-        chartData: { 
-          labels: ['No data'], 
-          datasets: [{ 
-            data: [0], 
-            backgroundColor: '#F5F6F8',
-            borderRadius: 2
-          }] 
-        }
-      };
-    }
-    
-    switch (column.dataType) {
-      case 'string':
-        // For strings, we'll show count over time (simulated)
-        const uniqueCount = new Set(filteredValues).size;
-        return {
-          type: 'line',
-          summary: `${uniqueCount} unique values`,
-          chartData: generateTimeSeriesData(values, columnFilters[column.id], column)
-        };
-        
-      case 'category':
-        // Count occurrences of each category in original data
-        const categoryCount = {};
-        values.forEach(val => {
-          categoryCount[val] = (categoryCount[val] || 0) + 1;
-        });
-        
-        // Count filtered categories for summary
-        const filteredCategoryCount = new Set(filteredValues).size;
-        return {
-          type: 'category',
-          summary: `${filteredCategoryCount} ${filteredCategoryCount === 1 ? 'category' : 'categories'}`,
-          chartData: generateCategoryChartData(categoryCount),
-          rawData: categoryCount
-        };
-        
-      case 'number':
-        // Create distribution buckets from original data
-        const numericValues = values.filter(val => typeof val === 'number' && !isNaN(val));
-        const filteredNumericValues = filteredValues.filter(val => typeof val === 'number' && !isNaN(val));
-        if (numericValues.length === 0) {
-          return {
-            type: 'bar',
-            summary: '0 numeric values',
-            chartData: { 
-              labels: ['No data'], 
-              datasets: [{ 
-                data: [0], 
-                backgroundColor: '#F5F6F8',
-                borderRadius: 2
-              }] 
-            }
-          };
-        }
-        const min = Math.min(...numericValues);
-        const max = Math.max(...numericValues);
-        
-        // Format summary based on column type using median
-        let summaryText = `${filteredNumericValues.length} values`;
-        let medianText = '';
-        if (filteredNumericValues.length > 0) {
-          const medianValue = calculateMedian(filteredNumericValues);
-          if (column.isCurrency) {
-            medianText = `median ${formatChartValue(medianValue, column)}`;
-          } else if (column.isTrend) {
-            medianText = `median ${medianValue.toFixed(1)}%`;
-          } else if (column.isNumber) {
-            medianText = `median ${Math.round(medianValue).toLocaleString()}`;
-          }
-        }
-        
-        return {
-          type: 'bar',
-          summary: summaryText,
-          medianSummary: medianText,
-          chartData: generateNumberDistributionData(numericValues, min, max, columnFilters[column.id], column)
-        };
-        
-      case 'date':
-        // Date distribution (if we had date columns)
-        return {
-          type: 'bar',
-          summary: `${filteredValues.length} dates`,
-          chartData: generateDateDistributionData(values)
-        };
-        
-      default:
-        return {
-          type: 'bar',
-          summary: `${filteredValues.length} items`,
-          chartData: { 
-            labels: ['Data'], 
-            datasets: [{ 
-              data: [values.length], 
-              backgroundColor: '#D8DEE4',
-              borderColor: '#D8DEE4',
-              borderWidth: 1,
-              borderRadius: 2,
-              hoverBackgroundColor: '#C5CDD6',
-              hoverBorderColor: '#C5CDD6'
-            }] 
-          }
-        };
-    }
-  };
-
-  const generateTimeSeriesData = (values, selectedValue = null, column = null) => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const totalCount = values.length;
-    const data = days.map(() => Math.floor(Math.random() * (totalCount / 4)) + 1);
-    
-    return {
-      labels: days,
-      datasets: [{
-        data: data,
-        borderColor: selectedValue ? '#635bff' : '#D8DEE4',
-        backgroundColor: selectedValue ? 'rgba(99, 91, 255, 0.1)' : 'rgba(216, 222, 228, 0.1)',
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2,
-        pointRadius: days.map(day => selectedValue === day ? 6 : 2),
-        pointBackgroundColor: days.map(day => selectedValue === day ? '#635bff' : '#D8DEE4'),
-        pointBorderColor: days.map(day => selectedValue === day ? '#635bff' : '#D8DEE4'),
-        pointBorderWidth: days.map(day => selectedValue === day ? 2 : 1),
-        pointHoverRadius: 4,
-        pointHitRadius: 10
-      }]
-    };
-  };
-
-  const generateCategoryChartData = (categoryCount) => {
-    const labels = Object.keys(categoryCount);
-    const data = Object.values(categoryCount);
-    const maxValue = Math.max(...data);
-    
-    return {
-      labels: labels,
-      datasets: [{
-        data: data,
-        backgroundColor: labels.map((label, index) => {
-          // Calculate bar width as percentage of max value
-          const percentage = (data[index] / maxValue) * 100;
-          return `linear-gradient(90deg, #635bff 0%, #635bff ${percentage}%, #f0f0f0 ${percentage}%, #f0f0f0 100%)`;
-        }),
-        borderColor: 'transparent',
-        borderWidth: 0,
-        barThickness: 24,
-        categoryPercentage: 1.0,
-        barPercentage: 1.0,
-        hoverBackgroundColor: labels.map((label, index) => {
-          const percentage = (data[index] / maxValue) * 100;
-          return `linear-gradient(90deg, #5a51e5 0%, #5a51e5 ${percentage}%, #f0f0f0 ${percentage}%, #f0f0f0 100%)`;
-        }),
-        hoverBorderColor: 'transparent'
-      }]
-    };
-  };
-
-  const generateNumberDistributionData = (values, min, max, selectedValue = null, column = null) => {
-    const bucketCount = 10; // Changed to 10 for deciles
-    
-    // Handle edge case where all values are the same
-    if (min === max) {
-      const isSelected = selectedValue === String(min);
-      const formattedValue = column ? formatChartValue(min, column) : formatValue(min, { dataType: 'number' });
-      return {
-        labels: [formattedValue],
-        datasets: [{
-          data: [values.length],
-          backgroundColor: isSelected ? '#635bff' : '#D8DEE4',
-          borderColor: isSelected ? '#635bff' : '#D8DEE4',
-          borderWidth: 1,
-          borderRadius: 2,
-          hoverBackgroundColor: isSelected ? '#5a51e5' : '#C5CDD6',
-          hoverBorderColor: isSelected ? '#5a51e5' : '#C5CDD6'
-        }]
-      };
-    }
-    
-    const bucketSize = (max - min) / bucketCount;
-    const buckets = Array(bucketCount).fill(0);
-    const bucketLabels = [];
-    
-    // Create bucket labels with proper formatting based on column type
-    for (let i = 0; i < bucketCount; i++) {
-      const start = min + (i * bucketSize);
-      const end = min + ((i + 1) * bucketSize);
-      
-      let startFormatted, endFormatted;
-      if (column) {
-        startFormatted = formatChartValue(start, column);
-        endFormatted = formatChartValue(end, column);
-      } else {
-        if (bucketSize >= 1) {
-          startFormatted = Math.round(start).toLocaleString();
-          endFormatted = Math.round(end).toLocaleString();
-        } else {
-          startFormatted = start.toFixed(1);
-          endFormatted = end.toFixed(1);
-        }
-      }
-      
-      bucketLabels.push(`${startFormatted} - ${endFormatted}`);
-    }
-    
-    // Distribute values into buckets
-    values.forEach(value => {
-      const bucketIndex = Math.min(Math.floor((value - min) / bucketSize), bucketCount - 1);
-      buckets[bucketIndex]++;
-    });
-    
-    return {
-      labels: bucketLabels,
-      datasets: [{
-        data: buckets,
-        backgroundColor: bucketLabels.map(label => {
-          if (selectedValue === label) return '#635bff';
-          if (selectedValue) return '#F5F6F8';
-          return '#D8DEE4';
-        }),
-        borderColor: bucketLabels.map(label => {
-          if (selectedValue === label) return '#635bff';
-          if (selectedValue) return '#F5F6F8';
-          return '#D8DEE4';
-        }),
-        borderWidth: 1,
-        borderRadius: 2,
-        hoverBackgroundColor: bucketLabels.map(label => {
-          if (selectedValue === label) return '#5a51e5';
-          if (selectedValue) return '#E8EAED';
-          return '#C5CDD6';
-        }),
-        hoverBorderColor: bucketLabels.map(label => {
-          if (selectedValue === label) return '#5a51e5';
-          if (selectedValue) return '#E8EAED';
-          return '#C5CDD6';
-        })
-      }]
-    };
-  };
-
-  const generateDateDistributionData = (values) => {
-    // Placeholder for date distribution
-    return {
-      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-      datasets: [{
-        data: [10, 15, 12, 8],
-        backgroundColor: '#57B2F9',
-        borderColor: '#57B2F9',
-        borderWidth: 1,
-        borderRadius: 2,
-        hoverBackgroundColor: '#4A9FE7',
-        hoverBorderColor: '#4A9FE7'
-      }]
-    };
-  };
-
-  const getChartOptions = useCallback((type, categoryData = null, columnId = null, selectedValue = null, column = null) => {
-    const baseOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        intersect: false,
-        mode: 'point'
-      },
-      onClick: (event, activeElements, chart) => {
-        if (activeElements.length > 0 && columnId) {
-          const activeElement = activeElements[0];
-          const index = activeElement.index;
-          const label = chart.data.labels[index];
-          const value = chart.data.datasets[activeElement.datasetIndex].data[index];
-          
-          // For line charts, use the label; for bar charts, use a range or specific value
-          if (type === 'line') {
-            toggleFilter(columnId, label);
-          } else if (type === 'bar') {
-            // For bar charts, we'll filter by the bucket/range
-            toggleFilter(columnId, label);
-          }
-        }
-      },
-      onHover: (event, activeElements, chart) => {
-        try {
-          // Update mouse position for tooltip with safety checks
-          if (event?.native && typeof event.native.clientX === 'number' && typeof event.native.clientY === 'number') {
-            setMousePosition({ x: event.native.clientX, y: event.native.clientY });
-          }
-          
-          // Hide custom tooltip if no active elements
-          if (!activeElements || activeElements.length === 0) {
-            const chartTooltip = document.getElementById('chart-tooltip');
-            if (chartTooltip) {
-              chartTooltip.style.opacity = '0';
-            }
-          }
-          
-          // Prevent event bubbling to avoid navigation conflicts
-          if (event?.native) {
-            event.native.stopPropagation();
-          }
-        } catch (error) {
-          // Silently handle hover errors to prevent page crashes
-          console.warn('Chart hover error:', error);
-        }
-      },
-      plugins: {
-        legend: { 
-          display: false 
-        },
-        tooltip: {
-          enabled: false // Completely disable Chart.js tooltips
-        }
-      },
-      scales: {
-        x: { 
-          display: false
-        },
-        y: { 
-          display: false
-        }
-      },
-      elements: {
-        point: { 
-          radius: (context) => {
-            if (type === 'line' && selectedValue) {
-              const label = context.chart.data.labels[context.dataIndex];
-              return selectedValue === label ? 6 : 2;
-            }
-            return 2;
-          },
-          hoverRadius: 4,
-          hitRadius: 10,
-          backgroundColor: (context) => {
-            if (type === 'line' && selectedValue) {
-              const label = context.chart.data.labels[context.dataIndex];
-              return selectedValue === label ? '#635bff' : '#57B2F9';
-            }
-            return '#57B2F9';
-          },
-          borderColor: (context) => {
-            if (type === 'line' && selectedValue) {
-              const label = context.chart.data.labels[context.dataIndex];
-              return selectedValue === label ? '#635bff' : '#57B2F9';
-            }
-            return '#57B2F9';
-          }
-        },
-        line: { 
-          borderWidth: 2,
-          tension: 0.4
-        },
-        bar: {
-          borderWidth: 0
-        }
-      }
-    };
-
-    if (type === 'horizontalBar') {
-      return {
-        ...baseOptions,
-        indexAxis: 'y',
-        layout: {
-          padding: {
-            left: 0,
-            right: 0,
-            top: 2,
-            bottom: 2
-          }
-        },
-        plugins: {
-          ...baseOptions.plugins,
-          datalabels: {
-            display: true,
-            anchor: 'start',
-            align: 'start',
-            color: '#333',
-            font: {
-              size: 11,
-              weight: '500'
-            },
-            formatter: (value, context) => {
-              if (categoryData) {
-                const label = context.chart.data.labels[context.dataIndex];
-                return `${label} ${value}`;
-              }
-              return value;
-            },
-            offset: 8
-          }
-        }
-      };
-    }
-
-    return baseOptions;
-  }, [toggleFilter, setMousePosition]);
 
   // Generate reasonable default chart based on data
   const generateDefaultChart = () => {
@@ -2212,6 +1854,33 @@ const ReportDetail = () => {
     };
   };
 
+  const handleAddChart = () => {
+    const chartSuggestion = generateDefaultChart();
+    
+    // Create a more detailed suggestion message
+    let message = `📊 Chart Suggestion for ${getReportData.title}\n\n`;
+    message += `Chart Type: ${chartSuggestion.type.charAt(0).toUpperCase() + chartSuggestion.type.slice(1)}\n`;
+    message += `Title: ${chartSuggestion.title}\n\n`;
+    
+    if (chartSuggestion.xAxis) {
+      message += `X-Axis: ${chartSuggestion.xAxis.label || chartSuggestion.xAxis.id}\n`;
+    }
+    if (chartSuggestion.yAxis) {
+      if (Array.isArray(chartSuggestion.yAxis)) {
+        message += `Y-Axis: ${chartSuggestion.yAxis.map(col => col.label).join(', ')}\n`;
+      } else {
+        message += `Y-Axis: ${chartSuggestion.yAxis.label}\n`;
+      }
+    }
+    
+    message += `\n📝 Description:\n${chartSuggestion.description}\n\n`;
+    message += `This chart would help visualize patterns in your ${getReportData.title.toLowerCase()} data and make insights more actionable.`;
+    
+    // For now, we'll show an alert with the suggestion
+    // In a real implementation, this would open a chart builder modal
+    alert(message);
+  };
+
   // Generate chart data based on the suggestion
   const generateChartData = (suggestion) => {
     const data = sortedData;
@@ -2219,8 +1888,6 @@ const ReportDetail = () => {
     switch (suggestion.type) {
       case 'bar':
         return generateBarChartData(data, suggestion);
-      case 'line':
-        return generateLineChartData(data, suggestion);
       case 'scatter':
         return generateScatterChartData(data, suggestion);
       case 'pie':
@@ -2234,48 +1901,6 @@ const ReportDetail = () => {
     }
   };
 
-  const generateLineChartData = (data, suggestion) => {
-    if (!suggestion.xAxis || !suggestion.yAxis) return null;
-    
-    // Group data by x-axis values (same as bar chart but with line styling)
-    const groupedData = {};
-    data.forEach(row => {
-      const xValue = row[suggestion.xAxis.id];
-      const yValue = row[suggestion.yAxis.id];
-      
-      if (xValue && typeof yValue === 'number' && !isNaN(yValue)) {
-        if (!groupedData[xValue]) {
-          groupedData[xValue] = [];
-        }
-        groupedData[xValue].push(yValue);
-      }
-    });
-    
-    // Calculate averages for each group
-    const labels = Object.keys(groupedData);
-    const values = labels.map(label => {
-      const values = groupedData[label];
-      return values.reduce((sum, val) => sum + val, 0) / values.length;
-    });
-    
-    return {
-      labels,
-      datasets: [{
-        label: suggestion.yAxis.label,
-        data: values,
-        borderColor: '#635bff',
-        backgroundColor: 'rgba(99, 91, 255, 0.1)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#635bff',
-        pointBorderColor: '#635bff',
-        pointRadius: 4,
-        pointHoverRadius: 6
-      }]
-    };
-  };
-
   const generateBarChartData = (data, suggestion) => {
     if (!suggestion.xAxis || !suggestion.yAxis) return null;
     
@@ -2285,7 +1910,7 @@ const ReportDetail = () => {
       const xValue = row[suggestion.xAxis.id];
       const yValue = row[suggestion.yAxis.id];
       
-      if (xValue && typeof yValue === 'number' && !isNaN(yValue)) {
+      if (xValue && typeof yValue === 'number') {
         if (!groupedData[xValue]) {
           groupedData[xValue] = [];
         }
@@ -2321,7 +1946,7 @@ const ReportDetail = () => {
     const scatterData = data.map(row => ({
       x: row[suggestion.xAxis.id],
       y: row[suggestion.yAxis.id]
-    })).filter(point => typeof point.x === 'number' && typeof point.y === 'number' && !isNaN(point.x) && !isNaN(point.y));
+    })).filter(point => typeof point.x === 'number' && typeof point.y === 'number');
     
     return {
       datasets: [{
@@ -2369,7 +1994,7 @@ const ReportDetail = () => {
     if (!suggestion.xAxis) return null;
     
     const values = data.map(row => row[suggestion.xAxis.id])
-      .filter(val => typeof val === 'number' && !isNaN(val));
+      .filter(val => typeof val === 'number');
     
     if (values.length === 0) return null;
     
@@ -2436,8 +2061,7 @@ const ReportDetail = () => {
     if (chartData) {
       setGeneratedChart({
         ...chartSuggestion,
-        data: chartData,
-        timestamp: Date.now()
+        data: chartData
       });
     }
   };
@@ -2445,258 +2069,6 @@ const ReportDetail = () => {
   const handleRemoveChart = () => {
     setGeneratedChart(null);
   };
-
-  const handleChartTypeChange = (newType) => {
-    if (generatedChart) {
-      const updatedSettings = {
-        type: newType,
-        xAxis: generatedChart.xAxis,
-        yAxis: generatedChart.yAxis
-      };
-      
-      updateChartWithSettings(updatedSettings);
-    }
-  };
-
-  const handleAxisChange = (axisType, column) => {
-    if (generatedChart) {
-      const updatedSettings = {
-        type: generatedChart.type,
-        xAxis: axisType === 'x' ? column : generatedChart.xAxis,
-        yAxis: axisType === 'y' ? column : generatedChart.yAxis
-      };
-      
-      updateChartWithSettings(updatedSettings);
-    }
-  };
-
-  // Helper function to update chart with new settings
-  const updateChartWithSettings = (settings) => {
-    if (!generatedChart) return;
-    
-    const updatedSuggestion = {
-      ...generatedChart,
-      type: settings.type,
-      xAxis: settings.xAxis,
-      yAxis: settings.yAxis
-    };
-    
-    // Update the title and description based on new settings
-    if (updatedSuggestion.type === 'pie') {
-      if (updatedSuggestion.xAxis) {
-        updatedSuggestion.title = `Distribution by ${updatedSuggestion.xAxis.label}`;
-        updatedSuggestion.description = `Pie chart showing the distribution by ${updatedSuggestion.xAxis.label.toLowerCase()}`;
-      }
-    } else if (updatedSuggestion.type === 'histogram') {
-      if (updatedSuggestion.xAxis) {
-        updatedSuggestion.title = `${updatedSuggestion.xAxis.label} Distribution`;
-        updatedSuggestion.description = `Histogram showing the distribution of ${updatedSuggestion.xAxis.label.toLowerCase()} values`;
-      }
-    } else if (updatedSuggestion.xAxis && updatedSuggestion.yAxis) {
-      updatedSuggestion.title = `${updatedSuggestion.yAxis.label} by ${updatedSuggestion.xAxis.label}`;
-      updatedSuggestion.description = `${updatedSuggestion.type} chart showing ${updatedSuggestion.yAxis.label.toLowerCase()} broken down by ${updatedSuggestion.xAxis.label.toLowerCase()}`;
-    }
-    
-    const newChartData = generateChartData(updatedSuggestion);
-    
-    if (newChartData) {
-      const updatedChart = {
-        ...updatedSuggestion,
-        data: newChartData,
-        timestamp: Date.now()
-      };
-      
-      setGeneratedChart(updatedChart);
-    }
-  };
-
-  const applyChartSettings = () => {
-    // Since the chart is already updated in real-time, we just need to:
-    // 1. Update the original settings to match current pending settings
-    // 2. Close the settings panel
-    setOriginalChartSettings({
-      type: pendingChartSettings.type,
-      xAxis: pendingChartSettings.xAxis,
-      yAxis: pendingChartSettings.yAxis
-    });
-    
-    setShowChartSettings(false);
-  };
-
-  const cancelChartSettings = () => {
-    // Revert the chart to the original settings
-    if (generatedChart && originalChartSettings.type) {
-      updateChartWithSettings(originalChartSettings);
-      
-      // Reset pending settings to original settings
-      setPendingChartSettings({
-        type: originalChartSettings.type,
-        xAxis: originalChartSettings.xAxis,
-        yAxis: originalChartSettings.yAxis
-      });
-    }
-    
-    setShowChartSettings(false);
-  };
-
-  const removeChart = () => {
-    setGeneratedChart(null);
-    setShowChartSettings(false);
-  };
-
-  // Helper function to create consistent tooltip options for charts with enhanced safety checks
-  const getChartTooltipOptions = () => ({
-    enabled: false, // Disable default tooltip since we're using external
-    external: function(context) {
-      try {
-        // Get the tooltip element
-        const {chart, tooltip} = context;
-        
-        // Safety check for context
-        if (!chart || !tooltip) {
-          return;
-        }
-        
-        // Get or create tooltip element
-        let tooltipEl = document.getElementById('chart-tooltip');
-        if (!tooltipEl) {
-          tooltipEl = document.createElement('div');
-          tooltipEl.id = 'chart-tooltip';
-          tooltipEl.style.position = 'absolute';
-          tooltipEl.style.pointerEvents = 'none';
-          tooltipEl.style.zIndex = '1000';
-          tooltipEl.style.transition = 'all 0.1s ease';
-          document.body.appendChild(tooltipEl);
-        }
-        
-        // Hide tooltip if no data points or opacity is 0
-        if (tooltip.opacity === 0 || !tooltip.body) {
-          tooltipEl.style.opacity = '0';
-          return;
-        }
-        
-        // Set tooltip styling
-        tooltipEl.style.backgroundColor = 'white';
-        tooltipEl.style.color = '#333';
-        tooltipEl.style.border = '1px solid #e3e8ee';
-        tooltipEl.style.borderRadius = '6px';
-        tooltipEl.style.padding = '10px 14px';
-        tooltipEl.style.fontSize = '12px';
-        tooltipEl.style.fontWeight = '500';
-        tooltipEl.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.15)';
-        tooltipEl.style.whiteSpace = 'nowrap';
-        
-        // Set tooltip content with safety checks
-        const titleLines = tooltip.title || [];
-        const bodyLines = tooltip.body ? tooltip.body.map(b => b.lines) : [];
-        
-        let innerHtml = '';
-        
-        
-        // Add title
-        if (titleLines.length > 0 && titleLines[0]) {
-          innerHtml += `<div style="color: #635bff; font-weight: 600; margin-bottom: 4px;">${titleLines[0]}</div>`;
-        }
-        
-        // Add body
-        bodyLines.forEach(body => {
-          if (body && body.length > 0) {
-            innerHtml += `<div>${body}</div>`;
-          }
-        });
-        
-        // Only set innerHTML if we have content
-        if (innerHtml) {
-          tooltipEl.innerHTML = innerHtml;
-        }
-        
-        // Position tooltip relative to the actual cursor position with safety checks
-        const tooltipWidth = tooltipEl.offsetWidth || 0;
-        const tooltipHeight = tooltipEl.offsetHeight || 0;
-        
-        // Use the stored mouse position with fallback
-        const mouseX = mousePosition.x || 0;
-        const mouseY = mousePosition.y || 0;
-        
-        // Position tooltip 20px above the cursor, centered horizontally
-        let tooltipX = mouseX - (tooltipWidth / 2);
-        let tooltipY = mouseY - tooltipHeight - 20;
-        
-        // Keep tooltip within viewport bounds
-        const viewportWidth = window.innerWidth || 1000;
-        const viewportHeight = window.innerHeight || 800;
-        
-        // Adjust horizontal position if tooltip would go off screen
-        if (tooltipX < 10) {
-          tooltipX = 10;
-        } else if (tooltipX + tooltipWidth > viewportWidth - 10) {
-          tooltipX = viewportWidth - tooltipWidth - 10;
-        }
-        
-        // Adjust vertical position if tooltip would go off screen
-        if (tooltipY < 10) {
-          // If there's no room above, position below the cursor
-          tooltipY = mouseY + 20;
-        }
-        
-        // Apply position with safety checks
-        if (tooltipEl && typeof tooltipX === 'number' && typeof tooltipY === 'number') {
-          tooltipEl.style.left = `${tooltipX}px`;
-          tooltipEl.style.top = `${tooltipY}px`;
-          tooltipEl.style.opacity = '1';
-        }
-      } catch (error) {
-        // Silently handle tooltip errors to prevent page crashes
-        console.warn('Chart tooltip error:', error);
-        // Hide tooltip on error
-        const tooltipEl = document.getElementById('chart-tooltip');
-        if (tooltipEl) {
-          tooltipEl.style.opacity = '0';
-        }
-      }
-    },
-    callbacks: {
-      title: function(context) {
-        try {
-          return context[0]?.label || '';
-        } catch (error) {
-          console.warn('Tooltip title error:', error);
-          return '';
-        }
-      },
-      label: function(context) {
-        try {
-          const value = context.parsed?.y || context.parsed || 0;
-          
-          // Format value based on chart type and axis
-          if (generatedChart && generatedChart.yAxis) {
-            return formatChartValue(value, generatedChart.yAxis);
-          }
-          
-          return value.toLocaleString();
-        } catch (error) {
-          console.warn('Tooltip label error:', error);
-          return '';
-        }
-      }
-    }
-  });
-
-  // Early return with loading state if data is not ready - MOVED AFTER ALL HOOKS
-  if (!getReportData || !Array.isArray(getReportData.columns)) {
-    return (
-      <Container
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <ReportDetailContainer>
-          <div>Loading...</div>
-        </ReportDetailContainer>
-      </Container>
-    );
-  }
 
   return (
     <Container
@@ -2708,14 +2080,14 @@ const ReportDetail = () => {
       <ReportDetailContainer>
         <BreadcrumbNav>
           <Breadcrumbs>
-            <BreadcrumbLink to="/data-studio">Analytics</BreadcrumbLink>
+            <BreadcrumbLink to="/reports">Reports</BreadcrumbLink>
           </Breadcrumbs>
         </BreadcrumbNav>
         
         <ReportDetailHeader>
           <ReportDetailTitle>{getReportData.title}</ReportDetailTitle>
           <HeaderActions>
-            <Button onClick={() => setIsShareModalOpen(true)}>
+            <Button>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M4 12V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M16 6L12 2L8 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -2723,12 +2095,13 @@ const ReportDetail = () => {
               </svg>
               Share
             </Button>
-            <EditButton to={`/data-studio/${params.reportId}/edit`}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1.25 11.5V10C1.25 9.58579 1.58579 9.25 2 9.25C2.41421 9.25 2.75 9.58579 2.75 10V11.5C2.75 12.4665 3.5335 13.25 4.5 13.25H6C6.41421 13.25 6.75 13.5858 6.75 14C6.75 14.4142 6.41421 14.75 6 14.75H4.5C2.70507 14.75 1.25 13.2949 1.25 11.5ZM13.25 11.5V10C13.25 9.58579 13.5858 9.25 14 9.25C14.4142 9.25 14.75 9.58579 14.75 10V11.5C14.75 13.2949 13.2949 14.75 11.5 14.75H10C9.58579 14.75 9.25 14.4142 9.25 14C9.25 13.5858 9.58579 13.25 10 13.25H11.5C12.4665 13.25 13.25 12.4665 13.25 11.5ZM1.25 6V4.5C1.25 2.70507 2.70507 1.25 4.5 1.25H6C6.41421 1.25 6.75 1.58579 6.75 2C6.75 2.41421 6.41421 2.75 6 2.75H4.5C3.5335 2.75 2.75 3.5335 2.75 4.5V6C2.75 6.41421 2.41421 6.75 2 6.75C1.58579 6.75 1.25 6.41421 1.25 6ZM13.25 6V4.5C13.25 3.5335 12.4665 2.75 11.5 2.75H10C9.58579 2.75 9.25 2.41421 9.25 2C9.25 1.58579 9.58579 1.25 10 1.25H11.5C13.2949 1.25 14.75 2.70507 14.75 4.5V6C14.75 6.41421 14.4142 6.75 14 6.75C13.5858 6.75 13.25 6.41421 13.25 6Z" fill="currentColor"/>
+            <Button primary>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              Open in explorer
-            </EditButton>
+              Edit report
+            </Button>
             <MoreButton>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
@@ -2747,6 +2120,16 @@ const ReportDetail = () => {
           {getReportData.trend > 0 ? '+' : ''}{getReportData.trend}% compared to previous period
         </MetricTrend>
         
+        <ChartModule onClick={handleAddChart}>
+          <ChartModuleIcon>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 3V21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 9L12 6L16 10L20 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </ChartModuleIcon>
+          <ChartModuleText>Add a chart</ChartModuleText>
+        </ChartModule>
+        
         <ControlsContainer>
           <ReportingControls 
             initialPeriod={reportingControls.period}
@@ -2755,300 +2138,8 @@ const ReportDetail = () => {
             onPeriodChange={handlePeriodChange}
             onIntervalChange={handleIntervalChange}
             onComparisonChange={handleComparisonChange}
-            chartType={generatedChart ? generatedChart.type : null}
-            chartSettings={generatedChart ? {
-              type: generatedChart.type,
-              xAxis: generatedChart.xAxis,
-              yAxis: generatedChart.yAxis
-            } : null}
-            availableColumns={getReportData.columns}
-            onChartTypeChange={handleChartTypeChange}
-            onChartAxisChange={handleAxisChange}
-            onRemoveChart={handleRemoveChart}
-            customContent={
-              !generatedChart && (
-                <ChartChip onClick={handleAddChart}>
-                  <ChartIconWrapper>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="10" stroke="#6772e5" strokeWidth="2" />
-                      <path d="M12 8V16M8 12H16" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </ChartIconWrapper>
-                  <ChartChipValue>Chart</ChartChipValue>
-                </ChartChip>
-              )
-            }
           />
         </ControlsContainer>
-        
-        {generatedChart && (
-          <>
-            <ChartSectionContainer>
-              <GeneratedChartWrapper>
-                {generatedChart.type === 'bar' && (
-                  <Bar 
-                    key={`bar-${generatedChart.timestamp || 0}-${generatedChart.type}-${generatedChart.xAxis?.id}-${generatedChart.yAxis?.id}`}
-                    data={generatedChart.data} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      onHover: (event, activeElements, chart) => {
-                        try {
-                          // Update mouse position for tooltip with safety checks
-                          if (event?.native && typeof event.native.clientX === 'number' && typeof event.native.clientY === 'number') {
-                            setMousePosition({ x: event.native.clientX, y: event.native.clientY });
-                          }
-                          
-                          // Hide custom tooltip if no active elements
-                          if (!activeElements || activeElements.length === 0) {
-                            const chartTooltip = document.getElementById('chart-tooltip');
-                            if (chartTooltip) {
-                              chartTooltip.style.opacity = '0';
-                            }
-                          }
-                          
-                          // Prevent event bubbling to avoid navigation conflicts
-                          if (event?.native) {
-                            event.native.stopPropagation();
-                          }
-                        } catch (error) {
-                          // Silently handle hover errors to prevent page crashes
-                          console.warn('Chart hover error:', error);
-                        }
-                      },
-                      plugins: {
-                        legend: {
-                          display: false
-                        },
-                        tooltip: getChartTooltipOptions()
-                      },
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          grid: {
-                            color: '#f0f0f0'
-                          }
-                        },
-                        x: {
-                          grid: {
-                            display: false
-                          }
-                        }
-                      }
-                    }}
-                  />
-                )}
-                {generatedChart.type === 'line' && (
-                  <Line 
-                    key={`line-${generatedChart.timestamp || 0}-${generatedChart.type}-${generatedChart.xAxis?.id}-${generatedChart.yAxis?.id}`}
-                    data={generatedChart.data} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      onHover: (event, activeElements, chart) => {
-                        try {
-                          // Update mouse position for tooltip with safety checks
-                          if (event?.native && typeof event.native.clientX === 'number' && typeof event.native.clientY === 'number') {
-                            setMousePosition({ x: event.native.clientX, y: event.native.clientY });
-                          }
-                          
-                          // Hide custom tooltip if no active elements
-                          if (!activeElements || activeElements.length === 0) {
-                            const chartTooltip = document.getElementById('chart-tooltip');
-                            if (chartTooltip) {
-                              chartTooltip.style.opacity = '0';
-                            }
-                          }
-                          
-                          // Prevent event bubbling to avoid navigation conflicts
-                          if (event?.native) {
-                            event.native.stopPropagation();
-                          }
-                        } catch (error) {
-                          // Silently handle hover errors to prevent page crashes
-                          console.warn('Chart hover error:', error);
-                        }
-                      },
-                      plugins: {
-                        legend: {
-                          display: false
-                        },
-                        tooltip: getChartTooltipOptions()
-                      },
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          grid: {
-                            color: '#f0f0f0'
-                          }
-                        },
-                        x: {
-                          grid: {
-                            color: '#f0f0f0'
-                          }
-                        }
-                      },
-                      elements: {
-                        line: {
-                          tension: 0.4
-                        }
-                      }
-                    }}
-                  />
-                )}
-                {generatedChart.type === 'pie' && (
-                  <Pie 
-                    key={`pie-${generatedChart.timestamp || 0}-${generatedChart.type}-${generatedChart.xAxis?.id}`}
-                    data={generatedChart.data} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      onHover: (event, activeElements, chart) => {
-                        try {
-                          // Update mouse position for tooltip with safety checks
-                          if (event?.native && typeof event.native.clientX === 'number' && typeof event.native.clientY === 'number') {
-                            setMousePosition({ x: event.native.clientX, y: event.native.clientY });
-                          }
-                          
-                          // Hide custom tooltip if no active elements
-                          if (!activeElements || activeElements.length === 0) {
-                            const chartTooltip = document.getElementById('chart-tooltip');
-                            if (chartTooltip) {
-                              chartTooltip.style.opacity = '0';
-                            }
-                          }
-                          
-                          // Prevent event bubbling to avoid navigation conflicts
-                          if (event?.native) {
-                            event.native.stopPropagation();
-                          }
-                        } catch (error) {
-                          // Silently handle hover errors to prevent page crashes
-                          console.warn('Chart hover error:', error);
-                        }
-                      },
-                      plugins: {
-                        legend: {
-                          display: true,
-                          position: 'right'
-                        },
-                        tooltip: getChartTooltipOptions()
-                      }
-                    }}
-                  />
-                )}
-              </GeneratedChartWrapper>
-            </ChartSectionContainer>
-            
-            <SummaryTableSection>
-              <ResultsHeader>
-                <SectionTitle>Summary</SectionTitle>
-                <ExportButton>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Export
-                </ExportButton>
-              </ResultsHeader>
-              
-              {generatedChart.type === 'pie' ? (
-                <SummaryTableContainer>
-                  <SummaryTable>
-                    <thead>
-                      <tr>
-                        <SummaryTableHeaderCell className="first-column">Category</SummaryTableHeaderCell>
-                        <SummaryTableHeaderCell>Count</SummaryTableHeaderCell>
-                        <SummaryTableHeaderCell>Percentage</SummaryTableHeaderCell>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {generatedChart.data?.labels && Array.isArray(generatedChart.data.labels) && generatedChart.data.labels.map((label, index) => {
-                        const value = generatedChart.data?.datasets?.[0]?.data?.[index];
-                        const dataArray = generatedChart.data?.datasets?.[0]?.data;
-                        if (!dataArray || !Array.isArray(dataArray) || value === undefined) {
-                          return null;
-                        }
-                        const total = dataArray.reduce((sum, val) => sum + val, 0);
-                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-                        return (
-                          <tr key={index}>
-                            <SummaryTableCell className="header first-column">
-                              <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <div 
-                                  style={{ 
-                                    width: '12px', 
-                                    height: '12px', 
-                                    backgroundColor: generatedChart.data?.datasets?.[0]?.backgroundColor?.[index] || '#ccc', 
-                                    borderRadius: '3px',
-                                    marginRight: '8px'
-                                  }} 
-                                />
-                                {label}
-                              </div>
-                            </SummaryTableCell>
-                            <SummaryTableCell 
-                              className="value-cell"
-                              isValue={true}
-                              value={value}
-                            >
-                              {value}
-                            </SummaryTableCell>
-                            <SummaryTableCell 
-                              className="value-cell"
-                              isValue={true}
-                              value={percentage}
-                            >
-                              {percentage}%
-                            </SummaryTableCell>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </SummaryTable>
-                </SummaryTableContainer>
-              ) : (
-                <SummaryTableContainer>
-                  <SummaryTable>
-                    <thead>
-                      <tr>
-                        <SummaryTableHeaderCell className="first-column">
-                          {generatedChart.xAxis?.label || 'Category'}
-                        </SummaryTableHeaderCell>
-                        {generatedChart.data?.labels && Array.isArray(generatedChart.data.labels) && generatedChart.data.labels.map((label, index) => (
-                          <SummaryTableHeaderCell key={index}>
-                            {label}
-                          </SummaryTableHeaderCell>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <SummaryTableCell className="header first-column">
-                          {generatedChart.yAxis?.label || 'Value'}
-                        </SummaryTableCell>
-                        {generatedChart.data?.datasets?.[0]?.data && Array.isArray(generatedChart.data.datasets[0].data) && generatedChart.data.datasets[0].data.map((value, index) => (
-                          <SummaryTableCell 
-                            key={index} 
-                            className="value-cell"
-                            isValue={true}
-                            value={value}
-                          >
-                            {generatedChart.yAxis ? 
-                              formatChartValue(value, generatedChart.yAxis) : 
-                              formatChartValue(value, { dataType: 'number' })
-                            }
-                          </SummaryTableCell>
-                        ))}
-                      </tr>
-                    </tbody>
-                  </SummaryTable>
-                </SummaryTableContainer>
-              )}
-            </SummaryTableSection>
-          </>
-        )}
         
         <ResultsSection>
           <ResultsHeader>
@@ -3067,7 +2158,7 @@ const ReportDetail = () => {
             <StyledTable>
               <thead>
                 <tr>
-                  {getReportData.columns && getReportData.columns.map((column) => (
+                  {getReportData.columns.map((column) => (
                     <th key={column.id} onClick={() => handleSort(column.id)}>
                       <HeaderCellContent>
                         <HeaderLabel>
@@ -3109,7 +2200,7 @@ const ReportDetail = () => {
                   ))}
                 </tr>
                 <SummaryRow>
-                  {getReportData.columns && getReportData.columns.map((column) => {
+                  {getReportData.columns.map((column) => {
                     const analysis = analyzeColumnData(customerData, column, sortedData);
                     return (
                       <SummaryCell key={`summary-${column.id}`}>
@@ -3147,17 +2238,17 @@ const ReportDetail = () => {
                 </SummaryRow>
               </thead>
               <tbody>
-                {currentData && Array.isArray(currentData) && currentData.map((customer) => (
+                {currentData.map((customer) => (
                   <tr 
-                    key={customer?.id || Math.random()}
-                    onClick={() => customer && navigate(`/users/${customer.id}/${params.reportId}`, { 
+                    key={customer.id}
+                    onClick={() => navigate(`/users/${customer.id}/${params.reportId}`, { 
                       state: { customerData: customer, reportTitle: getReportData.title } 
                     })}
                     style={{ cursor: 'pointer' }}
                   >
-                    {getReportData.columns && getReportData.columns.map((column) => (
+                    {getReportData.columns.map((column) => (
                       <td key={column.id}>
-                        {customer ? formatCellValue(customer[column.id], column) : '-'}
+                        {formatCellValue(customer[column.id], column)}
                       </td>
                     ))}
                   </tr>
@@ -3168,7 +2259,7 @@ const ReportDetail = () => {
           
           <Pagination>
             <PageInfo>
-              Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, sortedData?.length || 0)} of {sortedData?.length || 0} results
+              Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, sortedData.length)} of {sortedData.length} results
             </PageInfo>
             <PageNav>
               <PageButton 
@@ -3178,7 +2269,7 @@ const ReportDetail = () => {
                 Previous
               </PageButton>
               
-              {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+              {[...Array(Math.min(5, totalPages))].map((_, index) => {
                 let pageNumber;
                 
                 if (totalPages <= 5) {
@@ -3215,12 +2306,6 @@ const ReportDetail = () => {
           </Pagination>
         </ResultsSection>
       </ReportDetailContainer>
-      
-      <ShareModal 
-        isOpen={isShareModalOpen} 
-        onClose={() => setIsShareModalOpen(false)}
-        title={getReportData.title}
-      />
     </Container>
   );
 };

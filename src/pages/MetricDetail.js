@@ -3,8 +3,8 @@ import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import ShareModal from '../components/ShareModal';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line, Bar, Pie } from 'react-chartjs-2';
 import LineChart from '../components/LineChart';
 import ReportingControls from '../components/ReportingControls';
 import { PERIODS } from '../data/companyData';
@@ -14,7 +14,7 @@ import MeterChart from '../components/MeterChart';
 import StackedBarChart from '../components/StackedBarChart';
 
 // Register Chart.js components including Tooltip
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const Container = styled(motion.div)`
   width: 100%;
@@ -115,11 +115,11 @@ const ShareButton = styled.button`
 `;
 
 const EditButton = styled(Link)`
-  background-color: #635bff;
-  color: white;
-  border: none;
+  background-color: white;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -129,12 +129,13 @@ const EditButton = styled(Link)`
   gap: 10px;
   
   &:hover {
-    background-color: #5147e5;
+    background-color: #f7f9fc;
+    text-decoration: none;
   }
   
   svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 `;
 
@@ -350,6 +351,35 @@ const PageButton = styled.button`
 
 const ControlsContainer = styled.div`
   margin-bottom: 24px;
+`;
+
+// Add chart chip styled components (similar to ReportDetail)
+const ChartChip = styled.div`
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  background-color: transparent;
+  border-radius: 14px;
+  border: 1px dashed #e3e8ee;
+  cursor: pointer;
+  position: relative;
+  
+  &:hover {
+    border-color: #d7dfe8;
+  }
+`;
+
+const ChartChipValue = styled.span`
+  color: #6772e5;
+  font-weight: 600;
+  font-size: 12px;
+`;
+
+const ChartIconWrapper = styled.span`
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
 `;
 
 const SummaryTableSection = styled.div`
@@ -1267,17 +1297,27 @@ const MetricDetail = () => {
         { id: 'unitsUsed', label: 'Units used', dataType: 'number' },
         { id: 'overageUnits', label: 'Overage units', dataType: 'number' },
         { id: 'overageRate', label: 'Overage rate', dataType: 'number' },
-        { id: 'amount', label: 'Overage revenue', dataType: 'number' }
+        { id: 'amount', label: 'Overage revenue', dataType: 'number', isCurrency: true },
+        // Additional chartable columns for more Y-axis options
+        { id: 'customerCount', label: 'Customer count', dataType: 'number' },
+        { id: 'transactionVolume', label: 'Transaction volume', dataType: 'number' },
+        { id: 'averageOverageRate', label: 'Average overage rate', dataType: 'number', isCurrency: true }
       ];
     } else {
       return [
         { id: 'date', label: 'Date', dataType: 'date' },
-        { id: 'amount', label: 'Amount', dataType: 'number' },
+        { id: 'amount', label: baseMetric.title, dataType: 'number', isCurrency: baseMetric.isCurrency },
         { id: 'customer', label: 'Customer', dataType: 'string' },
-        { id: 'status', label: 'Status', dataType: 'category' }
+        { id: 'status', label: 'Status', dataType: 'category' },
+        // Additional chartable columns for more Y-axis options
+        { id: 'customerCount', label: 'Customer count', dataType: 'number' },
+        { id: 'transactionCount', label: 'Transaction count', dataType: 'number' },
+        { id: 'averageTransactionValue', label: 'Average transaction value', dataType: 'number', isCurrency: baseMetric.isCurrency },
+        { id: 'successRate', label: 'Success rate', dataType: 'number', isPercentage: true },
+        { id: 'refundRate', label: 'Refund rate', dataType: 'number', isPercentage: true }
       ];
     }
-  }, [baseMetric.id]);
+  }, [baseMetric.id, baseMetric.title, baseMetric.isCurrency]);
 
   // Analyze column data for charts
   const analyzeColumnDataForChart = useCallback((data, column) => {
@@ -1375,7 +1415,9 @@ const MetricDetail = () => {
         let medianText = '';
         if (column.id === 'amount' || column.id.includes('revenue')) {
           medianText = `median $${median.toFixed(2)}`;
-        } else if (column.id.includes('rate')) {
+        } else if (column.isPercentage || column.id.includes('Rate')) {
+          medianText = `median ${median.toFixed(1)}%`;
+        } else if (column.id.includes('rate') && !column.isPercentage) {
           medianText = `median $${median.toFixed(3)}`;
         } else {
           medianText = `median ${Math.round(median).toLocaleString()}`;
@@ -1429,6 +1471,258 @@ const MetricDetail = () => {
     filters: [] // Add filters array to store active filters
   });
   
+  // Chart state management - initialize with the current chart configuration matching metric cards
+  const [generatedChart, setGeneratedChart] = useState(() => {
+    // Don't initialize chart settings for meter charts since they use a different visualization
+    if (location.state?.metric?.chartType === 'meter' || 
+        baseMetric.id === 'payments-status' || 
+        baseMetric.id === 'invoices-status') {
+      return null;
+    }
+    
+    // For regular metrics, determine the appropriate chart type
+    let chartType = 'line'; // Default to line charts for most metrics
+    
+    // Use specific chart types for certain metrics
+    if (baseMetric.id.includes('rate') || baseMetric.unit === 'percentage') {
+      chartType = 'line'; // Rates and percentages work well as line charts
+    } else if (baseMetric.id === 'new-customers' || baseMetric.id === 'active-subscribers') {
+      chartType = 'bar'; // Customer counts might look better as bar charts
+    } else if (location.state?.metric?.chartType) {
+      chartType = location.state.metric.chartType; // Use passed chart type if available
+    }
+    
+    // Set up the axes based on the metric type
+    let xAxis, yAxis;
+    
+    if (baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue') {
+      // For overage revenue metrics
+      xAxis = { id: 'date', label: 'Date', dataType: 'date' };
+      yAxis = { id: 'amount', label: 'Overage revenue', dataType: 'number', isCurrency: true };
+    } else {
+      // For other metrics like gross volume
+      xAxis = { id: 'date', label: 'Date', dataType: 'date' };
+      yAxis = { 
+        id: 'amount', 
+        label: baseMetric.title, 
+        dataType: 'number',
+        isCurrency: baseMetric.isCurrency,
+        isPercentage: baseMetric.unit === 'percentage'
+      };
+    }
+    
+    const initialChart = {
+      type: chartType,
+      xAxis: xAxis,
+      yAxis: yAxis,
+      title: `${yAxis.label} by ${xAxis.label}`,
+      description: `${chartType} chart showing ${yAxis.label.toLowerCase()} over time`,
+      data: null, // Will be populated by chart data generation
+      timestamp: Date.now()
+    };
+    
+    return initialChart;
+  });
+  
+  // Add state to track when chart needs to update
+  const [chartVersion, setChartVersion] = useState(0);
+  
+  // Chart type change handler
+  const handleChartTypeChange = useCallback((newType) => {
+    if (generatedChart) {
+      setGeneratedChart(prev => {
+        const updated = { 
+          ...prev, 
+          type: newType,
+          timestamp: Date.now()
+        };
+        return updated;
+      });
+      setChartVersion(prev => prev + 1); // Force chart refresh
+    }
+  }, [generatedChart]);
+  
+  // Chart axis change handler
+  const handleChartAxisChange = useCallback((axisType, column) => {
+    if (generatedChart && column) {
+      setGeneratedChart(prev => {
+        const updated = {
+          ...prev,
+          [axisType + 'Axis']: column,
+          title: axisType === 'y' ? `${column.label} by ${prev.xAxis.label}` : `${prev.yAxis.label} by ${column.label}`,
+          timestamp: Date.now()
+        };
+        return updated;
+      });
+      setChartVersion(prev => prev + 1); // Force chart refresh
+    }
+  }, [generatedChart]);
+  
+  // Remove chart handler
+  const handleRemoveChart = useCallback(() => {
+    setGeneratedChart(null);
+    setChartVersion(prev => prev + 1);
+  }, []);
+  
+  // Add chart handler (similar to ReportDetail)
+  const handleAddChart = useCallback(() => {
+    // Create a default chart configuration
+    const availableColumns = getColumnDefinitions();
+    const numericColumn = availableColumns.find(col => col.dataType === 'number' || col.isCurrency || col.isPercentage) || 
+                         { id: 'amount', label: baseMetric.title, dataType: 'number', isCurrency: baseMetric.isCurrency };
+    
+    const defaultChart = {
+      type: 'line',
+      xAxis: { id: 'date', label: 'Date', dataType: 'date' },
+      yAxis: numericColumn,
+      title: `${numericColumn.label} by Date`,
+      description: `Line chart showing ${numericColumn.label.toLowerCase()} over time`,
+      data: null,
+      timestamp: Date.now()
+    };
+    
+    setGeneratedChart(defaultChart);
+    setChartVersion(prev => prev + 1);
+  }, [baseMetric, getColumnDefinitions]);
+  
+  // Generate chart data that responds to chart settings changes
+  const generateChartDataForSettings = useCallback((chartSettings) => {
+    if (!chartSettings) return null;
+    
+    try {
+      // Get the exact metric values from standardizedMetrics for consistency
+      const standardizedMetric = standardizedMetrics[baseMetric.id];
+      if (!standardizedMetric) {
+        throw new Error(`No standardized metric found for ${baseMetric.id}`);
+      }
+      
+      // Get data for chart visualization
+      const metricIdForData = baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue' 
+        ? 'overagerevenue' 
+        : baseMetric.id.replace(/-/g, '');
+      
+      const metricData = getMetricChartData(metricIdForData, reportingControls.period, reportingControls.interval);
+      
+      // Use the metric data directly - plan filtering is handled by MetricsContext
+      let filteredCurrentData = [...metricData.currentData];
+      let filteredPreviousData = [...metricData.previousData];
+      
+      // Apply Developer plan filter if it exists
+      if (reportingControls.filters.includes('developer-plan')) {
+        // For demonstration, show only 40% of the original data when filtered to Developer plan
+        filteredCurrentData = metricData.currentData.map(value => value * 0.4);
+        filteredPreviousData = metricData.previousData.map(value => value * 0.4);
+        
+        // When filtered, show a more dramatic growth in the last intervals
+        if (filteredCurrentData.length >= 2) {
+          // Increase the last 2 data points by a larger percentage to show the anomaly is more pronounced in Developer plan
+          filteredCurrentData[filteredCurrentData.length - 2] *= 1.3;
+          filteredCurrentData[filteredCurrentData.length - 1] *= 1.5;
+        }
+      }
+      
+      // Handle different Y-axis selections
+      let dataToUse = filteredCurrentData;
+      let previousDataToUse = filteredPreviousData;
+      
+      // If the Y-axis is different from the default 'amount', we might need to transform the data
+      if (chartSettings.yAxis && chartSettings.yAxis.id !== 'amount') {
+        // For demonstration, we'll simulate different data transformations
+        switch (chartSettings.yAxis.id) {
+          case 'customer':
+            // For customer data, show count of unique customers per time period
+            dataToUse = metricData.currentData.map((_, index) => Math.floor(Math.random() * 50) + 10 + index * 2);
+            previousDataToUse = metricData.previousData.map((_, index) => Math.floor(Math.random() * 40) + 8 + index * 1.5);
+            break;
+          case 'customerCount':
+            // Show customer count growth over time
+            dataToUse = metricData.currentData.map((_, index) => Math.floor(Math.random() * 30) + 20 + index * 3);
+            previousDataToUse = metricData.previousData.map((_, index) => Math.floor(Math.random() * 25) + 15 + index * 2);
+            break;
+          case 'transactionCount':
+            // Show transaction count variations
+            dataToUse = metricData.currentData.map((_, index) => Math.floor(Math.random() * 100) + 50 + index * 10);
+            previousDataToUse = metricData.previousData.map((_, index) => Math.floor(Math.random() * 80) + 40 + index * 8);
+            break;
+          case 'transactionVolume':
+            // Show transaction volume growth
+            dataToUse = metricData.currentData.map((_, index) => Math.floor(Math.random() * 200) + 100 + index * 15);
+            previousDataToUse = metricData.previousData.map((_, index) => Math.floor(Math.random() * 150) + 80 + index * 12);
+            break;
+          case 'averageTransactionValue':
+            // Show average transaction value trends
+            dataToUse = metricData.currentData.map(() => Math.floor(Math.random() * 50) + 75); // $75-125 range
+            previousDataToUse = metricData.previousData.map(() => Math.floor(Math.random() * 40) + 65); // $65-105 range
+            break;
+          case 'successRate':
+            // Show success rate as percentage (85-98%)
+            dataToUse = metricData.currentData.map(() => Math.floor(Math.random() * 13) + 85);
+            previousDataToUse = metricData.previousData.map(() => Math.floor(Math.random() * 10) + 82);
+            break;
+          case 'refundRate':
+            // Show refund rate as percentage (1-8%)
+            dataToUse = metricData.currentData.map(() => Math.floor(Math.random() * 7) + 1);
+            previousDataToUse = metricData.previousData.map(() => Math.floor(Math.random() * 6) + 2);
+            break;
+          case 'averageOverageRate':
+            // Show average overage rate for overage revenue metrics
+            dataToUse = metricData.currentData.map(() => (Math.random() * 0.002 + 0.0008).toFixed(4)); // $0.0008-0.0028 range
+            previousDataToUse = metricData.previousData.map(() => (Math.random() * 0.0015 + 0.0006).toFixed(4)); // $0.0006-0.0021 range
+            break;
+          case 'status':
+            // For status data, show success rate as percentage
+            dataToUse = metricData.currentData.map(() => Math.floor(Math.random() * 10) + 85); // 85-95% success rate
+            previousDataToUse = metricData.previousData.map(() => Math.floor(Math.random() * 10) + 80); // 80-90% success rate
+            break;
+          case 'date':
+            // For date as Y-axis (unusual but possible), show days since start
+            dataToUse = metricData.currentData.map((_, index) => index + 1);
+            previousDataToUse = metricData.previousData.map((_, index) => index + 1);
+            break;
+          default:
+            // Use the original data
+            break;
+        }
+      }
+      
+      // Format for chart component
+      const chartData = {
+        labels: metricData.labels,
+        datasets: [
+          {
+            label: chartSettings.yAxis.label,
+            data: dataToUse,
+            borderColor: '#635bff',
+            backgroundColor: chartSettings.type === 'bar' ? '#635bff' : 'transparent',
+            tension: chartSettings.type === 'line' ? 0.4 : 0,
+            pointRadius: reportingControls.interval === 'monthly' ? 3 : 0,
+            borderWidth: 2,
+            fill: false
+          }
+        ]
+      };
+      
+      // Only add comparison data if it's enabled
+      if (reportingControls.comparison !== 'no-comparison' && previousDataToUse.some(val => val !== null)) {
+        chartData.datasets.push({
+          label: 'Previous period',
+          data: previousDataToUse,
+          borderColor: 'rgba(120, 120, 120, 0.6)',
+          backgroundColor: chartSettings.type === 'bar' ? 'rgba(120, 120, 120, 0.6)' : 'transparent',
+          tension: chartSettings.type === 'line' ? 0.4 : 0,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          borderDash: chartSettings.type === 'line' ? [4, 4] : undefined
+        });
+      }
+      
+      return chartData;
+    } catch (error) {
+      console.error("Error generating chart data for settings:", error);
+      return { labels: [], datasets: [] };
+    }
+  }, [baseMetric, reportingControls, standardizedMetrics, getMetricChartData]);
+  
   // Generate chart data only once with useMemo to prevent recomputation on each render
   const { chartData, metricValuesData } = useMemo(() => {
     try {
@@ -1455,75 +1749,67 @@ const MetricDetail = () => {
         };
       }
       
-      // Get data for chart visualization
-      // Don't replace hyphens for overage revenue ID to ensure it works correctly
-      const metricIdForData = baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue' 
-        ? 'overagerevenue' 
-        : baseMetric.id.replace(/-/g, '');
-      
-      const metricData = getMetricChartData(metricIdForData, reportingControls.period, reportingControls.interval);
-      
-      // Use the metric data directly - plan filtering is handled by MetricsContext
-      let filteredCurrentData = [...metricData.currentData];
-      let filteredPreviousData = [...metricData.previousData];
-      
-      // Apply Developer plan filter if it exists
-      if (reportingControls.filters.includes('developer-plan')) {
-        // For demonstration, show only 40% of the original data when filtered to Developer plan
-        filteredCurrentData = metricData.currentData.map(value => value * 0.4);
-        filteredPreviousData = metricData.previousData.map(value => value * 0.4);
+      // Use the new chart data generation function if we have chart settings
+      let chartData;
+      if (generatedChart) {
+        chartData = generateChartDataForSettings(generatedChart);
+      } else {
+        // Fallback to original data generation for when no chart settings exist
+        const metricIdForData = baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue' 
+          ? 'overagerevenue' 
+          : baseMetric.id.replace(/-/g, '');
         
-        // When filtered, show a more dramatic growth in the last intervals
-        if (filteredCurrentData.length >= 2) {
-          // Increase the last 2 data points by a larger percentage to show the anomaly is more pronounced in Developer plan
-          filteredCurrentData[filteredCurrentData.length - 2] *= 1.3;
-          filteredCurrentData[filteredCurrentData.length - 1] *= 1.5;
+        const metricData = getMetricChartData(metricIdForData, reportingControls.period, reportingControls.interval);
+        
+        // Use the metric data directly - plan filtering is handled by MetricsContext
+        let filteredCurrentData = [...metricData.currentData];
+        let filteredPreviousData = [...metricData.previousData];
+        
+        // Apply Developer plan filter if it exists
+        if (reportingControls.filters.includes('developer-plan')) {
+          filteredCurrentData = metricData.currentData.map(value => value * 0.4);
+          filteredPreviousData = metricData.previousData.map(value => value * 0.4);
+          
+          if (filteredCurrentData.length >= 2) {
+            filteredCurrentData[filteredCurrentData.length - 2] *= 1.3;
+            filteredCurrentData[filteredCurrentData.length - 1] *= 1.5;
+          }
+        }
+        
+        chartData = {
+          labels: metricData.labels,
+          datasets: [
+            {
+              label: baseMetric.title,
+              data: filteredCurrentData,
+              borderColor: '#635bff',
+              backgroundColor: 'transparent',
+              tension: 0.4,
+              pointRadius: reportingControls.interval === 'monthly' ? 3 : 0,
+              borderWidth: 2,
+              fill: false
+            }
+          ]
+        };
+        
+        // Only add comparison data if it's enabled
+        if (reportingControls.comparison !== 'no-comparison' && filteredPreviousData.some(val => val !== null)) {
+          chartData.datasets.push({
+            label: 'Previous period',
+            data: filteredPreviousData,
+            borderColor: 'rgba(120, 120, 120, 0.6)',
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            borderDash: [4, 4]
+          });
         }
       }
       
-      // Format for chart component
-      const chartData = {
-        labels: metricData.labels,
-        datasets: [
-          {
-            label: baseMetric.title,
-            data: filteredCurrentData,
-            borderColor: '#635bff',
-            backgroundColor: 'transparent',
-            tension: 0.4,
-            pointRadius: reportingControls.interval === 'monthly' ? 3 : 0,
-            borderWidth: 2,
-            fill: false
-          }
-        ]
-      };
-      
-      // Only add comparison data if it's enabled
-      if (reportingControls.comparison !== 'no-comparison' && filteredPreviousData.some(val => val !== null)) {
-        chartData.datasets.push({
-          label: 'Previous period',
-          data: filteredPreviousData,
-          borderColor: 'rgba(120, 120, 120, 0.6)',
-          backgroundColor: 'transparent',
-          tension: 0.4,
-          pointRadius: 0,
-          borderWidth: 1.5,
-          borderDash: [4, 4]
-        });
-      }
-      
       // Apply anomaly highlighting if needed
-      if (hasAnomaly()) {
-        return { 
-          chartData: generateAnomalyHighlight(chartData), 
-          metricValuesData: {
-            value: standardizedMetric.isCurrency ? 
-                  standardizedMetric.baseCurrencyValue : 
-                  standardizedMetric.baseNumberValue,
-            trendValue: standardizedMetric.trendValue,
-            trend: standardizedMetric.trend
-          }
-        };
+      if (hasAnomaly() && chartData) {
+        chartData = generateAnomalyHighlight(chartData);
       }
       
       return { 
@@ -1543,7 +1829,7 @@ const MetricDetail = () => {
         metricValuesData: { value: 0, trendValue: 0, trend: 'up' } 
       };
     }
-  }, [baseMetric, reportingControls, hasAnomaly, generateAnomalyHighlight, standardizedMetrics, getMetricChartData]);
+  }, [baseMetric, reportingControls, hasAnomaly, generateAnomalyHighlight, standardizedMetrics, getMetricChartData, generatedChart, chartVersion, generateChartDataForSettings]); // Add dependencies
   
   // Set the latestValues state once from the memoized data
   const [latestValues, setLatestValues] = useState(metricValuesData);
@@ -1817,10 +2103,38 @@ const MetricDetail = () => {
     }
   }, [chartData, baseMetric, reportingControls.comparison, formatCurrency, formatNumber, showTooltip, hideTooltip, handleTableCellHover]);
   
-  // Handle Chart click event - removing the functionality by providing an empty handler
-  const handleChartClick = useCallback((event) => {
-    // Functionality removed to avoid page issues
-  }, []);
+  // Handle Chart click event - properly handle chart interactions without navigation conflicts
+  const handleChartClick = useCallback((event, elements) => {
+    // Only handle click if we have elements and valid event data
+    if (!elements || !elements.length || !event) {
+      return;
+    }
+    
+    try {
+      const element = elements[0];
+      const datasetIndex = element.datasetIndex;
+      const index = element.index;
+      
+      // Get the clicked data point information
+      if (chartData && chartData.datasets && chartData.datasets[datasetIndex]) {
+        const dataset = chartData.datasets[datasetIndex];
+        const label = chartData.labels ? chartData.labels[index] : '';
+        const value = dataset.data[index];
+        
+        // For now, just log the interaction (could be expanded to show details)
+        console.log('Chart clicked:', { label, value, datasetIndex, index });
+        
+        // Prevent event bubbling to avoid navigation conflicts
+        if (event.native) {
+          event.native.stopPropagation();
+          event.native.preventDefault();
+        }
+      }
+    } catch (error) {
+      // Silently handle any errors to prevent page crashes
+      console.warn('Chart click handler error:', error);
+    }
+  }, [chartData]);
   
   // Generate transactions with useMemo to prevent recreation on each render
   const { transactions, currentTransactions, totalPages, indexOfFirstTransaction, indexOfLastTransaction } = useMemo(() => {
@@ -2013,12 +2327,26 @@ const MetricDetail = () => {
         const date = new Date();
         date.setDate(date.getDate() - Math.floor(Math.random() * 30));
         
+        // Generate realistic values for all additional columns
+        const amount = amounts[Math.floor(Math.random() * amounts.length)];
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+        
         transactions.push({
           id: `txn_${Math.random().toString(36).substr(2, 9)}`,
           date: date,
-          amount: `$${amounts[Math.floor(Math.random() * amounts.length)].toFixed(2)}`,
+          amount: `$${amount.toFixed(2)}`,
           customer: customers[Math.floor(Math.random() * customers.length)],
-          status: statuses[Math.floor(Math.random() * statuses.length)]
+          status: status,
+          // Add realistic data for the new chartable columns
+          customerCount: Math.floor(Math.random() * 50) + 10, // 10-60 customers
+          transactionCount: Math.floor(Math.random() * 200) + 50, // 50-250 transactions
+          averageTransactionValue: amount + (Math.random() * 50 - 25), // Vary around the amount
+          successRate: status === 'Succeeded' ? 
+            (Math.random() * 10 + 90) : // 90-100% for successful transactions
+            (Math.random() * 30 + 50),  // 50-80% for others
+          refundRate: status === 'Refunded' ?
+            (Math.random() * 15 + 10) : // 10-25% for refunded
+            (Math.random() * 5 + 1)     // 1-6% for others
         });
       }
       
@@ -2277,6 +2605,44 @@ const MetricDetail = () => {
     return generateMeterSummaryData();
   }, [generateMeterSummaryData]);
 
+  // Update generatedChart with actual data when chartData is available
+  useEffect(() => {
+    if (generatedChart && chartData && chartData.labels && chartData.datasets && !generatedChart.data) {
+      setGeneratedChart(prev => ({
+        ...prev,
+        data: chartData,
+        timestamp: Date.now()
+      }));
+    }
+  }, [chartData, generatedChart]);
+
+  // Format table cell values based on column type
+  const formatTableCellValue = useCallback((value, column) => {
+    if (value === null || value === undefined) return '-';
+    
+    // Handle different column types
+    if (column.isCurrency) {
+      // Format currency values
+      const numValue = typeof value === 'string' ? parseFloat(value.replace(/[$,]/g, '')) : value;
+      return formatCurrency(numValue);
+    } else if (column.isPercentage) {
+      // Format percentage values to 2 decimal places
+      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+      return `${numValue.toFixed(2)}%`;
+    } else if (column.dataType === 'number' && typeof value === 'number') {
+      // Format other numbers to reasonable decimal places
+      if (value >= 1000) {
+        return value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+      } else if (value >= 10) {
+        return value.toFixed(1);
+      } else {
+        return value.toFixed(2);
+      }
+    }
+    
+    return value;
+  }, [formatCurrency]);
+
   return (
     <Container
       initial={{ opacity: 0 }}
@@ -2302,12 +2668,11 @@ const MetricDetail = () => {
               </svg>
               Share
             </ShareButton>
-            <EditButton to={`/metrics/${baseMetric.id}/edit`}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 20H21" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16.5 3.5C16.8978 3.10217 17.4374 2.87868 18 2.87868C18.2786 2.87868 18.5544 2.93355 18.8118 3.04015C19.0692 3.14676 19.303 3.30301 19.5 3.5C19.697 3.69698 19.8532 3.93084 19.9598 4.18821C20.0665 4.44558 20.1213 4.72142 20.1213 5C20.1213 5.27857 20.0665 5.55442 19.9598 5.81179C19.8532 6.06916 19.697 6.30302 19.5 6.5L7 19L3 20L4 16L16.5 3.5Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <EditButton to={`/data-studio/${baseMetric.id}/edit`}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1.25 11.5V10C1.25 9.58579 1.58579 9.25 2 9.25C2.41421 9.25 2.75 9.58579 2.75 10V11.5C2.75 12.4665 3.5335 13.25 4.5 13.25H6C6.41421 13.25 6.75 13.5858 6.75 14C6.75 14.4142 6.41421 14.75 6 14.75H4.5C2.70507 14.75 1.25 13.2949 1.25 11.5ZM13.25 11.5V10C13.25 9.58579 13.5858 9.25 14 9.25C14.4142 9.25 14.75 9.58579 14.75 10V11.5C14.75 13.2949 13.2949 14.75 11.5 14.75H10C9.58579 14.75 9.25 14.4142 9.25 14C9.25 13.5858 9.58579 13.25 10 13.25H11.5C12.4665 13.25 13.25 12.4665 13.25 11.5ZM1.25 6V4.5C1.25 2.70507 2.70507 1.25 4.5 1.25H6C6.41421 1.25 6.75 1.58579 6.75 2C6.75 2.41421 6.41421 2.75 6 2.75H4.5C3.5335 2.75 2.75 3.5335 2.75 4.5V6C2.75 6.41421 2.41421 6.75 2 6.75C1.58579 6.75 1.25 6.41421 1.25 6ZM13.25 6V4.5C13.25 3.5335 12.4665 2.75 11.5 2.75H10C9.58579 2.75 9.25 2.41421 9.25 2C9.25 1.58579 9.58579 1.25 10 1.25H11.5C13.2949 1.25 14.75 2.70507 14.75 4.5V6C14.75 6.41421 14.4142 6.75 14 6.75C13.5858 6.75 13.25 6.41421 13.25 6Z" fill="#635bff"/>
               </svg>
-              Edit metric
+              Open in explorer
             </EditButton>
             <div style={{ position: 'relative' }} ref={moreMenuRef}>
               <MoreButton onClick={() => setShowMoreMenu(!showMoreMenu)}>
@@ -2336,7 +2701,7 @@ const MetricDetail = () => {
                   <DropdownMenuDivider />
                   <DropdownMenuItem>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M21 15C21 15.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     Report an issue
                   </DropdownMenuItem>
@@ -2375,36 +2740,63 @@ const MetricDetail = () => {
               setCurrentPage(1);
             }}
             // Add custom content to be placed in the controls
-            customContent={isMeterChart && meterData && (
-              <FilterChip 
-                ref={statusFilterRef}
-                onClick={() => setStatusFilterOpen(!statusFilterOpen)}
-              >
-                <FilterLabel>Group |</FilterLabel>
-                <FilterValue>{getStatusDisplayString()}</FilterValue>
-                <FilterIcon>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </FilterIcon>
+            // Chart-related props
+            chartType={generatedChart ? generatedChart.type : null}
+            chartSettings={generatedChart}
+            availableColumns={columnDefinitions}
+            onChartTypeChange={handleChartTypeChange}
+            onChartAxisChange={handleChartAxisChange}
+            onRemoveChart={handleRemoveChart}
+            // Pass the current chart configuration
+            currentChart={generatedChart}
+            customContent={(
+              <>
+                {/* Add chart chip when no chart exists and not a meter chart */}
+                {!generatedChart && !isMeterChart && (
+                  <ChartChip onClick={handleAddChart}>
+                    <ChartIconWrapper>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="#6772e5" strokeWidth="2" />
+                        <path d="M12 8V16M8 12H16" stroke="#6772e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </ChartIconWrapper>
+                    <ChartChipValue>Chart</ChartChipValue>
+                  </ChartChip>
+                )}
                 
-                <FilterPopover isOpen={statusFilterOpen}>
-                  <FilterHeader>Filter by Status</FilterHeader>
-                  <CheckboxContainer>
-                    {allPaymentStatuses.map(status => (
-                      <CheckboxItem key={status}>
-                        <input 
-                          type="checkbox" 
-                          checked={pendingStatuses.includes(status)}
-                          onChange={() => handleStatusChange(status)}
-                        />
-                        {status}
-                      </CheckboxItem>
-                    ))}
-                  </CheckboxContainer>
-                  <ApplyButton onClick={applyStatusChanges}>Apply</ApplyButton>
-                </FilterPopover>
-              </FilterChip>
+                {/* Meter chart specific controls */}
+                {isMeterChart && meterData && (
+                  <FilterChip 
+                    ref={statusFilterRef}
+                    onClick={() => setStatusFilterOpen(!statusFilterOpen)}
+                  >
+                    <FilterLabel>Group |</FilterLabel>
+                    <FilterValue>{getStatusDisplayString()}</FilterValue>
+                    <FilterIcon>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </FilterIcon>
+                    
+                    <FilterPopover isOpen={statusFilterOpen}>
+                      <FilterHeader>Filter by Status</FilterHeader>
+                      <CheckboxContainer>
+                        {allPaymentStatuses.map(status => (
+                          <CheckboxItem key={status}>
+                            <input 
+                              type="checkbox" 
+                              checked={pendingStatuses.includes(status)}
+                              onChange={() => handleStatusChange(status)}
+                            />
+                            {status}
+                          </CheckboxItem>
+                        ))}
+                      </CheckboxContainer>
+                      <ApplyButton onClick={applyStatusChanges}>Apply</ApplyButton>
+                    </FilterPopover>
+                  </FilterChip>
+                )}
+              </>
             )}
           />
         </ControlsContainer>
@@ -2420,7 +2812,7 @@ const MetricDetail = () => {
                 />
               </div>
             </div>
-          ) : (
+          ) : generatedChart ? (
             <ChartWrapper 
               id="chart-container"
               onMouseMove={handleChartHover}
@@ -2430,15 +2822,16 @@ const MetricDetail = () => {
               <LineChart 
                 ref={chartInstanceRef}
                 data={chartData} 
-                height={200} /* Adjust this value as well */
-                type={location.state?.metric?.chartType || 'line'}
-                unit={location.state?.metric?.unit || 'currency'}
+                height={200}
+                type={generatedChart.type}
+                unit={generatedChart.yAxis?.isCurrency ? 'currency' : 'number'}
                 showLegend={false} 
                 useMarkers={true}
                 customPlugins={[verticalLinePlugin]}
+                key={`chart-${chartVersion}-${generatedChart.timestamp || 0}`}
               />
             </ChartWrapper>
-          )}
+          ) : null}
           
           {/* Anomaly Breakdown Section */}
           <AnomalyBreakdownContainer hasAnomaly={hasAnomaly()}>
@@ -2487,10 +2880,8 @@ const MetricDetail = () => {
             )}
             
             <AnomalyActionLink style={{ marginTop: '8px' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 4H4V20H20V10" stroke="#635bff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M20 4L10 14" stroke="#635bff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 4H20V8" stroke="#635bff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1.25 11.5V10C1.25 9.58579 1.58579 9.25 2 9.25C2.41421 9.25 2.75 9.58579 2.75 10V11.5C2.75 12.4665 3.5335 13.25 4.5 13.25H6C6.41421 13.25 6.75 13.5858 6.75 14C6.75 14.4142 6.41421 14.75 6 14.75H4.5C2.70507 14.75 1.25 13.2949 1.25 11.5ZM13.25 11.5V10C13.25 9.58579 13.5858 9.25 14 9.25C14.4142 9.25 14.75 9.58579 14.75 10V11.5C14.75 13.2949 13.2949 14.75 11.5 14.75H10C9.58579 14.75 9.25 14.4142 9.25 14C9.25 13.5858 9.58579 13.25 10 13.25H11.5C12.4665 13.25 13.25 12.4665 13.25 11.5ZM1.25 6V4.5C1.25 2.70507 2.70507 1.25 4.5 1.25H6C6.41421 1.25 6.75 1.58579 6.75 2C6.75 2.41421 6.41421 2.75 6 2.75H4.5C3.5335 2.75 2.75 3.5335 2.75 4.5V6C2.75 6.41421 2.41421 6.75 2 6.75C1.58579 6.75 1.25 6.41421 1.25 6ZM13.25 6V4.5C13.25 3.5335 12.4665 2.75 11.5 2.75H10C9.58579 2.75 9.25 2.41421 9.25 2C9.25 1.58579 9.58579 1.25 10 1.25H11.5C13.2949 1.25 14.75 2.70507 14.75 4.5V6C14.75 6.41421 14.4142 6.75 14 6.75C13.5858 6.75 13.25 6.41421 13.25 6Z" fill="#635bff"/>
               </svg>
               Open in data explorer
             </AnomalyActionLink>
@@ -2636,7 +3027,7 @@ const MetricDetail = () => {
                             cursor: 'default'
                           }}
                         >
-                          {formatValue(value)}
+                          {formatTableCellValue(value, { id: 'amount', isCurrency: baseMetric.isCurrency })}
                         </SummaryTableCell>
                       ))}
                     </tr>
@@ -2656,7 +3047,7 @@ const MetricDetail = () => {
                               cursor: 'default'
                             }}
                           >
-                            {formatValue(value)}
+                            {formatTableCellValue(value, { id: 'amount', isCurrency: baseMetric.isCurrency })}
                           </SummaryTableCell>
                         ))}
                       </tr>
@@ -2798,7 +3189,7 @@ const MetricDetail = () => {
                             transaction[column.id].toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) :
                             transaction[column.id]
                         ) : (
-                          transaction[column.id]
+                          formatTableCellValue(transaction[column.id], column)
                         )}
                       </td>
                     ))}

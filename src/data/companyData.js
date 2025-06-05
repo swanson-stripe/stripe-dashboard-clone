@@ -696,18 +696,6 @@ const standardizedMetrics = {
     isCurrency: true,
     hasAnomaly: true
   },
-  'usage-overage-revenue': {
-    id: 'usage-overage-revenue',
-    title: 'Overage revenue',
-    description: 'Revenue from usage exceeding included quotas',
-    baseCurrencyValue: 152593.95,
-    baseNumberValue: 0,
-    trendValue: 14.8,
-    trend: 'up',
-    isCurrency: true,
-    unit: 'currency',
-    hasAnomaly: true
-  },
   'new-customers': {
     id: 'new-customers',
     title: 'New customers',
@@ -744,16 +732,6 @@ const standardizedMetrics = {
     baseCurrencyValue: CURRENT_KEY_METRICS.averageContractValue,
     baseNumberValue: 0,
     trendValue: 1.9,
-    trend: 'up',
-    isCurrency: true,
-    unit: 'currency'
-  },
-  'revenue-per-customer': {
-    id: 'revenue-per-customer',
-    title: 'Revenue per customer',
-    baseCurrencyValue: CURRENT_KEY_METRICS.averageRevenuePerUser,
-    baseNumberValue: 0,
-    trendValue: 1.7,
     trend: 'up',
     isCurrency: true,
     unit: 'currency'
@@ -1071,7 +1049,6 @@ const metricCategories = {
     'mrr',
     'total-revenue',
     'arpu',
-    'revenue-per-customer',
     'average-order',
     'mrr-growth',
     'subscriber-ltv'
@@ -1079,8 +1056,7 @@ const metricCategories = {
   'Usage': [
     'usage-revenue',
     'usage-count',
-    'overage-revenue',
-    'usage-overage-revenue'
+    'overage-revenue'
   ],
   'Payments': [
     'successful-payments',
