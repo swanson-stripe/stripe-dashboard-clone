@@ -1159,121 +1159,184 @@ const MetricEditor = () => {
   };
 
   // Generate context-appropriate data based on the metric/report being edited
+  // This replicates the exact same data generation logic from ReportDetail.js
   const generateContextData = () => {
     if (!currentId) return [];
     
-    // Different data sets based on the context
     if (isEditingReport) {
-      // Report-specific data
-      if (currentId.includes('usage') || currentId.includes('growth')) {
-        // High usage growth report - customer trial data (extended for better visualizations)
-        const trialData = [];
-        const companies = ['ApexCloud', 'SynthCore', 'FunnelPilot', 'Lexio AI', 'InsightLoop', 'BrightNova', 'ComposeAI', 'CloudNova', 'DataSpring', 'OrbitML',
-          'TechFlow', 'CodeCrafter', 'DataVault', 'CloudCore', 'StreamLine', 'DevOps Pro', 'AI Solutions', 'ByteForge', 'CloudSync', 'DataMax'];
-        const plans = ['Starter', 'Pro', 'Developer', 'Enterprise'];
-        const planCounts = { 'Starter': 365, 'Pro': 382, 'Developer': 372, 'Enterprise': 381 };
+      // Use the exact same logic from ReportDetail.js for reports
+      const reportSamples = {
+        'high-usage-growth': { count: 1500, trend: 24.8, isNegative: false },
+        'monthly-sales': { count: 342, trend: 12.3, isNegative: false },
+        'new-subscribers': { count: 89, trend: 15.7, isNegative: false },
+        'weekly-churned': { count: 23, trend: -8.2, isNegative: true },
+        'top-selling': { count: 156, trend: 8.9, isNegative: false },
+        'high-value': { count: 78, trend: 6.4, isNegative: false },
+        'new-products': { count: 234, trend: 18.5, isNegative: false },
+        'mrr-growth': { count: 284, trend: 4.8, isNegative: false },
+        'upsell-opportunities': { count: 167, trend: 11.2, isNegative: false },
+        'new-free-trials': { count: 413, trend: 22.1, isNegative: false },
+        'revenue-composition': { count: 892, trend: 9.6, isNegative: false }
+      };
+
+      const count = reportSamples[currentId]?.count || 413;
+      
+      const generateCustomer = (id) => ({
+        id,
+        name: `Customer ${id}`,
+        current_mrr: 100 + Math.floor(Math.random() * 600),
+        projected_ltv: 3000 + Math.floor(Math.random() * 15000),
+        product: ['Starter', 'Pro', 'Developer', 'Enterprise'][Math.floor(Math.random() * 4)],
+        overage_revenue: 40 + Math.floor(Math.random() * 180),
+        usage_growth: Math.floor(Math.random() * 100) - 50,
+        included_units: 500000 + Math.floor(Math.random() * 1500000),
+        trial_plan: ['Starter', 'Pro', 'Developer', 'Enterprise'][Math.floor(Math.random() * 4)],
+        trial_units: 500000,
+        potential_value: 3000 + Math.floor(Math.random() * 15000)
+      });
+
+      const predefinedNames = [
+        'ApexCloud', 'SynthCore', 'FunnelPilot', 'Lexio AI', 'InsightLoop',
+        'BrightNova', 'ComposeAI', 'CloudNova', 'DataSpring', 'OrbitML',
+        'PixelWave', 'QuantumLink', 'CyberSphere', 'VelocityAI', 'PulsarTech'
+      ];
+
+      const baseCustomers = Array.from({ length: Math.min(count, 50) }, (_, i) => {
+        const customer = generateCustomer(i + 1);
         
-        companies.forEach((company, i) => {
-          const plan = plans[i % 4];
-          const baseValue = { 'Starter': 8000, 'Pro': 12000, 'Developer': 11000, 'Enterprise': 15000 }[plan];
-          const variation = Math.random() * 0.4 - 0.2; // ±20% variation
-          
-          trialData.push({
-            id: i + 1,
-            customer: company,
-            trial_plan: plan,
+        if (i < predefinedNames.length) {
+          customer.name = predefinedNames[i];
+        } else {
+          const prefixes = ['Tech', 'Data', 'Cloud', 'AI', 'Cyber', 'Digital', 'Net', 'Web', 'Dev', 'Soft'];
+          const suffixes = ['Systems', 'Solutions', 'Labs', 'Works', 'Tech', 'Group', 'Inc', 'Logic', 'Hub', 'Core'];
+          customer.name = `${prefixes[i % 10]}${suffixes[Math.floor(i / 10) % 10]}`;
+        }
+        
+        return customer;
+      });
+
+      // Apply report-specific modifications (exact same logic as ReportDetail.js)
+      switch (currentId) {
+        case 'high-usage-growth':
+          return baseCustomers.map(customer => ({
+            ...customer,
+            customer: customer.name,
+            trial_plan: customer.product,
             trial_units: 500000,
-            potential_value: Math.round(baseValue * (1 + variation))
-          });
-        });
-        
-        return trialData;
-      } else {
-        // Other reports - revenue data
-        return [
-          { id: 1, date: '2024-01-15', amount: 2450.00, customer: 'Acme Corp', status: 'Succeeded' },
-          { id: 2, date: '2024-01-14', amount: 1200.00, customer: 'TechStart Inc', status: 'Succeeded' },
-          { id: 3, date: '2024-01-14', amount: 890.00, customer: 'Global Solutions', status: 'Failed' },
-          { id: 4, date: '2024-01-13', amount: 3200.00, customer: 'Enterprise Co', status: 'Succeeded' },
-          { id: 5, date: '2024-01-13', amount: 750.00, customer: 'StartupXYZ', status: 'Refunded' },
-          { id: 6, date: '2024-01-12', amount: 1800.00, customer: 'MegaCorp', status: 'Succeeded' },
-          { id: 7, date: '2024-01-12', amount: 950.00, customer: 'SmallBiz LLC', status: 'Succeeded' },
-          { id: 8, date: '2024-01-11', amount: 2100.00, customer: 'TechGiant', status: 'Succeeded' },
-          { id: 9, date: '2024-01-11', amount: 650.00, customer: 'LocalShop', status: 'Failed' },
-          { id: 10, date: '2024-01-10', amount: 4200.00, customer: 'BigClient Inc', status: 'Succeeded' }
-        ];
+            potential_value: customer.current_mrr * 100 + Math.floor(Math.random() * 5000)
+          }));
+          
+        case 'new-free-trials':
+          return baseCustomers.map(customer => ({
+            ...customer,
+            customer: customer.name,
+            trial_plan: customer.product,
+            trial_units: 500000,
+            potential_value: customer.projected_ltv,
+            current_mrr: 0,
+            overage_revenue: 0,
+            usage_growth: 100
+          }));
+          
+        case 'monthly-sales':
+          return baseCustomers.map(customer => ({
+            ...customer,
+            customer: customer.name,
+            product: customer.product,
+            current_mrr: customer.current_mrr * 1.2,
+            projected_ltv: customer.projected_ltv * 1.1
+          }));
+          
+        default:
+          return baseCustomers.map(customer => ({
+            ...customer,
+            customer: customer.name
+          }));
       }
     } else {
-      // Metric-specific data
+      // For metrics, use actual metric data from standardizedMetrics
+      const metric = standardizedMetrics[currentId];
+      if (!metric) return [];
+      
+      // Generate metric-appropriate data
       if (currentId.includes('volume') || currentId.includes('revenue')) {
-        // Payment volume metrics
-        return [
-          { id: 1, date: '2024-01-15', amount: 2450.00, customer: 'Acme Corp', status: 'Succeeded' },
-          { id: 2, date: '2024-01-14', amount: 1200.00, customer: 'TechStart Inc', status: 'Succeeded' },
-          { id: 3, date: '2024-01-14', amount: 890.00, customer: 'Global Solutions', status: 'Failed' },
-          { id: 4, date: '2024-01-13', amount: 3200.00, customer: 'Enterprise Co', status: 'Succeeded' },
-          { id: 5, date: '2024-01-13', amount: 750.00, customer: 'StartupXYZ', status: 'Refunded' },
-          { id: 6, date: '2024-01-12', amount: 1800.00, customer: 'MegaCorp', status: 'Succeeded' },
-          { id: 7, date: '2024-01-12', amount: 950.00, customer: 'SmallBiz LLC', status: 'Succeeded' },
-          { id: 8, date: '2024-01-11', amount: 2100.00, customer: 'TechGiant', status: 'Succeeded' },
-          { id: 9, date: '2024-01-11', amount: 650.00, customer: 'LocalShop', status: 'Failed' },
-          { id: 10, date: '2024-01-10', amount: 4200.00, customer: 'BigClient Inc', status: 'Succeeded' }
-        ];
+        return Array.from({ length: 10 }, (_, i) => ({
+          id: i + 1,
+          date: new Date(2024, 0, 15 - i).toISOString().split('T')[0],
+          amount: Math.round((metric.baseCurrencyValue || 1000) * (0.8 + Math.random() * 0.4)),
+          customer: ['Acme Corp', 'TechStart Inc', 'Global Solutions', 'Enterprise Co', 'StartupXYZ', 'MegaCorp', 'SmallBiz LLC', 'TechGiant', 'LocalShop', 'BigClient Inc'][i],
+          status: Math.random() > 0.15 ? 'Succeeded' : (Math.random() > 0.5 ? 'Failed' : 'Refunded')
+        }));
       } else {
-        // Customer metrics
-        return [
-          { id: 1, customer: 'ApexCloud', plan: 'Pro', signup_date: '2024-01-15', mrr: 299.00 },
-          { id: 2, customer: 'SynthCore', plan: 'Starter', signup_date: '2024-01-14', mrr: 49.00 },
-          { id: 3, customer: 'FunnelPilot', plan: 'Enterprise', signup_date: '2024-01-14', mrr: 999.00 },
-          { id: 4, customer: 'Lexio AI', plan: 'Pro', signup_date: '2024-01-13', mrr: 299.00 },
-          { id: 5, customer: 'InsightLoop', plan: 'Starter', signup_date: '2024-01-13', mrr: 49.00 },
-          { id: 6, customer: 'BrightNova', plan: 'Pro', signup_date: '2024-01-12', mrr: 299.00 },
-          { id: 7, customer: 'ComposeAI', plan: 'Enterprise', signup_date: '2024-01-12', mrr: 999.00 },
-          { id: 8, customer: 'CloudNova', plan: 'Pro', signup_date: '2024-01-11', mrr: 299.00 },
-          { id: 9, customer: 'DataSpring', plan: 'Starter', signup_date: '2024-01-11', mrr: 49.00 },
-          { id: 10, customer: 'OrbitML', plan: 'Enterprise', signup_date: '2024-01-10', mrr: 999.00 }
-        ];
+        return Array.from({ length: 10 }, (_, i) => ({
+          id: i + 1,
+          customer: ['ApexCloud', 'SynthCore', 'FunnelPilot', 'Lexio AI', 'InsightLoop', 'BrightNova', 'ComposeAI', 'CloudNova', 'DataSpring', 'OrbitML'][i],
+          plan: ['Pro', 'Starter', 'Enterprise', 'Pro', 'Starter', 'Pro', 'Enterprise', 'Pro', 'Starter', 'Enterprise'][i],
+          signup_date: new Date(2024, 0, 15 - i).toISOString().split('T')[0],
+          mrr: Math.round((metric.baseCurrencyValue || metric.baseNumberValue || 299) * (0.8 + Math.random() * 0.4))
+        }));
       }
     }
   };
 
-  // Get context-appropriate columns based on the data
+  // Get context-appropriate columns based on the data and report/metric type
   const getContextColumns = () => {
-    const data = generateContextData();
-    if (data.length === 0) return [];
-    
-    const firstRow = data[0];
-    const columns = [];
-    
-    Object.keys(firstRow).forEach(key => {
-      if (key === 'id') return; // Skip ID column
-      
-      let columnType = 'string';
-      let isCurrency = false;
-      
-      // Determine column type based on key and value
-      if (key.includes('amount') || key.includes('value') || key === 'mrr') {
-        columnType = 'currency';
-        isCurrency = true;
-      } else if (key.includes('date')) {
-        columnType = 'date';
-      } else if (key.includes('units') || typeof firstRow[key] === 'number') {
-        columnType = 'number';
-      } else if (key === 'status' || key === 'plan' || key === 'trial_plan') {
-        columnType = 'category';
+    if (isEditingReport) {
+      // Use the exact same column definitions from ReportDetail.js
+      switch (currentId) {
+        case 'high-usage-growth':
+          return [
+            { key: 'customer', display: 'Customer', type: 'string' },
+            { key: 'trial_plan', display: 'Trial Plan', type: 'category' },
+            { key: 'trial_units', display: 'Trial Units', type: 'number' },
+            { key: 'potential_value', display: 'Potential Value', type: 'currency', isCurrency: true }
+          ];
+          
+        case 'new-free-trials':
+          return [
+            { key: 'customer', display: 'Customer', type: 'string' },
+            { key: 'trial_plan', display: 'Trial Plan', type: 'category' },
+            { key: 'trial_units', display: 'Trial Units', type: 'number' },
+            { key: 'potential_value', display: 'Potential Value', type: 'currency', isCurrency: true }
+          ];
+          
+        case 'monthly-sales':
+          return [
+            { key: 'customer', display: 'Customer', type: 'string' },
+            { key: 'product', display: 'Product', type: 'category' },
+            { key: 'current_mrr', display: 'Revenue', type: 'currency', isCurrency: true },
+            { key: 'projected_ltv', display: 'Projected LTV', type: 'currency', isCurrency: true }
+          ];
+          
+        default:
+          return [
+            { key: 'customer', display: 'Customer', type: 'string' },
+            { key: 'product', display: 'Product', type: 'category' },
+            { key: 'current_mrr', display: 'MRR', type: 'currency', isCurrency: true },
+            { key: 'projected_ltv', display: 'Projected LTV', type: 'currency', isCurrency: true }
+          ];
       }
+    } else {
+      // For metrics, determine columns based on metric type
+      const metric = standardizedMetrics[currentId];
+      if (!metric) return [];
       
-      columns.push({
-        key,
-        display: key.split('_').map(word => 
-          word.charAt(0).toUpperCase() + word.slice(1)
-        ).join(' '),
-        type: columnType,
-        isCurrency
-      });
-    });
-    
-    return columns;
+      if (currentId.includes('volume') || currentId.includes('revenue')) {
+        return [
+          { key: 'date', display: 'Date', type: 'date' },
+          { key: 'amount', display: 'Amount', type: 'currency', isCurrency: true },
+          { key: 'customer', display: 'Customer', type: 'string' },
+          { key: 'status', display: 'Status', type: 'category' }
+        ];
+      } else {
+        return [
+          { key: 'customer', display: 'Customer', type: 'string' },
+          { key: 'plan', display: 'Plan', type: 'category' },
+          { key: 'signup_date', display: 'Signup Date', type: 'date' },
+          { key: 'mrr', display: 'MRR', type: 'currency', isCurrency: true }
+        ];
+      }
+    }
   };
 
   // Use context-aware data instead of static data
