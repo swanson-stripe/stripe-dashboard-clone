@@ -796,7 +796,10 @@ const MetricEditor = () => {
   const { id } = useParams();
   const location = useLocation();
   const [currentId, setCurrentId] = useState(id || 'gross-volume');
-  const [isEditingReport, setIsEditingReport] = useState(false);
+  
+  // Determine if editing a report or metric based on the current path
+  const isEditingReport = location.pathname.includes('/data-studio/');
+  
   const [editorView, setEditorView] = useState('visual');
   const [aiPrompt, setAIPrompt] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1285,7 +1288,12 @@ const MetricEditor = () => {
   const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
 
   const handleCancel = () => {
-    navigate(isEditingReport ? `/data-studio/${currentId}` : `/metrics/${currentId}`);
+    // Navigate back to the source based on the current URL path
+    if (isEditingReport) {
+      navigate(`/data-studio/${currentId}`);
+    } else {
+      navigate(`/metrics/${currentId}`);
+    }
   };
 
   const handleAIPromptChange = (e) => {
@@ -1331,7 +1339,12 @@ const MetricEditor = () => {
 
   const handleSave = (e) => {
     e.preventDefault();
-    navigate(isEditingReport ? `/data-studio/${currentId}` : `/metrics/${currentId}`);
+    // Navigate back to the source based on the current URL path
+    if (isEditingReport) {
+      navigate(`/data-studio/${currentId}`);
+    } else {
+      navigate(`/metrics/${currentId}`);
+    }
   };
 
   // Generate SQL statement based on selected fields
