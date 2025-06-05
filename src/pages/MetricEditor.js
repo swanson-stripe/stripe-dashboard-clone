@@ -962,26 +962,57 @@ const MetricEditor = () => {
     }
   }, [handleWheel, handleMouseDown, handleMouseMove, handleMouseUp]);
 
-  // Function to get all currently selected columns for the table
-  const getCurrentTableColumns = () => {
-    const columns = [];
+  // Analyze column data for visualizations
+  const analyzeColumnData = (column, data) => {
+    const values = data.map(row => row[column.key]).filter(val => val !== null && val !== undefined);
     
-    selectedDatasets.forEach(datasetKey => {
-      const datasetColumns = selectedColumns[datasetKey] || [];
-      datasetColumns.forEach(columnName => {
-        const mapping = COLUMN_MAPPING[columnName];
-        if (mapping) {
-          columns.push({
-            datasetKey,
-            columnName,
-            display: mapping.display,
-            key: mapping.key
-          });
-        }
+    if (column.type === 'category') {
+      const categories = {};
+      values.forEach(val => {
+        categories[val] = (categories[val] || 0) + 1;
       });
-    });
-    
-    return columns;
+      return {
+        type: 'category',
+        summary: `${Object.keys(categories).length} categories`,
+        categories
+      };
+    } else if (column.type === 'number' || column.type === 'currency') {
+      const numericValues = values.filter(val => typeof val === 'number');
+      const sorted = [...numericValues].sort((a, b) => a - b);
+      const median = sorted.length > 0 ? 
+        (sorted.length % 2 === 0 ? 
+          (sorted[sorted.length/2 - 1] + sorted[sorted.length/2]) / 2 : 
+          sorted[Math.floor(sorted.length/2)]) : 0;
+      
+      return {
+        type: 'numeric',
+        summary: `${values.length} values`,
+        median: column.isCurrency ? `median $${median.toLocaleString()}` : `median ${median.toLocaleString()}`
+      };
+    } else {
+      const uniqueValues = new Set(values).size;
+      return {
+        type: 'text',
+        summary: `${uniqueValues} unique values`
+      };
+    }
+  };
+
+  // Format cell values based on column type
+  const formatCellValue = (value, column) => {
+    if (column.type === 'currency') {
+      return `$${value.toLocaleString()}`;
+    } else if (column.type === 'number') {
+      return value.toLocaleString();
+    } else if (column.type === 'date') {
+      return new Date(value).toLocaleDateString();
+    }
+    return value;
+  };
+
+  // Function to get all currently selected columns for the table - updated to use context
+  const getCurrentTableColumns = () => {
+    return getContextColumns();
   };
 
   // Function to get cell value for a given column
@@ -1127,159 +1158,117 @@ const MetricEditor = () => {
     }
   };
 
-  // Enhanced sample transaction data with more fields
-  const [filteredTransactions] = useState([
-    { 
-      id: 'ch_1234', 
-      date: '2024-01-15', 
-      amount: '$2,450.00', 
-      customer: 'Acme Corp', 
-      status: 'Succeeded',
-      payment_method: 'Card',
-      currency: 'USD',
-      net_revenue: '$2,350.00',
-      success_rate: '100%',
-      ltv: '$15,000',
-      first_payment_date: '2023-08-15',
-      churn_flag: 'No',
-      mrr: '$750'
-    },
-    { 
-      id: 'ch_1235', 
-      date: '2024-01-14', 
-      amount: '$1,200.00', 
-      customer: 'TechStart Inc', 
-      status: 'Succeeded',
-      payment_method: 'ACH',
-      currency: 'USD',
-      net_revenue: '$1,150.00',
-      success_rate: '100%',
-      ltv: '$8,500',
-      first_payment_date: '2023-10-20',
-      churn_flag: 'No',
-      mrr: '$400'
-    },
-    { 
-      id: 'ch_1236', 
-      date: '2024-01-14', 
-      amount: '$890.00', 
-      customer: 'Global Solutions', 
-      status: 'Failed',
-      payment_method: 'Card',
-      currency: 'USD',
-      net_revenue: '$0.00',
-      success_rate: '0%',
-      ltv: '$0',
-      first_payment_date: '2024-01-14',
-      churn_flag: 'Yes',
-      mrr: '$0'
-    },
-    { 
-      id: 'ch_1237', 
-      date: '2024-01-13', 
-      amount: '$3,200.00', 
-      customer: 'Enterprise Co', 
-      status: 'Succeeded',
-      payment_method: 'Wire',
-      currency: 'USD',
-      net_revenue: '$3,100.00',
-      success_rate: '100%',
-      ltv: '$25,000',
-      first_payment_date: '2022-05-10',
-      churn_flag: 'No',
-      mrr: '$1,200'
-    },
-    { 
-      id: 'ch_1238', 
-      date: '2024-01-13', 
-      amount: '$750.00', 
-      customer: 'StartupXYZ', 
-      status: 'Refunded',
-      payment_method: 'Card',
-      currency: 'USD',
-      net_revenue: '$0.00',
-      success_rate: '0%',
-      ltv: '$2,200',
-      first_payment_date: '2023-12-01',
-      churn_flag: 'No',
-      mrr: '$250'
-    },
-    { 
-      id: 'ch_1239', 
-      date: '2024-01-12', 
-      amount: '$1,800.00', 
-      customer: 'MegaCorp', 
-      status: 'Succeeded',
-      payment_method: 'Card',
-      currency: 'USD',
-      net_revenue: '$1,720.00',
-      success_rate: '100%',
-      ltv: '$18,000',
-      first_payment_date: '2021-03-15',
-      churn_flag: 'No',
-      mrr: '$600'
-    },
-    { 
-      id: 'ch_1240', 
-      date: '2024-01-12', 
-      amount: '$950.00', 
-      customer: 'SmallBiz LLC', 
-      status: 'Succeeded',
-      payment_method: 'ACH',
-      currency: 'USD',
-      net_revenue: '$920.00',
-      success_rate: '100%',
-      ltv: '$4,800',
-      first_payment_date: '2023-09-22',
-      churn_flag: 'No',
-      mrr: '$320'
-    },
-    { 
-      id: 'ch_1241', 
-      date: '2024-01-11', 
-      amount: '$2,100.00', 
-      customer: 'TechGiant', 
-      status: 'Succeeded',
-      payment_method: 'Card',
-      currency: 'USD',
-      net_revenue: '$2,020.00',
-      success_rate: '100%',
-      ltv: '$22,000',
-      first_payment_date: '2020-11-08',
-      churn_flag: 'No',
-      mrr: '$850'
-    },
-    { 
-      id: 'ch_1242', 
-      date: '2024-01-11', 
-      amount: '$650.00', 
-      customer: 'LocalShop', 
-      status: 'Failed',
-      payment_method: 'Card',
-      currency: 'USD',
-      net_revenue: '$0.00',
-      success_rate: '0%',
-      ltv: '$1,200',
-      first_payment_date: '2023-11-30',
-      churn_flag: 'Yes',
-      mrr: '$0'
-    },
-    { 
-      id: 'ch_1243', 
-      date: '2024-01-10', 
-      amount: '$4,200.00', 
-      customer: 'BigClient Inc', 
-      status: 'Succeeded',
-      payment_method: 'Wire',
-      currency: 'USD',
-      net_revenue: '$4,050.00',
-      success_rate: '100%',
-      ltv: '$35,000',
-      first_payment_date: '2019-07-12',
-      churn_flag: 'No',
-      mrr: '$1,500'
+  // Generate context-appropriate data based on the metric/report being edited
+  const generateContextData = () => {
+    if (!currentId) return [];
+    
+    // Different data sets based on the context
+    if (isEditingReport) {
+      // Report-specific data
+      if (currentId.includes('usage') || currentId.includes('growth')) {
+        // High usage growth report - customer trial data
+        return [
+          { id: 1, customer: 'ApexCloud', trial_plan: 'Starter', trial_units: 500000, potential_value: 9796.00 },
+          { id: 2, customer: 'SynthCore', trial_plan: 'Starter', trial_units: 500000, potential_value: 8912.00 },
+          { id: 3, customer: 'FunnelPilot', trial_plan: 'Developer', trial_units: 500000, potential_value: 12106.00 },
+          { id: 4, customer: 'Lexio AI', trial_plan: 'Developer', trial_units: 500000, potential_value: 9886.00 },
+          { id: 5, customer: 'InsightLoop', trial_plan: 'Pro', trial_units: 500000, potential_value: 5013.00 },
+          { id: 6, customer: 'BrightNova', trial_plan: 'Pro', trial_units: 500000, potential_value: 5024.00 },
+          { id: 7, customer: 'ComposeAI', trial_plan: 'Enterprise', trial_units: 500000, potential_value: 14057.00 },
+          { id: 8, customer: 'CloudNova', trial_plan: 'Developer', trial_units: 500000, potential_value: 13713.00 },
+          { id: 9, customer: 'DataSpring', trial_plan: 'Starter', trial_units: 500000, potential_value: 12280.00 },
+          { id: 10, customer: 'OrbitML', trial_plan: 'Enterprise', trial_units: 500000, potential_value: 6647.00 }
+        ];
+      } else {
+        // Other reports - revenue data
+        return [
+          { id: 1, date: '2024-01-15', amount: 2450.00, customer: 'Acme Corp', status: 'Succeeded' },
+          { id: 2, date: '2024-01-14', amount: 1200.00, customer: 'TechStart Inc', status: 'Succeeded' },
+          { id: 3, date: '2024-01-14', amount: 890.00, customer: 'Global Solutions', status: 'Failed' },
+          { id: 4, date: '2024-01-13', amount: 3200.00, customer: 'Enterprise Co', status: 'Succeeded' },
+          { id: 5, date: '2024-01-13', amount: 750.00, customer: 'StartupXYZ', status: 'Refunded' },
+          { id: 6, date: '2024-01-12', amount: 1800.00, customer: 'MegaCorp', status: 'Succeeded' },
+          { id: 7, date: '2024-01-12', amount: 950.00, customer: 'SmallBiz LLC', status: 'Succeeded' },
+          { id: 8, date: '2024-01-11', amount: 2100.00, customer: 'TechGiant', status: 'Succeeded' },
+          { id: 9, date: '2024-01-11', amount: 650.00, customer: 'LocalShop', status: 'Failed' },
+          { id: 10, date: '2024-01-10', amount: 4200.00, customer: 'BigClient Inc', status: 'Succeeded' }
+        ];
+      }
+    } else {
+      // Metric-specific data
+      if (currentId.includes('volume') || currentId.includes('revenue')) {
+        // Payment volume metrics
+        return [
+          { id: 1, date: '2024-01-15', amount: 2450.00, customer: 'Acme Corp', status: 'Succeeded' },
+          { id: 2, date: '2024-01-14', amount: 1200.00, customer: 'TechStart Inc', status: 'Succeeded' },
+          { id: 3, date: '2024-01-14', amount: 890.00, customer: 'Global Solutions', status: 'Failed' },
+          { id: 4, date: '2024-01-13', amount: 3200.00, customer: 'Enterprise Co', status: 'Succeeded' },
+          { id: 5, date: '2024-01-13', amount: 750.00, customer: 'StartupXYZ', status: 'Refunded' },
+          { id: 6, date: '2024-01-12', amount: 1800.00, customer: 'MegaCorp', status: 'Succeeded' },
+          { id: 7, date: '2024-01-12', amount: 950.00, customer: 'SmallBiz LLC', status: 'Succeeded' },
+          { id: 8, date: '2024-01-11', amount: 2100.00, customer: 'TechGiant', status: 'Succeeded' },
+          { id: 9, date: '2024-01-11', amount: 650.00, customer: 'LocalShop', status: 'Failed' },
+          { id: 10, date: '2024-01-10', amount: 4200.00, customer: 'BigClient Inc', status: 'Succeeded' }
+        ];
+      } else {
+        // Customer metrics
+        return [
+          { id: 1, customer: 'ApexCloud', plan: 'Pro', signup_date: '2024-01-15', mrr: 299.00 },
+          { id: 2, customer: 'SynthCore', plan: 'Starter', signup_date: '2024-01-14', mrr: 49.00 },
+          { id: 3, customer: 'FunnelPilot', plan: 'Enterprise', signup_date: '2024-01-14', mrr: 999.00 },
+          { id: 4, customer: 'Lexio AI', plan: 'Pro', signup_date: '2024-01-13', mrr: 299.00 },
+          { id: 5, customer: 'InsightLoop', plan: 'Starter', signup_date: '2024-01-13', mrr: 49.00 },
+          { id: 6, customer: 'BrightNova', plan: 'Pro', signup_date: '2024-01-12', mrr: 299.00 },
+          { id: 7, customer: 'ComposeAI', plan: 'Enterprise', signup_date: '2024-01-12', mrr: 999.00 },
+          { id: 8, customer: 'CloudNova', plan: 'Pro', signup_date: '2024-01-11', mrr: 299.00 },
+          { id: 9, customer: 'DataSpring', plan: 'Starter', signup_date: '2024-01-11', mrr: 49.00 },
+          { id: 10, customer: 'OrbitML', plan: 'Enterprise', signup_date: '2024-01-10', mrr: 999.00 }
+        ];
+      }
     }
-  ]);
+  };
+
+  // Get context-appropriate columns based on the data
+  const getContextColumns = () => {
+    const data = generateContextData();
+    if (data.length === 0) return [];
+    
+    const firstRow = data[0];
+    const columns = [];
+    
+    Object.keys(firstRow).forEach(key => {
+      if (key === 'id') return; // Skip ID column
+      
+      let columnType = 'string';
+      let isCurrency = false;
+      
+      // Determine column type based on key and value
+      if (key.includes('amount') || key.includes('value') || key === 'mrr') {
+        columnType = 'currency';
+        isCurrency = true;
+      } else if (key.includes('date')) {
+        columnType = 'date';
+      } else if (key.includes('units') || typeof firstRow[key] === 'number') {
+        columnType = 'number';
+      } else if (key === 'status' || key === 'plan' || key === 'trial_plan') {
+        columnType = 'category';
+      }
+      
+      columns.push({
+        key,
+        display: key.split('_').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' '),
+        type: columnType,
+        isCurrency
+      });
+    });
+    
+    return columns;
+  };
+
+  // Use context-aware data instead of static data
+  const [filteredTransactions] = useState(generateContextData());
 
   // Pagination
   const transactionsPerPage = 10;
@@ -1719,9 +1708,85 @@ ORDER BY 1 DESC;`;
                   <TableContainer>
                     <table>
                       <thead>
+                        {/* Column visualizations row */}
+                        <tr>
+                          {getCurrentTableColumns().map((column, index) => {
+                            const analysis = analyzeColumnData(column, filteredTransactions);
+                            return (
+                              <th key={`viz-${column.key}-${index}`} style={{ 
+                                padding: '16px 12px', 
+                                borderBottom: '1px solid #e1e5e9',
+                                backgroundColor: '#f8f9fa',
+                                verticalAlign: 'top'
+                              }}>
+                                {/* Mini visualization */}
+                                <div style={{ marginBottom: '8px', height: '40px', display: 'flex', alignItems: 'center' }}>
+                                  {analysis.type === 'category' ? (
+                                    <div style={{ width: '100%', height: '24px', display: 'flex', gap: '2px' }}>
+                                      {Object.entries(analysis.categories).slice(0, 4).map(([cat, count], i) => (
+                                        <div 
+                                          key={cat}
+                                          style={{ 
+                                            height: '24px', 
+                                            backgroundColor: ['#635bff', '#74c0fc', '#51cf66', '#fcc419'][i % 4],
+                                            borderRadius: '2px',
+                                            flex: count,
+                                            minWidth: '8px'
+                                          }}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : analysis.type === 'numeric' ? (
+                                    <div style={{ width: '100%', height: '24px', display: 'flex', gap: '1px' }}>
+                                      {[5, 10, 15, 8, 3, 7, 12, 9, 6, 4].map((height, i) => (
+                                        <div 
+                                          key={i}
+                                          style={{ 
+                                            height: `${height + 8}px`, 
+                                            backgroundColor: '#c3d9ff',
+                                            borderRadius: '1px',
+                                            flex: 1,
+                                            alignSelf: 'flex-end'
+                                          }}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div style={{ width: '100%', height: '24px', display: 'flex', alignItems: 'center' }}>
+                                      <svg width="60" height="24" viewBox="0 0 60 24">
+                                        <polyline 
+                                          points="0,18 10,12 20,15 30,8 40,14 50,6 60,10" 
+                                          fill="none" 
+                                          stroke="#c3d9ff" 
+                                          strokeWidth="2"
+                                        />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Summary text */}
+                                <div style={{ 
+                                  fontSize: '11px', 
+                                  color: '#6c757d',
+                                  lineHeight: '1.3'
+                                }}>
+                                  <div>{analysis.summary}</div>
+                                  {analysis.median && <div>{analysis.median}</div>}
+                                </div>
+                              </th>
+                            );
+                          })}
+                        </tr>
+                        {/* Column headers row */}
                         <tr>
                           {getCurrentTableColumns().map((column, index) => (
-                            <th key={`${column.datasetKey}-${column.columnName}-${index}`}>
+                            <th key={`header-${column.key}-${index}`} style={{ 
+                              padding: '12px',
+                              fontWeight: '600',
+                              color: '#495057',
+                              borderBottom: '2px solid #e1e5e9',
+                              backgroundColor: 'white'
+                            }}>
                               {column.display}
                             </th>
                           ))}
@@ -1729,23 +1794,19 @@ ORDER BY 1 DESC;`;
                       </thead>
                       <tbody>
                         {currentTransactions.map((transaction) => (
-                          <tr key={transaction.id}>
+                          <tr key={transaction.id} style={{ borderBottom: '1px solid #f1f3f4' }}>
                             {getCurrentTableColumns().map((column, index) => {
-                              const value = getCellValue(transaction, column.key);
+                              const value = transaction[column.key];
+                              const formattedValue = formatCellValue(value, column);
                               return (
-                                <td key={`${column.datasetKey}-${column.columnName}-${index}`}>
-                                  {column.key === 'status' ? (
-                                    <span style={{ 
-                                      color: value === 'Succeeded' ? 'var(--success-color)' : 
-                                            value === 'Failed' ? 'var(--danger-color)' :
-                                            value === 'Refunded' ? 'var(--warning-color)' : 
-                                            'var(--text-secondary)'
-                                    }}>
-                                      {value}
-                                    </span>
-                                  ) : (
-                                    value
-                                  )}
+                                <td key={`cell-${column.key}-${index}`} style={{ 
+                                  padding: '12px',
+                                  color: column.key === 'status' && value === 'Failed' ? '#dc3545' : 
+                                         column.key === 'status' && value === 'Succeeded' ? '#28a745' :
+                                         column.key === 'status' && value === 'Refunded' ? '#ffc107' :
+                                         '#495057'
+                                }}>
+                                  {formattedValue}
                                 </td>
                               );
                             })}
@@ -1753,6 +1814,69 @@ ORDER BY 1 DESC;`;
                         ))}
                       </tbody>
                     </table>
+                    
+                    {/* Pagination */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '16px 12px',
+                      borderTop: '1px solid #e1e5e9',
+                      backgroundColor: '#f8f9fa'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#6c757d' }}>
+                        Showing {indexOfFirstTransaction + 1}-{Math.min(indexOfLastTransaction, filteredTransactions.length)} of {filteredTransactions.length} results
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button 
+                          onClick={() => paginate(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          style={{ 
+                            padding: '6px 12px', 
+                            border: '1px solid #dee2e6',
+                            backgroundColor: currentPage === 1 ? '#f8f9fa' : 'white',
+                            color: currentPage === 1 ? '#6c757d' : '#495057',
+                            borderRadius: '4px',
+                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          Previous
+                        </button>
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          const pageNum = i + 1;
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => paginate(pageNum)}
+                              style={{
+                                padding: '6px 12px',
+                                border: '1px solid #dee2e6',
+                                backgroundColor: currentPage === pageNum ? '#635bff' : 'white',
+                                color: currentPage === pageNum ? 'white' : '#495057',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                        <button 
+                          onClick={() => paginate(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          style={{ 
+                            padding: '6px 12px', 
+                            border: '1px solid #dee2e6',
+                            backgroundColor: currentPage === totalPages ? '#f8f9fa' : 'white',
+                            color: currentPage === totalPages ? '#6c757d' : '#495057',
+                            borderRadius: '4px',
+                            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
                   </TableContainer>
                 </TransactionsSection>
               </PreviewCard>
@@ -1815,4 +1939,5 @@ ORDER BY 1 DESC;`;
 };
 
 export default MetricEditor; 
+
 
