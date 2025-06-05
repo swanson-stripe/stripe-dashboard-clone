@@ -1166,19 +1166,28 @@ const MetricEditor = () => {
     if (isEditingReport) {
       // Report-specific data
       if (currentId.includes('usage') || currentId.includes('growth')) {
-        // High usage growth report - customer trial data
-        return [
-          { id: 1, customer: 'ApexCloud', trial_plan: 'Starter', trial_units: 500000, potential_value: 9796.00 },
-          { id: 2, customer: 'SynthCore', trial_plan: 'Starter', trial_units: 500000, potential_value: 8912.00 },
-          { id: 3, customer: 'FunnelPilot', trial_plan: 'Developer', trial_units: 500000, potential_value: 12106.00 },
-          { id: 4, customer: 'Lexio AI', trial_plan: 'Developer', trial_units: 500000, potential_value: 9886.00 },
-          { id: 5, customer: 'InsightLoop', trial_plan: 'Pro', trial_units: 500000, potential_value: 5013.00 },
-          { id: 6, customer: 'BrightNova', trial_plan: 'Pro', trial_units: 500000, potential_value: 5024.00 },
-          { id: 7, customer: 'ComposeAI', trial_plan: 'Enterprise', trial_units: 500000, potential_value: 14057.00 },
-          { id: 8, customer: 'CloudNova', trial_plan: 'Developer', trial_units: 500000, potential_value: 13713.00 },
-          { id: 9, customer: 'DataSpring', trial_plan: 'Starter', trial_units: 500000, potential_value: 12280.00 },
-          { id: 10, customer: 'OrbitML', trial_plan: 'Enterprise', trial_units: 500000, potential_value: 6647.00 }
-        ];
+        // High usage growth report - customer trial data (extended for better visualizations)
+        const trialData = [];
+        const companies = ['ApexCloud', 'SynthCore', 'FunnelPilot', 'Lexio AI', 'InsightLoop', 'BrightNova', 'ComposeAI', 'CloudNova', 'DataSpring', 'OrbitML',
+          'TechFlow', 'CodeCrafter', 'DataVault', 'CloudCore', 'StreamLine', 'DevOps Pro', 'AI Solutions', 'ByteForge', 'CloudSync', 'DataMax'];
+        const plans = ['Starter', 'Pro', 'Developer', 'Enterprise'];
+        const planCounts = { 'Starter': 365, 'Pro': 382, 'Developer': 372, 'Enterprise': 381 };
+        
+        companies.forEach((company, i) => {
+          const plan = plans[i % 4];
+          const baseValue = { 'Starter': 8000, 'Pro': 12000, 'Developer': 11000, 'Enterprise': 15000 }[plan];
+          const variation = Math.random() * 0.4 - 0.2; // ±20% variation
+          
+          trialData.push({
+            id: i + 1,
+            customer: company,
+            trial_plan: plan,
+            trial_units: 500000,
+            potential_value: Math.round(baseValue * (1 + variation))
+          });
+        });
+        
+        return trialData;
       } else {
         // Other reports - revenue data
         return [
