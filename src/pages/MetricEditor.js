@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { standardizedMetrics, getMetricData, PERIODS } from '../data/companyData';
@@ -1012,7 +1012,7 @@ const MetricEditor = () => {
 
   // Function to get all currently selected columns for the table - updated to use context
   const getCurrentTableColumns = () => {
-    return getContextColumns();
+    return contextColumns;
   };
 
   // Function to get cell value for a given column
@@ -1160,7 +1160,7 @@ const MetricEditor = () => {
 
   // Generate context-appropriate data based on the metric/report being edited
   // This replicates the exact same data generation logic from ReportDetail.js
-  const generateContextData = () => {
+  const generateContextData = useCallback(() => {
     if (!currentId) return [];
     
     if (isEditingReport) {
@@ -1277,10 +1277,10 @@ const MetricEditor = () => {
         }));
       }
     }
-  };
+  }, [currentId, isEditingReport]);
 
   // Get context-appropriate columns based on the data and report/metric type
-  const getContextColumns = () => {
+  const getContextColumns = useCallback(() => {
     if (isEditingReport) {
       // Use the exact same column definitions from ReportDetail.js
       switch (currentId) {
@@ -1337,10 +1337,29 @@ const MetricEditor = () => {
         ];
       }
     }
-  };
+  }, [currentId, isEditingReport]);
 
-  // Use context-aware data instead of static data
-  const [filteredTransactions] = useState(generateContextData());
+  // Use context-aware data instead of static data - FIXED to respond to changes
+  const filteredTransactions = useMemo(() => {
+    console.log('🔍 MetricEditor Data Generation Debug:');
+    console.log('- currentId:', currentId);
+    console.log('- isEditingReport:', isEditingReport);
+    console.log('- pathname:', location.pathname);
+    console.log('- params:', params);
+    
+    const data = generateContextData();
+    console.log('- Generated data length:', data.length);
+    console.log('- Sample data:', data[0]);
+    
+    return data;
+  }, [currentId, isEditingReport, location.pathname, params, generateContextData]);
+
+  // Also use useMemo for columns to ensure they update with context changes
+  const contextColumns = useMemo(() => {
+    const columns = getContextColumns();
+    console.log('- Generated columns:', columns);
+    return columns;
+  }, [currentId, isEditingReport, getContextColumns]);
 
   // Pagination
   const transactionsPerPage = 10;
