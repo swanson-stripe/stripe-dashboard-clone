@@ -800,18 +800,6 @@ const MetricEditor = () => {
   // Routes: /metrics/:metricId/edit and /data-studio/:reportId/edit
   const isEditingReport = location.pathname.includes('/data-studio/');
   const currentId = isEditingReport ? params.reportId : params.metricId;
-  
-  // Debug logging to understand the routing
-  useEffect(() => {
-    console.log('🔍 MetricEditor Debug:');
-    console.log('- URL pathname:', location.pathname);
-    console.log('- URL search:', location.search);
-    console.log('- All params:', params);
-    console.log('- metricId param:', params.metricId);
-    console.log('- reportId param:', params.reportId);
-    console.log('- currentId:', currentId);
-    console.log('- isEditingReport:', isEditingReport);
-  }, [location.pathname, location.search, params, currentId, isEditingReport]);
 
   const [editorView, setEditorView] = useState('visual');
   const [aiPrompt, setAIPrompt] = useState('');
@@ -1301,19 +1289,11 @@ const MetricEditor = () => {
   const totalPages = Math.ceil(filteredTransactions.length / transactionsPerPage);
 
   const handleCancel = () => {
-    console.log('🔙 Close button clicked:');
-    console.log('- isEditingReport:', isEditingReport);
-    console.log('- currentId:', currentId);
-    
     // Navigate back to the source based on the current URL path
     if (isEditingReport) {
-      const targetUrl = `/data-studio/${currentId}`;
-      console.log('- Navigating to:', targetUrl);
-      navigate(targetUrl);
+      navigate(`/data-studio/${currentId}`);
     } else {
-      const targetUrl = `/metrics/${currentId}`;
-      console.log('- Navigating to:', targetUrl);
-      navigate(targetUrl);
+      navigate(`/metrics/${currentId}`);
     }
   };
 
