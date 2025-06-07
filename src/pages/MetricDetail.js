@@ -12,6 +12,7 @@ import { useMetrics } from '../components/MetricsContext';
 import { useTooltip } from '../components/GlobalTooltip';
 import MeterChart from '../components/MeterChart';
 import StackedBarChart from '../components/StackedBarChart';
+import { getColumnSchema } from '../data/reportSchemas';
 
 // Register Chart.js components including Tooltip
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
@@ -1287,36 +1288,34 @@ const MetricDetail = () => {
 
   // Column definitions
   const getColumnDefinitions = useCallback(() => {
-    if (baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue') {
-      return [
-        { id: 'date', label: 'Date', dataType: 'date' },
-        { id: 'customer', label: 'Customer name', dataType: 'string' },
-        { id: 'plan', label: 'Plan', dataType: 'category' },
-        { id: 'meter', label: 'Meter', dataType: 'category' },
-        { id: 'includedUnits', label: 'Included units', dataType: 'number' },
-        { id: 'unitsUsed', label: 'Units used', dataType: 'number' },
-        { id: 'overageUnits', label: 'Overage units', dataType: 'number' },
-        { id: 'overageRate', label: 'Overage rate', dataType: 'number' },
-        { id: 'amount', label: 'Overage revenue', dataType: 'number', isCurrency: true },
-        // Additional chartable columns for more Y-axis options
-        { id: 'customerCount', label: 'Customer count', dataType: 'number' },
-        { id: 'transactionVolume', label: 'Transaction volume', dataType: 'number' },
-        { id: 'averageOverageRate', label: 'Average overage rate', dataType: 'number', isCurrency: true }
-      ];
-    } else {
-      return [
-        { id: 'date', label: 'Date', dataType: 'date' },
-        { id: 'amount', label: baseMetric.title, dataType: 'number', isCurrency: baseMetric.isCurrency },
-        { id: 'customer', label: 'Customer', dataType: 'string' },
-        { id: 'status', label: 'Status', dataType: 'category' },
-        // Additional chartable columns for more Y-axis options
-        { id: 'customerCount', label: 'Customer count', dataType: 'number' },
-        { id: 'transactionCount', label: 'Transaction count', dataType: 'number' },
-        { id: 'averageTransactionValue', label: 'Average transaction value', dataType: 'number', isCurrency: baseMetric.isCurrency },
-        { id: 'successRate', label: 'Success rate', dataType: 'number', isPercentage: true },
-        { id: 'refundRate', label: 'Refund rate', dataType: 'number', isPercentage: true }
-      ];
+    // Get columns from shared schema
+    const columns = getColumnSchema(baseMetric.id, false);
+    
+    // If no schema found, return default columns based on metric type
+    if (!columns || columns.length === 0) {
+      if (baseMetric.id === 'overage-revenue' || baseMetric.id === 'usage-overage-revenue') {
+        return [
+          { id: 'date', label: 'Date', dataType: 'date' },
+          { id: 'customer', label: 'Customer name', dataType: 'string' },
+          { id: 'plan', label: 'Plan', dataType: 'category' },
+          { id: 'meter', label: 'Meter', dataType: 'category' },
+          { id: 'includedUnits', label: 'Included units', dataType: 'number' },
+          { id: 'unitsUsed', label: 'Units used', dataType: 'number' },
+          { id: 'overageUnits', label: 'Overage units', dataType: 'number' },
+          { id: 'overageRate', label: 'Overage rate', dataType: 'number' },
+          { id: 'amount', label: 'Overage revenue', dataType: 'number', isCurrency: true }
+        ];
+      } else {
+        return [
+          { id: 'date', label: 'Date', dataType: 'date' },
+          { id: 'amount', label: baseMetric.title, dataType: 'number', isCurrency: baseMetric.isCurrency },
+          { id: 'customer', label: 'Customer', dataType: 'string' },
+          { id: 'status', label: 'Status', dataType: 'category' }
+        ];
+      }
     }
+    
+    return columns;
   }, [baseMetric.id, baseMetric.title, baseMetric.isCurrency]);
 
   // Analyze column data for charts
@@ -2668,7 +2667,7 @@ const MetricDetail = () => {
               </svg>
               Share
             </ShareButton>
-            <EditButton to={`/data-studio/${baseMetric.id}/edit`}>
+            <EditButton to={`/metrics/${baseMetric.id}/edit`}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M1.25 11.5V10C1.25 9.58579 1.58579 9.25 2 9.25C2.41421 9.25 2.75 9.58579 2.75 10V11.5C2.75 12.4665 3.5335 13.25 4.5 13.25H6C6.41421 13.25 6.75 13.5858 6.75 14C6.75 14.4142 6.41421 14.75 6 14.75H4.5C2.70507 14.75 1.25 13.2949 1.25 11.5ZM13.25 11.5V10C13.25 9.58579 13.5858 9.25 14 9.25C14.4142 9.25 14.75 9.58579 14.75 10V11.5C14.75 13.2949 13.2949 14.75 11.5 14.75H10C9.58579 14.75 9.25 14.4142 9.25 14C9.25 13.5858 9.58579 13.25 10 13.25H11.5C12.4665 13.25 13.25 12.4665 13.25 11.5ZM1.25 6V4.5C1.25 2.70507 2.70507 1.25 4.5 1.25H6C6.41421 1.25 6.75 1.58579 6.75 2C6.75 2.41421 6.41421 2.75 6 2.75H4.5C3.5335 2.75 2.75 3.5335 2.75 4.5V6C2.75 6.41421 2.41421 6.75 2 6.75C1.58579 6.75 1.25 6.41421 1.25 6ZM13.25 6V4.5C13.25 3.5335 12.4665 2.75 11.5 2.75H10C9.58579 2.75 9.25 2.41421 9.25 2C9.25 1.58579 9.58579 1.25 10 1.25H11.5C13.2949 1.25 14.75 2.70507 14.75 4.5V6C14.75 6.41421 14.4142 6.75 14 6.75C13.5858 6.75 13.25 6.41421 13.25 6Z" fill="#635bff"/>
               </svg>

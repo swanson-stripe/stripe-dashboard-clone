@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import ReportingControls from '../components/ReportingControls';
 import ShareModal from '../components/ShareModal';
+import { getColumnSchema } from '../data/reportSchemas';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 
@@ -974,121 +975,8 @@ const ReportDetail = () => {
       description: "No description available"
     };
 
-    // Define columns based on report type
-    let columns = [];
-    
-    switch (params.reportId) {
-      case 'high-usage-growth':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
-          { id: 'usage_growth', label: 'Usage Growth %', sortable: true, isTrend: true, isPositive: true, dataType: 'number' },
-          { id: 'overage_revenue', label: 'Overage Revenue', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'monthly-sales':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
-          { id: 'current_mrr', label: 'Revenue', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'new-subscribers':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Plan', sortable: true, dataType: 'category' },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'included_units', label: 'Units', sortable: true, isNumber: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'weekly-churned':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
-          { id: 'usage_growth', label: 'Usage Trend', sortable: true, isTrend: true, dataType: 'number' },
-          { id: 'current_mrr', label: 'Lost MRR', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'top-selling':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'high-value':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'projected_ltv', label: 'Lifetime Value', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'new-products':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'New Product', sortable: true, dataType: 'category' },
-          { id: 'current_mrr', label: 'New MRR', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'included_units', label: 'Included Units', sortable: true, isNumber: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'mrr-growth':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'current_mrr', label: 'MRR', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'usage_growth', label: 'Growth Rate', sortable: true, isTrend: true, isPositive: true, dataType: 'number' },
-          { id: 'projected_ltv', label: 'Projected LTV', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'upsell-opportunities':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Current Plan', sortable: true, dataType: 'category' },
-          { id: 'current_mrr', label: 'Current MRR', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'projected_ltv', label: 'Potential LTV', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'new-free-trials':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Trial Plan', sortable: true, dataType: 'category' },
-          { id: 'included_units', label: 'Trial Units', sortable: true, isNumber: true, dataType: 'number' },
-          { id: 'projected_ltv', label: 'Potential Value', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      case 'revenue-composition':
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'subscription_revenue', label: 'Subscription', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'usage_revenue', label: 'Usage', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'add_on_revenue', label: 'Add-ons', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'current_mrr', label: 'Total MRR', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-        
-      default: // churn-risk or any other
-        columns = [
-          { id: 'name', label: 'Customer', sortable: true, dataType: 'string' },
-          { id: 'product', label: 'Product', sortable: true, dataType: 'category' },
-          { id: 'current_mrr', label: 'MRR at Risk', sortable: true, isCurrency: true, dataType: 'number' },
-          { id: 'usage_growth', label: 'Usage Trend', sortable: true, isTrend: true, dataType: 'number' },
-          { id: 'projected_ltv', label: 'Potential LTV Loss', sortable: true, isCurrency: true, dataType: 'number' }
-        ];
-        break;
-    }
+    // Get columns from shared schema
+    const columns = getColumnSchema(params.reportId, true);
 
     return {
       ...report,
