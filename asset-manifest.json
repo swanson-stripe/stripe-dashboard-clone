@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/stripe-dashboard-clone/static/css/main.c7cf48af.css",
-    "main.js": "/stripe-dashboard-clone/static/js/main.c1860c23.js",
-    "static/js/453.aa7067d1.chunk.js": "/stripe-dashboard-clone/static/js/453.aa7067d1.chunk.js",
-    "index.html": "/stripe-dashboard-clone/index.html",
-    "main.c7cf48af.css.map": "/stripe-dashboard-clone/static/css/main.c7cf48af.css.map",
-    "main.c1860c23.js.map": "/stripe-dashboard-clone/static/js/main.c1860c23.js.map",
-    "453.aa7067d1.chunk.js.map": "/stripe-dashboard-clone/static/js/453.aa7067d1.chunk.js.map"
+    "main.css": "/fresh-stripe-dashboard-clean/static/css/main.c7cf48af.css",
+    "main.js": "/fresh-stripe-dashboard-clean/static/js/main.488ac7c3.js",
+    "static/js/453.aa7067d1.chunk.js": "/fresh-stripe-dashboard-clean/static/js/453.aa7067d1.chunk.js",
+    "index.html": "/fresh-stripe-dashboard-clean/index.html",
+    "main.c7cf48af.css.map": "/fresh-stripe-dashboard-clean/static/css/main.c7cf48af.css.map",
+    "main.488ac7c3.js.map": "/fresh-stripe-dashboard-clean/static/js/main.488ac7c3.js.map",
+    "453.aa7067d1.chunk.js.map": "/fresh-stripe-dashboard-clean/static/js/453.aa7067d1.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.c7cf48af.css",
-    "static/js/main.c1860c23.js"
+    "static/js/main.488ac7c3.js"
   ]
 }
