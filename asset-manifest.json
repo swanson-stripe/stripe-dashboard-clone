@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/fresh-stripe-dashboard-clean/static/css/main.c7cf48af.css",
+    "main.js": "/fresh-stripe-dashboard-clean/static/js/main.488ac7c3.js",
+    "static/js/453.aa7067d1.chunk.js": "/fresh-stripe-dashboard-clean/static/js/453.aa7067d1.chunk.js",
+    "index.html": "/fresh-stripe-dashboard-clean/index.html",
+    "main.c7cf48af.css.map": "/fresh-stripe-dashboard-clean/static/css/main.c7cf48af.css.map",
+    "main.488ac7c3.js.map": "/fresh-stripe-dashboard-clean/static/js/main.488ac7c3.js.map",
+    "453.aa7067d1.chunk.js.map": "/fresh-stripe-dashboard-clean/static/js/453.aa7067d1.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.c7cf48af.css",
+    "static/js/main.488ac7c3.js"
+  ]
+}
