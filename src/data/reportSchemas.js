@@ -293,6 +293,100 @@ export const METRIC_SCHEMAS = {
     { id: 'status', label: 'Status', sortable: true, dataType: 'category' },
     { id: 'transactionCount', label: 'Count', sortable: true, isNumber: true, dataType: 'number' },
     { id: 'amount', label: 'Amount', sortable: true, isCurrency: true, dataType: 'number' }
+  ],
+
+  'subscriber-churn-rate': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'rate', label: 'Subscriber Churn Rate', sortable: true, isTrend: true, dataType: 'number' },
+    { id: 'totalSubscribers', label: 'Total Subscribers', sortable: true, isNumber: true, dataType: 'number' },
+    { id: 'churnedSubscribers', label: 'Churned Subscribers', sortable: true, isNumber: true, dataType: 'number' },
+    { id: 'customer', label: 'Customer', sortable: true, dataType: 'string' },
+    { id: 'plan', label: 'Plan', sortable: true, dataType: 'category' }
+  ],
+
+  // Additional missing metrics
+  'mrr-growth-rate': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'rate', label: 'MRR Growth Rate', sortable: true, isTrend: true, dataType: 'number' },
+    { id: 'currentMrr', label: 'Current MRR', sortable: true, isCurrency: true, dataType: 'number' },
+    { id: 'previousMrr', label: 'Previous MRR', sortable: true, isCurrency: true, dataType: 'number' }
+  ],
+
+  'active-subscribers-growth': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'activeSubscribers', label: 'Active Subscribers', sortable: true, isNumber: true, dataType: 'number' },
+    { id: 'newSubscribers', label: 'New Subscribers', sortable: true, isNumber: true, dataType: 'number' },
+    { id: 'growthRate', label: 'Growth Rate', sortable: true, isTrend: true, dataType: 'number' }
+  ],
+
+  'past-due-invoice-volume': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'amount', label: 'Past Due Amount', sortable: true, isCurrency: true, dataType: 'number' },
+    { id: 'customer', label: 'Customer', sortable: true, dataType: 'string' },
+    { id: 'daysPastDue', label: 'Days Past Due', sortable: true, isNumber: true, dataType: 'number' }
+  ],
+
+  'past-due-invoice-payment-rate': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'rate', label: 'Payment Rate', sortable: true, isTrend: true, dataType: 'number' },
+    { id: 'totalInvoices', label: 'Total Invoices', sortable: true, isNumber: true, dataType: 'number' },
+    { id: 'paidInvoices', label: 'Paid Invoices', sortable: true, isNumber: true, dataType: 'number' }
+  ],
+
+  'avg-invoice-payment-length': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'avgDays', label: 'Average Days', sortable: true, isNumber: true, dataType: 'number' },
+    { id: 'customer', label: 'Customer', sortable: true, dataType: 'string' },
+    { id: 'amount', label: 'Invoice Amount', sortable: true, isCurrency: true, dataType: 'number' }
+  ],
+
+  'usage-count': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'usageCount', label: 'Usage Count', sortable: true, isNumber: true, dataType: 'number' },
+    { id: 'customer', label: 'Customer', sortable: true, dataType: 'string' },
+    { id: 'meter', label: 'Meter', sortable: true, dataType: 'category' }
+  ],
+
+  'gross-mrr-churn-rate': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'rate', label: 'Gross MRR Churn Rate', sortable: true, isTrend: true, dataType: 'number' },
+    { id: 'grossChurnedMrr', label: 'Gross Churned MRR', sortable: true, isCurrency: true, dataType: 'number' },
+    { id: 'totalMrr', label: 'Total MRR', sortable: true, isCurrency: true, dataType: 'number' }
+  ],
+
+  'net-mrr-churn-rate': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'rate', label: 'Net MRR Churn Rate', sortable: true, isTrend: true, dataType: 'number' },
+    { id: 'netChurnedMrr', label: 'Net Churned MRR', sortable: true, isCurrency: true, dataType: 'number' },
+    { id: 'totalMrr', label: 'Total MRR', sortable: true, isCurrency: true, dataType: 'number' }
+  ],
+
+  'new-trials': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'customer', label: 'Customer', sortable: true, dataType: 'string' },
+    { id: 'plan', label: 'Trial Plan', sortable: true, dataType: 'category' },
+    { id: 'trialLength', label: 'Trial Length (Days)', sortable: true, isNumber: true, dataType: 'number' }
+  ],
+
+  'trial-conversion-rate': [
+    { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+    { id: 'rate', label: 'Trial Conversion Rate', sortable: true, isTrend: true, dataType: 'number' },
+    { id: 'totalTrials', label: 'Total Trials', sortable: true, isNumber: true, dataType: 'number' },
+    { id: 'convertedTrials', label: 'Converted Trials', sortable: true, isNumber: true, dataType: 'number' }
+  ],
+
+  'active-trials': [
+    { id: 'customer', label: 'Customer', sortable: true, dataType: 'string' },
+    { id: 'plan', label: 'Trial Plan', sortable: true, dataType: 'category' },
+    { id: 'startDate', label: 'Start Date', sortable: true, dataType: 'date' },
+    { id: 'daysRemaining', label: 'Days Remaining', sortable: true, isNumber: true, dataType: 'number' }
+  ],
+
+  'converted-trials': [
+    { id: 'customer', label: 'Customer', sortable: true, dataType: 'string' },
+    { id: 'plan', label: 'Converted Plan', sortable: true, dataType: 'category' },
+    { id: 'conversionDate', label: 'Conversion Date', sortable: true, dataType: 'date' },
+    { id: 'amount', label: 'First Payment', sortable: true, isCurrency: true, dataType: 'number' }
   ]
 };
 
@@ -301,7 +395,33 @@ export const getColumnSchema = (id, isReport = true) => {
   if (isReport) {
     return REPORT_SCHEMAS[id] || REPORT_SCHEMAS['churn-risk']; // Default to churn-risk if not found
   } else {
-    return METRIC_SCHEMAS[id] || [];
+    // Check if the metric exists in METRIC_SCHEMAS
+    if (METRIC_SCHEMAS[id]) {
+      return METRIC_SCHEMAS[id];
+    }
+    
+    // Provide intelligent fallbacks based on metric name patterns
+    if (id.includes('churn')) {
+      return METRIC_SCHEMAS['churn-rate'] || [];
+    } else if (id.includes('subscriber')) {
+      return METRIC_SCHEMAS['new-subscribers'] || [];
+    } else if (id.includes('revenue') || id.includes('mrr')) {
+      return METRIC_SCHEMAS['mrr'] || [];
+    } else if (id.includes('payment') || id.includes('invoice')) {
+      return METRIC_SCHEMAS['successful-payments'] || [];
+    } else if (id.includes('customer')) {
+      return METRIC_SCHEMAS['new-customers'] || [];
+    } else if (id.includes('rate') || id.includes('conversion')) {
+      return METRIC_SCHEMAS['conversion-rate'] || [];
+    } else {
+      // Generic fallback with common columns
+      return [
+        { id: 'date', label: 'Date', sortable: true, dataType: 'date' },
+        { id: 'amount', label: 'Amount', sortable: true, isCurrency: true, dataType: 'number' },
+        { id: 'customer', label: 'Customer', sortable: true, dataType: 'string' },
+        { id: 'status', label: 'Status', sortable: true, dataType: 'category' }
+      ];
+    }
   }
 };
 
