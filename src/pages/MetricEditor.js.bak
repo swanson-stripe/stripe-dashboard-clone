@@ -1802,7 +1802,7 @@ const MetricEditor = () => {
       }
       
       // When 1 row and 3 or more columns are selected, use the 3x1 SVG
-      if (((selectedRow !== null || selectedRows.size > 0) && cols >= 3) || (rows === 1 && cols >= 3)) {
+      if ((selectedRow !== null || selectedRows.size > 0) && cols >= 3) {
         return (
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g clipPath="url(#clip0_1767_99344)">
