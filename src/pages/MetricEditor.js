@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { standardizedMetrics, getMetricData } from '../data/companyData';
 import { METRIC_SCHEMAS, REPORT_SCHEMAS } from '../data/reportSchemas';
+import { STRIPE_SCHEMA, findStripeMapping } from '../data/stripeSchema';
 import LineChart from '../components/LineChart';
 
 // Main container for the entire editor
@@ -23,12 +24,14 @@ const EditorContainer = styled.div`
 // Minimal left panel for navigation controls only
 const LeftPanel = styled.div`
   width: 260px;
+  background: white;
   border-right: 1px solid #e3e8ee;
   display: flex;
   flex-direction: column;
   height: 100vh;
   margin: 0;
   padding: 0;
+  overflow-y: auto;
 `;
 
 // Top controls in left panel
@@ -817,6 +820,130 @@ const TooltipValue = styled.div`
   color: #1f2937;
 `;
 
+const SectionTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const ColumnList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+`;
+
+const ColumnItem = styled.li`
+  padding: 6px 0;
+  border-bottom: 1px solid #f3f4f6;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ColumnLabel = styled.div`
+  font-size: 14px;
+  color: #1f2937;
+  font-weight: 500;
+  margin-bottom: 2px;
+`;
+
+const ColumnMeta = styled.div`
+  font-size: 12px;
+  color: #6b7280;
+`;
+
+const SchemaSection = styled.div`
+  margin-bottom: 20px;
+`;
+
+const SchemaTable = styled.div`
+  margin-bottom: 16px;
+`;
+
+const SchemaTableHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 8px;
+  &:hover {
+    background-color: #f9fafb;
+    border-radius: 4px;
+    margin-left: -4px;
+    margin-right: -4px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+`;
+
+const SchemaTableHeaderTitle = styled.h4`
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const SchemaTableToggle = styled.div`
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transform: ${props => props.isExpanded ? "rotate(90deg)" : "rotate(0deg)"};
+  transition: transform 0.2s ease;
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
+const SchemaObjectList = styled.ul`
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 0;
+`;
+
+const SchemaObjectItem = styled.li`
+  padding: 4px 0;
+  font-size: 12px;
+  background: ${props => props.isHighlighted ? '#f0f9ff' : 'transparent'};
+  border-radius: 4px;
+  margin: 0 -4px;
+  padding-left: 8px;
+  padding-right: 4px;
+`;
+const SchemaObjectLabel = styled.div`
+  color: #1f2937;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+const SchemaObjectMeta = styled.div`
+  color: #6b7280;
+  font-size: 11px;
+`;
+
+const SchemaObjectCheckmark = styled.div`
+  color: #10b981;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
 const MetricEditor = () => {
   const navigate = useNavigate();
   const { metricId, reportId } = useParams();
@@ -856,6 +983,8 @@ const MetricEditor = () => {
   // Analysis panel state
   const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
   const [analysisColumns, setAnalysisColumns] = useState([]);
+  // Schema table collapsible state
+  const [collapsedTables, setCollapsedTables] = useState(new Set());
   const [addedColumns, setAddedColumns] = useState(new Set());
   
   // Selection summary tooltip state
@@ -2145,6 +2274,17 @@ const MetricEditor = () => {
     setAddedColumns(newAddedColumns);
   };
 
+
+  // Handle table collapse/expand toggle
+  const handleTableToggle = (tableKey) => {
+    const newCollapsed = new Set(collapsedTables);
+    if (newCollapsed.has(tableKey)) {
+      newCollapsed.delete(tableKey);
+    } else {
+      newCollapsed.add(tableKey);
+    }
+    setCollapsedTables(newCollapsed);
+  };
   // Generate chart data for visualization
   const generateChartData = (columnId) => {
     const dataPoints = 12; // 12 data points for trend
@@ -2246,27 +2386,165 @@ const MetricEditor = () => {
     };
   }, []);
 
+  // Unified function to find column mapping that ensures consistency between 
+  // current spreadsheet columns display and highlighting
+  const findColumnMapping = (columnId) => {
+    let bestMatch = null;
+    let bestTable = 'Unknown';
+    let bestScore = 0;
+    
+    Object.entries(STRIPE_SCHEMA).forEach(([sectionName, section]) => {
+      Object.entries(section).forEach(([tableName, objects]) => {
+        objects.forEach(obj => {
+          if (!obj.mappedTo.includes(columnId)) return;
+          
+          let score = 0;
+          
+          switch(columnId) {
+            case 'date':
+              if (tableName === 'charges' && obj.id === 'created') score = 100;
+              else if (tableName === 'subscriptions' && obj.id === 'created') score = 90;
+              else if (tableName === 'invoices' && obj.id === 'created') score = 80;
+              else if (obj.id === 'created') score = 20;
+              else score = 10;
+              break;
+            case 'customer':
+              if (tableName === 'payment_methods' && obj.id === 'customer') score = 100;
+              else if (tableName === 'charges' && obj.id === 'customer') score = 95;
+              else if (tableName === 'subscriptions' && obj.id === 'customer') score = 90;
+              else if (tableName === 'customers' && obj.id === 'name') score = 30;
+              else if (tableName === 'customers' && obj.id === 'id') score = 20;
+              else score = 10;
+              break;
+            case 'status':
+              if (tableName === 'charges' && obj.id === 'status') score = 100;
+              else if (tableName === 'subscriptions' && obj.id === 'status') score = 90;
+              else if (obj.id === 'status') score = 20;
+              else score = 10;
+              break;
+            case 'amount':
+              if (tableName === 'charges' && obj.id === 'amount') score = 100;
+              else if (tableName === 'revenue' && obj.id === 'mrr') score = 90;
+              else if (tableName === 'prices' && obj.id === 'unit_amount') score = 85;
+              else score = 10;
+              break;
+            default:
+              if (obj.id === columnId) score = 100;
+              else score = 50;
+              break;
+          }
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = obj;
+            bestTable = tableName;
+          }
+        });
+      });
+    });
+    
+    return {
+      stripeObject: bestMatch?.id || columnId,
+      stripeTable: bestTable,
+      matchedObject: bestMatch
+    };
+  };
+
+  // Helper function to get current spreadsheet columns with metadata
+  const getCurrentSpreadsheetColumns = () => {
+    return orderedSchema.map(column => {
+      const mapping = findColumnMapping(column.id);
+      
+      return {
+        humanLabel: column.label,
+        objectName: mapping.stripeObject,
+        tableName: mapping.stripeTable
+      };
+    });
+  };
+
+  // Get the set of currently used Stripe objects for highlighting
+  const currentlyUsedObjects = useMemo(() => {
+    const usedObjects = new Set();
+    
+    orderedSchema.forEach(column => {
+      const mapping = findColumnMapping(column.id);
+      if (mapping.matchedObject) {
+        usedObjects.add(`${mapping.matchedObject.id}@${mapping.stripeTable}`);
+      }
+    });
+    
+    return usedObjects;
+  }, [orderedSchema]);
+
   return (
     <>
       <EditorContainer hasAnalysisPanel={showAnalysisPanel}>
         <LeftPanel data-panel="left">
           <InfoSection>
-            <InfoItem>
-              <InfoLabel>Type</InfoLabel>
-              <InfoValue>{isReport ? 'Report' : 'Metric'}</InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Columns</InfoLabel>
-              <InfoValue>{orderedSchema.length}</InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Rows</InfoLabel>
-              <InfoValue>{sortedData.length}</InfoValue>
-            </InfoItem>
-            <InfoItem>
-              <InfoLabel>Total Cells</InfoLabel>
-              <InfoValue>{(orderedSchema.length * sortedData.length).toLocaleString()}</InfoValue>
-            </InfoItem>
+            <SectionTitle>Current Spreadsheet Columns</SectionTitle>
+            <ColumnList>
+              {getCurrentSpreadsheetColumns().map((col, index) => (
+                <ColumnItem key={index}>
+                  <ColumnLabel>{col.humanLabel}</ColumnLabel>
+                  <ColumnMeta>{col.objectName} • {col.tableName}</ColumnMeta>
+                </ColumnItem>
+              ))}
+            </ColumnList>
+            <SectionTitle>Stripe Schema Objects</SectionTitle>
+            {Object.entries(STRIPE_SCHEMA).map(([sectionName, section]) => {
+              // Sort tables to put highlighted ones first
+              const sortedTables = Object.entries(section).sort(([tableNameA, objectsA], [tableNameB, objectsB]) => {
+                const hasHighlightedA = objectsA.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameA}`));
+                const hasHighlightedB = objectsB.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameB}`));
+                
+                if (hasHighlightedA && !hasHighlightedB) return -1;
+                if (!hasHighlightedA && hasHighlightedB) return 1;
+                return 0;
+              });
+              
+              return (
+                <SchemaSection key={sectionName}>
+                  <SectionTitle style={{ fontSize: "13px", marginBottom: "12px" }}>{sectionName}</SectionTitle>
+                  {sortedTables.map(([tableName, objects]) => {
+                    const tableKey = `${sectionName}-${tableName}`;
+                    const isExpanded = !collapsedTables.has(tableKey);
+                    
+                    return (
+                      <SchemaTable key={tableName}>
+                        <SchemaTableHeader onClick={() => handleTableToggle(tableKey)}>
+                          <SchemaTableHeaderTitle>{tableName}</SchemaTableHeaderTitle>
+                          <SchemaTableToggle isExpanded={isExpanded}>
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </SchemaTableToggle>
+                        </SchemaTableHeader>
+                        {isExpanded && (
+                          <SchemaObjectList>
+                            {objects.map((obj, index) => (
+                              <SchemaObjectItem key={index} isHighlighted={currentlyUsedObjects.has(`${obj.id}@${tableName}`)}>
+                                <SchemaObjectLabel>
+                                  <span>{obj.label}</span>
+                                  {currentlyUsedObjects.has(`${obj.id}@${tableName}`) && (
+                                    <SchemaObjectCheckmark>
+                                      <svg fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                    </SchemaObjectCheckmark>
+                                  )}
+                                </SchemaObjectLabel>
+                                <SchemaObjectMeta>{obj.id} • {tableName}</SchemaObjectMeta>
+                              </SchemaObjectItem>
+                            ))}
+                          </SchemaObjectList>
+                        )}
+                      </SchemaTable>
+                    );
+                  })}
+                </SchemaSection>
+              );
+            })}
           </InfoSection>
         </LeftPanel>
 
