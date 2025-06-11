@@ -867,6 +867,9 @@ const MetricEditor = () => {
   const [showSummaryTooltip, setShowSummaryTooltip] = useState(false);
   const [summaryTooltipPosition, setSummaryTooltipPosition] = useState({ x: 0, y: 0 });
   const [summaryTooltipWidth, setSummaryTooltipWidth] = useState(0);
+  
+  // Refs for tooltip hover management
+  const tooltipTimeoutRef = useRef(null);
 
   // Determine if this is a report or metric based on the URL
   const isReport = location.pathname.includes('/reports/') || location.pathname.includes('/data-studio/');
@@ -1763,34 +1766,74 @@ const MetricEditor = () => {
     const rect = event.currentTarget.getBoundingClientRect();
     setSummaryTooltipPosition({
       x: rect.left,
-      y: rect.top - 10 // Position above the arrow
+      bottom: window.innerHeight - rect.top + 4 // 4px spacing above the component
     });
     setShowSummaryTooltip(!showSummaryTooltip);
   };
 
   // Handle summary hover
   const handleSummaryMouseEnter = (event) => {
+    // Clear any existing timeout
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    
     const rect = event.currentTarget.getBoundingClientRect();
     
-    // Estimate tooltip height (approximately 120px for multiple items)
-    const estimatedTooltipHeight = 120;
     
     setSummaryTooltipPosition({
       x: rect.left,
-      y: rect.top - estimatedTooltipHeight - 4 // 4px spacing above the component
+      bottom: window.innerHeight - rect.top + 4 // 4px spacing above the component
     });
     
     setSummaryTooltipWidth(rect.width);
-    setShowSummaryTooltip(true);
+    
+    // Small delay to prevent flicker
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setShowSummaryTooltip(true);
+    }, 100);
   };
 
   const handleSummaryMouseLeave = () => {
-    setShowSummaryTooltip(false);
+    // Clear any existing timeout
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    
+    // Delay hiding to allow moving to tooltip
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setShowSummaryTooltip(false);
+    }, 150);
   };
 
   const handleSummaryClick = (event) => {
     // Prevent click from bubbling up to document handlers that might clear selections
     event.stopPropagation();
+  };
+
+  // Handle tooltip hover to keep it visible
+  const handleTooltipMouseEnter = () => {
+    // Clear any existing timeout to keep tooltip visible
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    setShowSummaryTooltip(true);
+  };
+
+  const handleTooltipMouseLeave = () => {
+    // Clear any existing timeout
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    
+    // Hide tooltip after delay
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setShowSummaryTooltip(false);
+    }, 150);
   };
 
   // Generate mock analysis content
@@ -2034,6 +2077,15 @@ const MetricEditor = () => {
       };
     }
   }, [showSummaryTooltip]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -2424,9 +2476,11 @@ const MetricEditor = () => {
       {showSummaryTooltip && selectionStats && (
         <SummaryTooltip
           data-summary-tooltip
-                    style={{ 
+          onMouseEnter={handleTooltipMouseEnter}
+          onMouseLeave={handleTooltipMouseLeave}
+          style={{ 
             left: summaryTooltipPosition.x,
-            top: summaryTooltipPosition.y,
+            bottom: summaryTooltipPosition.bottom,
             width: summaryTooltipWidth
           }}
         >
