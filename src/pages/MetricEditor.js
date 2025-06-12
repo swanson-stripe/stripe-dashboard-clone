@@ -275,7 +275,7 @@ const LeftPanel = styled.div`
   position: fixed;
   top: 0;
   left: 0;
-  width: ${props => props.width || 260}px;
+  width: ${props => props.width || 300}px;
   background: white;
   border-right: 1px solid #e3e8ee;
   display: flex;
@@ -286,6 +286,31 @@ const LeftPanel = styled.div`
   overflow-y: auto;
   z-index: 100;
   transition: ${props => props.isResizing ? 'none' : 'width 0.2s ease'};
+
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #F5F6F8 transparent;
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #F5F6F8;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #e5e7eb;
+  }
+  
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 `;
 
 const LeftPanelResizeHandle = styled.div`
@@ -1097,12 +1122,38 @@ const TooltipValue = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: #1f2937;
   margin: 0 0 12px 0;
   padding-bottom: 8px;
   border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 4px;
+  cursor: pointer;
+  
+  &:hover {
+    color: #374151;
+  }
+`;
+
+const SectionToggle = styled.div`
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  margin-left: 0;
+  transform: ${props => props.isExpanded ? "rotate(90deg)" : "rotate(0deg)"};
+  transition: transform 0.2s ease;
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
 `;
 
 const ColumnList = styled.ul`
@@ -1143,7 +1194,8 @@ const SchemaTable = styled.div`
 const SchemaTableHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-direction: row;
+  gap: 4px;
   cursor: pointer;
   padding: 4px 0;
   margin-bottom: 8px;
@@ -1158,12 +1210,12 @@ const SchemaTableHeader = styled.div`
 `;
 
 const SchemaTableHeaderTitle = styled.h4`
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: #374151;
   margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  text-transform: none;
+  letter-spacing: normal;
 `;
 
 const SchemaTableToggle = styled.div`
@@ -1173,6 +1225,7 @@ const SchemaTableToggle = styled.div`
   align-items: center;
   justify-content: center;
   color: #6b7280;
+  margin-left: 0;
   transform: ${props => props.isExpanded ? "rotate(90deg)" : "rotate(0deg)"};
   transition: transform 0.2s ease;
   
@@ -1303,6 +1356,12 @@ const SubSectionTitle = styled.h3`
   padding-bottom: 8px;
   border-bottom: 1px solid #e5e7eb;
 `;
+
+// Helper for sentence case
+function toSentenceCase(str) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').toLowerCase().replace(/\b([a-z])/g, function(match) { return match.toLowerCase(); });
+}
 
 const MetricEditor = () => {
   const navigate = useNavigate();
@@ -3096,137 +3155,133 @@ const MetricEditor = () => {
     return usedObjects;
   }, [addedColumns, columnDefinitions]);
 
+  // Add state for section expansion
+  const [expandedSections, setExpandedSections] = useState({
+    currentColumns: true,
+    commonColumns: true
+  });
+
+  const handleSectionToggle = (sectionName) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionName]: !prev[sectionName]
+    }));
+  };
+
   return (
     <>
       <EditorContainer hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
         <LeftPanel data-panel="left" width={leftPanelWidth} isResizing={isResizingLeftPanel}>
           <LeftPanelResizeHandle onMouseDown={handleLeftPanelResizeStart} />
           <InfoSection>
-            <SectionTitle>Included</SectionTitle>
-            <ColumnList>
-              {getCurrentSpreadsheetColumns().map((col, index) => (
-                <ColumnItem key={index}>
-                  <ColumnLabel>
-                    <span>{col.humanLabel}</span>
-                    <ColumnActions>
-                      <SchemaObjectPin>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
-                        </svg>
-                      </SchemaObjectPin>
-                      <SchemaObjectCheckmark>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
-                          <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
-                        </svg>
-                      </SchemaObjectCheckmark>
-                    </ColumnActions>
-                  </ColumnLabel>
-                  <ColumnMeta>
-                    {col.tableName}
-                    <MetadataSeparator>
-                      <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
-                      </svg>
-                    </MetadataSeparator>
-                    {col.objectName}
-                  </ColumnMeta>
-                </ColumnItem>
-              ))}
-            </ColumnList>
-            
-            <SectionTitle>Commonly used</SectionTitle>
-            <SearchContainer>
-              <SearchIcon>
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <SectionTitle onClick={() => handleSectionToggle('currentColumns')}>
+              Included
+              <SectionToggle isExpanded={expandedSections.currentColumns}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              </SearchIcon>
-              <SearchInput placeholder="Search commonly used" />
-            </SearchContainer>
-            {Object.entries(commonColumnObjects).map(([packageName, objects]) => {
-              const packageKey = packageName;
-              const isExpanded = !collapsedCommonTables.has(packageKey);
-              
-              return (
-                <SchemaSection key={packageName}>
-                  <SchemaTable>
-                    <SchemaTableHeader onClick={() => handleCommonTableToggle(packageKey)}>
-                      <SchemaTableHeaderTitle>{packageName}</SchemaTableHeaderTitle>
-                      <SchemaTableToggle isExpanded={isExpanded}>
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path fillRule="evenodd" clipRule="evenodd" d="M0.381282 3.38128C0.72299 3.03957 1.27701 3.03957 1.61872 3.38128L6 7.76256L10.3813 3.38128C10.723 3.03957 11.277 3.03957 11.6187 3.38128C11.9604 3.72299 11.9604 4.27701 11.6187 4.61872L6.61872 9.61872C6.27701 9.96043 5.72299 9.96043 5.38128 9.61872L0.381282 4.61872C0.0395728 4.27701 0.0395728 3.72299 0.381282 3.38128Z" fill="#474E5A"/>
-                        </svg>
-                      </SchemaTableToggle>
-                    </SchemaTableHeader>
-                    {isExpanded && (
-                      <SchemaObjectList>
-                        {objects.map((obj, index) => {
-                          const isAdded = currentlyUsedObjects.has(`${obj.id}@${obj.tableName}`) || addedColumns.has(obj.id);
-                          return (
-                            <SchemaObjectItem 
-                              key={index} 
-                              isHighlighted={isAdded}
-                              onClick={() => handleCommonColumnClick(obj, packageName)}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              <SchemaObjectLabel>
-                                <span>{obj.label}</span>
-                                <SchemaObjectActions>
-                                  <SchemaObjectPin>
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                      <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
-                                    </svg>
-                                  </SchemaObjectPin>
-                                  {isAdded ? (
-                                    <SchemaObjectCheckmark>
-                                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
-                                        <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
-                                      </svg>
-                                    </SchemaObjectCheckmark>
-                                  ) : (
-                                    <SchemaObjectPlus>
-                                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
-                                        <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
-                                      </svg>
-                                    </SchemaObjectPlus>
-                                  )}
-                                </SchemaObjectActions>
-                              </SchemaObjectLabel>
-                              <SchemaObjectMeta>
-                                {obj.tableName}
-                                <MetadataSeparator>
-                                  <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
-                                  </svg>
-                                </MetadataSeparator>
-                                {obj.objectName}
-                              </SchemaObjectMeta>
-                            </SchemaObjectItem>
-                          );
-                        })}
-                      </SchemaObjectList>
-                    )}
-                  </SchemaTable>
-                </SchemaSection>
-              );
-            })}
+              </SectionToggle>
+            </SectionTitle>
+            {expandedSections.currentColumns && (
+              <ColumnList>
+                {getCurrentSpreadsheetColumns().map((col, index) => (
+                  <ColumnItem key={index}>
+                    <ColumnLabel>{col.humanLabel}</ColumnLabel>
+                    <ColumnMeta>{col.objectName} • {col.tableName}</ColumnMeta>
+                  </ColumnItem>
+                ))}
+              </ColumnList>
+            )}
             
-            <SchemaSection>
-              <SchemaTable>
-                <SchemaTableHeader onClick={handleAllSectionToggle}>
-                  <SchemaTableHeaderTitle>All</SchemaTableHeaderTitle>
-                  <SchemaTableToggle isExpanded={!isAllSectionCollapsed}>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path fillRule="evenodd" clipRule="evenodd" d="M0.381282 3.38128C0.72299 3.03957 1.27701 3.03957 1.61872 3.38128L6 7.76256L10.3813 3.38128C10.723 3.03957 11.277 3.03957 11.6187 3.38128C11.9604 3.72299 11.9604 4.27701 11.6187 4.61872L6.61872 9.61872C6.27701 9.96043 5.72299 9.96043 5.38128 9.61872L0.381282 4.61872C0.0395728 4.27701 0.0395728 3.72299 0.381282 3.38128Z" fill="#474E5A"/>
-                    </svg>
-                  </SchemaTableToggle>
-                </SchemaTableHeader>
-              </SchemaTable>
-            </SchemaSection>
-            {!isAllSectionCollapsed && (
+            <SectionTitle onClick={() => handleSectionToggle('commonColumns')}>
+              Commonly used
+              <SectionToggle isExpanded={expandedSections.commonColumns}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </SectionToggle>
+            </SectionTitle>
+            {expandedSections.commonColumns && (
+              <>
+                {Object.entries(commonColumnObjects).map(([packageName, objects]) => {
+                  const packageKey = packageName;
+                  const isExpanded = !collapsedCommonTables.has(packageKey);
+                  
+                  return (
+                    <SchemaTable key={packageName}>
+                      <SchemaTableHeader onClick={() => handleCommonTableToggle(packageKey)}>
+                        <SchemaTableHeaderTitle>{packageName}</SchemaTableHeaderTitle>
+                        <SchemaTableToggle isExpanded={isExpanded}>
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </SchemaTableToggle>
+                      </SchemaTableHeader>
+                      {isExpanded && (
+                        <SchemaObjectList>
+                          {objects.map((obj, index) => {
+                            const isAdded = currentlyUsedObjects.has(`${obj.id}@${obj.tableName}`) || addedColumns.has(obj.id);
+                            return (
+                              <SchemaObjectItem 
+                                key={index} 
+                                isHighlighted={isAdded}
+                                onClick={() => handleCommonColumnClick(obj, packageName)}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                <SchemaObjectLabel>
+                                  <span>{obj.label}</span>
+                                  <SchemaObjectActions>
+                                    <SchemaObjectPin>
+                                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
+                                        </svg>
+                                      </SchemaObjectPin>
+                                      {isAdded ? (
+                                        <SchemaObjectCheckmark>
+                                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
+                                            <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
+                                          </svg>
+                                        </SchemaObjectCheckmark>
+                                      ) : (
+                                        <SchemaObjectPlus>
+                                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
+                                            <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
+                                          </svg>
+                                        </SchemaObjectPlus>
+                                      )}
+                                    </SchemaObjectActions>
+                                  </SchemaObjectLabel>
+                                  <SchemaObjectMeta>
+                                    {obj.tableName}
+                                    <MetadataSeparator>
+                                      <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                                      </svg>
+                                    </MetadataSeparator>
+                                    {obj.objectName}
+                                  </SchemaObjectMeta>
+                                </SchemaObjectItem>
+                              );
+                            })}
+                        </SchemaObjectList>
+                      )}
+                    </SchemaTable>
+                  );
+                })}
+              </>
+            )}
+            
+            <SectionTitle onClick={() => handleSectionToggle('allColumns')}>
+              All
+              <SectionToggle isExpanded={expandedSections.allColumns}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </SectionToggle>
+            </SectionTitle>
+            {expandedSections.allColumns && (
               <>
                 {Object.entries(STRIPE_SCHEMA).map(([sectionName, section]) => {
                   // Sort tables to put highlighted ones first
@@ -3252,7 +3307,7 @@ const MetricEditor = () => {
                               <SchemaTableHeaderTitle>{tableName}</SchemaTableHeaderTitle>
                               <SchemaTableToggle isExpanded={isExpanded}>
                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path fillRule="evenodd" clipRule="evenodd" d="M0.381282 3.38128C0.72299 3.03957 1.27701 3.03957 1.61872 3.38128L6 7.76256L10.3813 3.38128C10.723 3.03957 11.277 3.03957 11.6187 3.38128C11.9604 3.72299 11.9604 4.27701 11.6187 4.61872L6.61872 9.61872C6.27701 9.96043 5.72299 9.96043 5.38128 9.61872L0.381282 4.61872C0.0395728 4.27701 0.0395728 3.72299 0.381282 3.38128Z" fill="#474E5A"/>
+                                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                               </SchemaTableToggle>
                             </SchemaTableHeader>
