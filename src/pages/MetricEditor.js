@@ -6,24 +6,276 @@ import { METRIC_SCHEMAS, REPORT_SCHEMAS } from '../data/reportSchemas';
 import { STRIPE_SCHEMA, findStripeMapping } from '../data/stripeSchema';
 import LineChart from '../components/LineChart';
 
+// Common columns organized by business packages
+const COMMON_COLUMNS = {
+  'Customers': {
+    keyEntities: ['customer_id', 'email', 'created_at', 'metadata', 'default_payment_method', 'last_seen'],
+    derivedFields: ['LTV', 'first_payment_date', 'churn_flag', 'MRR (if applicable)']
+  },
+  'Payments (General)': {
+    keyEntities: ['charge_id', 'amount', 'status', 'payment_method', 'currency', 'created_at', 'customer_id'],
+    derivedFields: ['net_revenue', 'success_rate', 'retry_outcome']
+  },
+  'Payments (Refunds & Disputes)': {
+    keyEntities: ['refund_id', 'dispute_id', 'status', 'reason', 'amount', 'charge_id'],
+    derivedFields: ['refund_rate', 'dispute_rate', 'recovery_rate']
+  },
+  'Orders & Line Items': {
+    keyEntities: ['order_id', 'product_id', 'quantity', 'subtotal', 'tax', 'total', 'customer_id'],
+    derivedFields: ['AOV (average_order_value)', 'SKU_level_revenue']
+  },
+  'Revenue Summary': {
+    keyEntities: ['payments', 'subscriptions', 'adjustments'],
+    derivedFields: ['gross_revenue', 'net_revenue']
+  },
+  'MRR & Customer Revenue': {
+    keyEntities: ['subscription', 'invoice', 'product'],
+    derivedFields: ['MRR', 'churned_MRR', 'upgrades_downgrades']
+  },
+  'Invoices': {
+    keyEntities: ['invoice_id', 'due_date', 'paid', 'forgiven', 'subscription_id'],
+    derivedFields: ['invoice_aging', 'collection_rate', 'average_invoice_size']
+  },
+  'Products & Plans': {
+    keyEntities: ['product_id', 'plan_id', 'amount', 'interval', 'tiers', 'metadata'],
+    derivedFields: ['catalog_size', 'usage_type']
+  },
+  'Payouts': {
+    keyEntities: ['payout_id', 'amount', 'method', 'status', 'arrival_date'],
+    derivedFields: ['time_to_settle', 'payout_frequency']
+  },
+  'Connected Accounts': {
+    keyEntities: ['account_id', 'type', 'capabilities', 'charges_enabled', 'payouts_enabled'],
+    derivedFields: ['onboarding_rate', 'active_accounts']
+  },
+  'Transfers & Payouts': {
+    keyEntities: ['transfer_id', 'destination', 'amount', 'created_at', 'associated_charges'],
+    derivedFields: ['transfer_margin', 'time_to_payout']
+  },
+  'Fraud Signals & Scores': {
+    keyEntities: ['risk_level', 'fraud_score', 'rule_triggered', 'charge_id'],
+    derivedFields: ['avg_score_by_country', 'rule_performance']
+  },
+  'Rule Outcomes': {
+    keyEntities: ['rule_id', 'action_taken', 'false_positive', 'true_positive'],
+    derivedFields: ['block_rate', 'rule_effectiveness']
+  },
+  'In-Person Payments': {
+    keyEntities: ['terminal_reader_id', 'location', 'payment_id', 'device_type'],
+    derivedFields: ['in_person_revenue_share', 'location_performance']
+  },
+  'Subscription Lifecycle': {
+    keyEntities: ['subscription_id', 'status', 'start', 'end', 'cancellation_reason'],
+    derivedFields: ['subscription_age', 'lifecycle_stage', 'churn_trigger']
+  },
+  'Subscription Events': {
+    keyEntities: ['subscription_schedule', 'subscription_item', 'phase'],
+    derivedFields: ['plan_change_rate', 'average_plan_value_change']
+  },
+  'Hybrid Billing Summary': {
+    keyEntities: ['usage_record', 'invoice_line_item', 'subscription_item', 'plan'],
+    derivedFields: ['MRR', 'usage_overage', 'effective_ARPU', 'blended_churn']
+  }
+};
+
+// Auto-mapping function to connect common column names to stripe schema objects
+const findStripeSchemaMapping = (commonColumnId) => {
+  let bestMatch = null;
+  let bestTable = null;
+  let bestScore = 0;
+
+  Object.entries(STRIPE_SCHEMA).forEach(([sectionName, section]) => {
+    Object.entries(section).forEach(([tableName, objects]) => {
+      objects.forEach(obj => {
+        let score = 0;
+        
+        // Direct ID match (highest priority)
+        if (obj.id === commonColumnId) {
+          score = 1000;
+        }
+        // Close pattern matches
+        else if (commonColumnId === 'customer_id' && obj.id === 'customer' && tableName === 'charges') {
+          score = 900;
+        }
+        else if (commonColumnId === 'customer_id' && obj.id === 'id' && tableName === 'customers') {
+          score = 850;
+        }
+        else if (commonColumnId === 'charge_id' && obj.id === 'id' && tableName === 'charges') {
+          score = 900;
+        }
+        else if (commonColumnId === 'invoice_id' && obj.id === 'id' && tableName === 'invoices') {
+          score = 900;
+        }
+        else if (commonColumnId === 'subscription_id' && obj.id === 'id' && tableName === 'subscriptions') {
+          score = 900;
+        }
+        else if (commonColumnId === 'product_id' && obj.id === 'id' && tableName === 'products') {
+          score = 900;
+        }
+        else if (commonColumnId === 'plan_id' && obj.id === 'id' && tableName === 'prices') {
+          score = 850;
+        }
+        else if (commonColumnId === 'refund_id' && obj.id === 'id' && tableName === 'refunds') {
+          score = 900;
+        }
+        // Pattern-based matches
+        else if (commonColumnId.includes('amount') && obj.id === 'amount') {
+          score = 700;
+        }
+        else if (commonColumnId === 'created_at' && obj.id === 'created') {
+          score = 800;
+        }
+        else if (commonColumnId === 'due_date' && obj.id === 'due_date') {
+          score = 900;
+        }
+        else if (commonColumnId === 'subscription' && obj.id === 'subscription') {
+          score = 800;
+        }
+        else if (commonColumnId === 'invoice' && obj.id === 'id' && tableName === 'invoices') {
+          score = 700;
+        }
+        else if (commonColumnId === 'product' && obj.id === 'id' && tableName === 'products') {
+          score = 700;
+        }
+        // Generic matches
+        else if (obj.id.includes(commonColumnId.replace('_id', '').replace('_', ''))) {
+          score = 200;
+        }
+        else if (commonColumnId.includes(obj.id)) {
+          score = 100;
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = obj;
+          bestTable = tableName;
+        }
+      });
+    });
+  });
+
+  return { object: bestMatch, table: bestTable, score: bestScore };
+};
+
+// Convert common column items to objects with proper mapping
+const createCommonColumnObjects = () => {
+  const commonObjects = {};
+  
+  Object.entries(COMMON_COLUMNS).forEach(([packageName, { keyEntities, derivedFields }]) => {
+    commonObjects[packageName] = [];
+    
+    // Process key entities
+    keyEntities.forEach(columnId => {
+      const mapping = findStripeSchemaMapping(columnId);
+      
+      if (mapping.object && mapping.score >= 200) {
+        // Use stripe schema object properties
+        commonObjects[packageName].push({
+          id: mapping.object.id,
+          label: mapping.object.label,
+          humanLabel: mapping.object.label,
+          objectName: mapping.object.id,
+          tableName: mapping.object.id,
+          dataType: getColumnDataTypeFromMapping(mapping.object),
+          isCurrency: mapping.object.id.includes('amount') || mapping.object.id.includes('revenue') || mapping.object.id.includes('mrr'),
+          isNumber: mapping.object.id.includes('count') || mapping.object.id.includes('quantity') || mapping.object.id.includes('units'),
+          isTrend: mapping.object.id.includes('growth') || mapping.object.id.includes('rate'),
+          isFromCommonColumns: true,
+          originalCommonId: columnId
+        });
+      } else {
+        // Create synthetic object for unmapped items
+        commonObjects[packageName].push({
+          id: columnId,
+          label: createHumanLabel(columnId),
+          humanLabel: createHumanLabel(columnId),
+          objectName: columnId,
+          tableName: packageName.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          dataType: inferDataType(columnId),
+          isCurrency: columnId.includes('amount') || columnId.includes('revenue') || columnId.includes('mrr'),
+          isNumber: columnId.includes('count') || columnId.includes('quantity') || columnId.includes('id'),
+          isTrend: columnId.includes('rate') || columnId.includes('percent'),
+          isFromCommonColumns: true,
+          originalCommonId: columnId
+        });
+      }
+    });
+    
+    // Process derived fields
+    derivedFields.forEach(columnId => {
+      // Clean up the column ID (remove parentheses and extra info)
+      const cleanId = columnId.replace(/\s*\([^)]*\)/, '').replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+      
+      commonObjects[packageName].push({
+        id: cleanId,
+        label: columnId, // Keep original label with parentheses
+        humanLabel: columnId,
+        objectName: cleanId,
+        tableName: packageName.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+        dataType: inferDataType(cleanId),
+        isCurrency: cleanId.includes('revenue') || cleanId.includes('mrr') || cleanId.includes('ltv') || cleanId.includes('aov'),
+        isNumber: cleanId.includes('count') || cleanId.includes('size') || cleanId.includes('age'),
+        isTrend: cleanId.includes('rate') || cleanId.includes('percent') || cleanId.includes('growth'),
+        isFromCommonColumns: true,
+        isDerived: true,
+        originalCommonId: columnId
+      });
+    });
+  });
+  
+  return commonObjects;
+};
+
+// Helper functions
+const createHumanLabel = (columnId) => {
+  return columnId
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .replace(/Id/g, 'ID')
+    .replace(/Mrr/g, 'MRR')
+    .replace(/Ltv/g, 'LTV');
+};
+
+const inferDataType = (columnId) => {
+  if (columnId.includes('date') || columnId.includes('created') || columnId.includes('_at')) return 'date';
+  if (columnId.includes('amount') || columnId.includes('revenue') || columnId.includes('mrr') || columnId.includes('ltv')) return 'currency';
+  if (columnId.includes('status') || columnId.includes('type') || columnId.includes('method')) return 'category';
+  if (columnId.includes('rate') || columnId.includes('percent') || columnId.includes('growth')) return 'percentage';
+  if (columnId.includes('count') || columnId.includes('quantity') || columnId.includes('size') || columnId.includes('age')) return 'number';
+  if (columnId.includes('id') || columnId.includes('email')) return 'text';
+  return 'text';
+};
+
+const getColumnDataTypeFromMapping = (stripeObject) => {
+  if (stripeObject.mappedTo.includes('date')) return 'date';
+  if (stripeObject.mappedTo.includes('amount') || stripeObject.mappedTo.includes('current_mrr')) return 'currency';
+  if (stripeObject.mappedTo.includes('status')) return 'category';
+  if (stripeObject.mappedTo.includes('usage_growth') || stripeObject.mappedTo.includes('rate')) return 'percentage';
+  if (stripeObject.mappedTo.includes('included_units') || stripeObject.mappedTo.includes('unitsUsed')) return 'number';
+  if (stripeObject.mappedTo.includes('customer') || stripeObject.mappedTo.includes('name')) return 'text';
+  if (stripeObject.mappedTo.includes('product') || stripeObject.mappedTo.includes('plan')) return 'category';
+  return 'text';
+};
+
 // Main container for the entire editor
 const EditorContainer = styled.div`
   display: flex;
   height: 100vh;
-  width: ${props => props.hasAnalysisPanel ? 'calc(100% - 400px)' : '100%'};
+  width: ${props => props.hasAnalysisPanel ? `calc(100vw - ${props.leftPanelWidth || 260}px - ${props.analysisPanelWidth || 400}px)` : `calc(100vw - ${props.leftPanelWidth || 260}px)`};
   background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMiIgaGVpZ2h0PSIyIiBmaWxsPSIjRjVGNkY4Ii8+CjxyZWN0IHg9IjEwIiB3aWR0aD0iMiIgaGVpZ2h0PSIyIiBmaWxsPSIjRjVGNkY4Ii8+CjxyZWN0IHdpZHRoPSIyIiBoZWlnaHQ9IjIiIGZpbGw9IiNGNUY2RjgiLz4KPHJlY3QgeT0iMTAiIHdpZHRoPSIyIiBoZWlnaHQ9IjIiIGZpbGw9IiNGNUY2RjgiLz4KPC9zdmc+');
   background-size: 20px 20px;
   margin: 0;
   padding: 0;
-  position: fixed;
-  top: 0;
-  left: 0;
-  transition: width 0.3s ease;
+  margin-left: ${props => props.leftPanelWidth || 260}px;
+  transition: ${props => props.isResizing ? 'none' : 'margin-left 0.2s ease, width 0.2s ease'};
 `;
 
 // Minimal left panel for navigation controls only
 const LeftPanel = styled.div`
-  width: 260px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: ${props => props.width || 260}px;
   background: white;
   border-right: 1px solid #e3e8ee;
   display: flex;
@@ -32,6 +284,18 @@ const LeftPanel = styled.div`
   margin: 0;
   padding: 0;
   overflow-y: auto;
+  z-index: 100;
+  transition: ${props => props.isResizing ? 'none' : 'width 0.2s ease'};
+`;
+
+const LeftPanelResizeHandle = styled.div`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 1001;
 `;
 
 // Top controls in left panel
@@ -148,11 +412,11 @@ const ToolbarRight = styled.div`
 
 // Controls above spreadsheet on background
 const SpreadsheetHeader = styled.div`
-  padding: 52px 40px 0px 40px;
+  padding: 40px 40px 12px 40px;
   background: transparent;
-    display: flex;
+  display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   position: relative;
 `;
 
@@ -165,12 +429,11 @@ const HeaderTitle = styled.h1`
 `;
 
 const HeaderButtons = styled.div`
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
   gap: 12px;
   position: absolute;
   left: 40px;
-  top: 52px;
 `;
 
 const HeaderButtonsRight = styled.div`
@@ -179,7 +442,6 @@ const HeaderButtonsRight = styled.div`
   gap: 12px;
   position: absolute;
   right: 40px;
-  top: 52px;
 `;
 
 const DoneButton = styled.button`
@@ -230,7 +492,7 @@ const SpreadsheetWrapper = styled.div`
   overflow: auto;
   position: relative;
   user-select: none;
-  padding: 20px 40px 40px 40px;
+  padding: 0 40px;
   overflow-x: auto;
   overflow-y: auto;
 `;
@@ -239,7 +501,9 @@ const SpreadsheetWrapper = styled.div`
 const TableContainer = styled.div`
   border: 1px solid rgb(227, 232, 238);
   border-radius: 8px;
-  height: calc(100vh - 180px);
+  height: ${({ hasSelection }) => hasSelection ? 'calc(100vh - 158px)' : 'calc(100vh - 118px)'};
+  /* 158px = 40px (top) + 12px (spacing between action bar and spreadsheet) + 106px (bottom when selected) */
+  /* 118px = 40px (top) + 12px (spacing between action bar and spreadsheet) + 66px (bottom when not selected) */
   position: relative;
   overflow: auto;
   box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
@@ -516,12 +780,13 @@ const FloatingActionContainer = styled.div`
   position: fixed;
   bottom: 20px;
   left: ${props => props.hasAnalysisPanel 
-    ? 'calc(260px + (100vw - 260px - 400px) / 2)' 
-    : 'calc(260px + (100vw - 260px) / 2)'};
+    ? `calc(${props.leftPanelWidth || 260}px + (100vw - ${props.leftPanelWidth || 260}px - ${props.analysisPanelWidth || 400}px) / 2)` 
+    : `calc(${props.leftPanelWidth || 260}px + (100vw - ${props.leftPanelWidth || 260}px) / 2)`};
   transform: translateX(-50%);
   z-index: 100;
   display: flex;
   gap: 8px;
+  transition: ${props => props.isResizing ? 'none' : 'left 0.2s ease'};
 `;
 
 const FloatingActionButton = styled.button`
@@ -554,10 +819,10 @@ const AnalysisPanel = styled.div`
   position: fixed;
   top: 0;
   right: 0;
-  width: 400px;
+  width: ${props => props.width || 400}px;
   height: 100vh;
+  background: white;
   border-left: 1px solid #e3e8ee;
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   overflow-y: auto;
   transform: translateX(${props => props.isOpen ? '0' : '100%'});
@@ -583,6 +848,16 @@ const AnalysisPanel = styled.div`
   &::-webkit-scrollbar-thumb:hover {
     background: #e5e7eb;
   }
+`;
+
+const AnalysisPanelResizeHandle = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 1001;
 `;
 
 const AnalysisPanelHeader = styled.div`
@@ -738,7 +1013,7 @@ const ChartArea = styled.div`
 const SelectionSummary = styled.div`
   position: fixed;
   bottom: 20px;
-  left: 300px; // Positioned to align with spreadsheet content
+  left: ${props => (props.leftPanelWidth || 260) + 40}px; // Positioned to align with spreadsheet content
   background: white;
   border: 1px solid #e3e8ee;
   border-radius: 6px;
@@ -750,6 +1025,7 @@ const SelectionSummary = styled.div`
   gap: 8px;
   font-size: 14px;
   color: #1f2937;
+  transition: ${props => props.isResizing ? 'none' : 'left 0.2s ease'};
 `;
 
 const SummaryLabel = styled.span`
@@ -944,6 +1220,90 @@ const SchemaObjectCheckmark = styled.div`
     height: 12px;
   }
 `;
+
+const SchemaTableSubheader = styled.div`
+  font-size: 11px;
+  color: #6b7280;
+  padding: 4px 8px;
+  background: #f9fafb;
+  border-radius: 4px;
+  margin: 4px 0 8px 0;
+  font-weight: 500;
+`;
+
+const SchemaObjectPin = styled.div`
+  color: #675DFF;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
+
+const SchemaObjectPlus = styled.div`
+  color: #675DFF;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
+
+const SchemaObjectActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const MetadataSeparator = styled.div`
+  width: 4px;
+  height: 8px;
+  background: #99A5B8;
+`;
+
+const ColumnActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const SearchContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #e3e8ee;
+  border-radius: 6px;
+`;
+
+const SearchIcon = styled.div`
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const SearchInput = styled.input`
+  border: none;
+  outline: none;
+  flex: 1;
+`;
+
+const SubSectionTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
 const MetricEditor = () => {
   const navigate = useNavigate();
   const { metricId, reportId } = useParams();
@@ -983,9 +1343,37 @@ const MetricEditor = () => {
   // Analysis panel state
   const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
   const [analysisColumns, setAnalysisColumns] = useState([]);
-  // Schema table collapsible state
-  const [collapsedTables, setCollapsedTables] = useState(new Set());
+  const [analysisPanelWidth, setAnalysisPanelWidth] = useState(400);
+  const [isResizingAnalysisPanel, setIsResizingAnalysisPanel] = useState(false);
+  
+  // Left panel state
+  const [leftPanelWidth, setLeftPanelWidth] = useState(260);
+  const [isResizingLeftPanel, setIsResizingLeftPanel] = useState(false);
+  
+  // Schema table collapsible state - all collapsed by default
+  const [collapsedTables, setCollapsedTables] = useState(() => {
+    const allTables = new Set();
+    Object.entries(STRIPE_SCHEMA).forEach(([sectionName, section]) => {
+      Object.keys(section).forEach(tableName => {
+        allTables.add(`${sectionName}-${tableName}`);
+      });
+    });
+    return allTables;
+  });
   const [addedColumns, setAddedColumns] = useState(new Set());
+  
+  // Common columns state for collapsible packages
+  const [collapsedCommonTables, setCollapsedCommonTables] = useState(() => {
+    // Collapse all common column packages by default
+    const allPackages = new Set();
+    Object.keys(COMMON_COLUMNS).forEach(packageName => {
+      allPackages.add(packageName);
+    });
+    return allPackages;
+  });
+  
+  // All (Stripe Schema) section state - collapsed by default
+  const [isAllSectionCollapsed, setIsAllSectionCollapsed] = useState(true);
   
   // Selection summary tooltip state
   const [showSummaryTooltip, setShowSummaryTooltip] = useState(false);
@@ -994,6 +1382,12 @@ const MetricEditor = () => {
   
   // Refs for tooltip hover management
   const tooltipTimeoutRef = useRef(null);
+
+  // Column definitions for dynamically added columns
+  const [columnDefinitions, setColumnDefinitions] = useState({});
+
+  // Create common column objects for the UI
+  const commonColumnObjects = useMemo(() => createCommonColumnObjects(), []);
 
   // Determine if this is a report or metric based on the URL
   const isReport = location.pathname.includes('/reports/') || location.pathname.includes('/data-studio/');
@@ -1029,13 +1423,20 @@ const MetricEditor = () => {
       ...Object.values(REPORT_SCHEMAS).flat()
     ];
     
-    // Add the dynamically added columns at the end
+    // Add the dynamically added columns at the end using stored definitions
     const dynamicallyAddedCols = Array.from(addedColumns)
-      .map(colId => allAvailableColumns.find(col => col.id === colId))
+      .map(colId => {
+        // First try to find in existing schemas
+        const existingCol = allAvailableColumns.find(col => col.id === colId);
+        if (existingCol) return existingCol;
+        
+        // Otherwise use our stored column definition
+        return columnDefinitions[colId];
+      })
       .filter(Boolean);
     
     return [...orderedCols, ...newCols, ...dynamicallyAddedCols];
-  }, [schema, columnOrder, addedColumns]);
+  }, [schema, columnOrder, addedColumns, columnDefinitions]);
 
   // Generate realistic data based on the schema
   const data = useMemo(() => {
@@ -1110,24 +1511,43 @@ const MetricEditor = () => {
     default:
               // Generate data for added columns based on their type
               if (addedColumns.has(column.id)) {
-                if (column.isCurrency) {
+                const colDef = columnDefinitions[column.id] || column;
+                
+                if (colDef.isCurrency || colDef.dataType === 'currency') {
                   row[column.id] = Math.floor(Math.random() * 50000) + 1000;
-                } else if (column.isNumber || column.dataType === 'number') {
+                } else if (colDef.isNumber || colDef.dataType === 'number') {
                   row[column.id] = Math.floor(Math.random() * 10000) + 100;
-                } else if (column.isTrend || column.dataType === 'percentage') {
+                } else if (colDef.isTrend || colDef.dataType === 'percentage') {
                   row[column.id] = (Math.random() * 200 - 50).toFixed(1);
-                } else if (column.dataType === 'date') {
+                } else if (colDef.dataType === 'date') {
                   const date = new Date();
                   date.setDate(date.getDate() - (i * 7));
                   const year = date.getFullYear();
                   const month = String(date.getMonth() + 1).padStart(2, '0');
                   const day = String(date.getDate()).padStart(2, '0');
                   row[column.id] = `${year}-${month}-${day}`;
-                } else if (column.dataType === 'category') {
+                } else if (colDef.dataType === 'category') {
                   const categories = ['Active', 'Trial', 'Premium', 'Enterprise'];
                   row[column.id] = categories[i % categories.length];
                 } else {
-                  row[column.id] = `Value ${i + 1}`;
+                  // Generate contextual data based on stripe object type
+                  if (column.id.includes('customer') || column.id === 'name') {
+                    row[column.id] = customer.name;
+                  } else if (column.id.includes('email')) {
+                    row[column.id] = customer.email;
+                  } else if (column.id.includes('plan') || column.id.includes('product')) {
+                    row[column.id] = customer.plan;
+                  } else if (column.id.includes('status')) {
+                    row[column.id] = customer.status;
+                  } else if (column.id.includes('id')) {
+                    row[column.id] = `${column.id}_${i + 1}`;
+                  } else if (column.id.includes('currency')) {
+                    row[column.id] = ['USD', 'EUR', 'GBP', 'CAD'][i % 4];
+                  } else if (column.id.includes('type')) {
+                    row[column.id] = ['card', 'bank_account', 'paypal', 'apple_pay'][i % 4];
+                  } else {
+                    row[column.id] = `${column.label} ${i + 1}`;
+                  }
                 }
               } else {
                 row[column.id] = `Value ${i + 1}`;
@@ -1142,7 +1562,7 @@ const MetricEditor = () => {
     };
 
     return generateData();
-  }, [orderedSchema, addedColumns]);
+  }, [orderedSchema, addedColumns, columnDefinitions]);
 
   // Sort data based on sort configuration
   const sortedData = useMemo(() => {
@@ -1822,6 +2242,76 @@ const MetricEditor = () => {
     setAnalysisColumns([]);
   };
 
+  // Analysis panel resize handlers
+  const handleAnalysisPanelResizeStart = (event) => {
+    event.preventDefault();
+    setIsResizingAnalysisPanel(true);
+  };
+
+  const handleAnalysisPanelResize = useCallback((event) => {
+    if (!isResizingAnalysisPanel) return;
+    
+    const newWidth = window.innerWidth - event.clientX;
+    const clampedWidth = Math.max(200, Math.min(600, newWidth));
+    setAnalysisPanelWidth(clampedWidth);
+  }, [isResizingAnalysisPanel]);
+
+  const handleAnalysisPanelResizeEnd = useCallback(() => {
+    setIsResizingAnalysisPanel(false);
+  }, []);
+
+  // Left panel resize handlers
+  const handleLeftPanelResizeStart = (event) => {
+    event.preventDefault();
+    setIsResizingLeftPanel(true);
+  };
+
+  const handleLeftPanelResize = useCallback((event) => {
+    if (!isResizingLeftPanel) return;
+    
+    const newWidth = event.clientX;
+    const clampedWidth = Math.max(200, Math.min(600, newWidth));
+    setLeftPanelWidth(clampedWidth);
+  }, [isResizingLeftPanel]);
+
+  const handleLeftPanelResizeEnd = useCallback(() => {
+    setIsResizingLeftPanel(false);
+  }, []);
+
+  // Add global mouse event listeners for resize
+  useEffect(() => {
+    if (isResizingAnalysisPanel) {
+      document.addEventListener('mousemove', handleAnalysisPanelResize);
+      document.addEventListener('mouseup', handleAnalysisPanelResizeEnd);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      
+      return () => {
+        document.removeEventListener('mousemove', handleAnalysisPanelResize);
+        document.removeEventListener('mouseup', handleAnalysisPanelResizeEnd);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizingAnalysisPanel, handleAnalysisPanelResize, handleAnalysisPanelResizeEnd]);
+
+  // Add global mouse event listeners for left panel resize
+  useEffect(() => {
+    if (isResizingLeftPanel) {
+      document.addEventListener('mousemove', handleLeftPanelResize);
+      document.addEventListener('mouseup', handleLeftPanelResizeEnd);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      
+      return () => {
+        document.removeEventListener('mousemove', handleLeftPanelResize);
+        document.removeEventListener('mouseup', handleLeftPanelResizeEnd);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizingLeftPanel, handleLeftPanelResize, handleLeftPanelResizeEnd]);
+
   // Handle select all functionality
   const handleSelectAll = () => {
     if (isAllSelected) {
@@ -2277,14 +2767,127 @@ const MetricEditor = () => {
 
   // Handle table collapse/expand toggle
   const handleTableToggle = (tableKey) => {
-    const newCollapsed = new Set(collapsedTables);
-    if (newCollapsed.has(tableKey)) {
-      newCollapsed.delete(tableKey);
-    } else {
-      newCollapsed.add(tableKey);
-    }
-    setCollapsedTables(newCollapsed);
+    setCollapsedTables(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tableKey)) {
+        newSet.delete(tableKey);
+      } else {
+        newSet.add(tableKey);
+      }
+      return newSet;
+    });
   };
+
+  // Handle toggling common column packages
+  const handleCommonTableToggle = (packageKey) => {
+    setCollapsedCommonTables(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(packageKey)) {
+        newSet.delete(packageKey);
+      } else {
+        newSet.add(packageKey);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle toggling the All (Stripe Schema) section
+  const handleAllSectionToggle = () => {
+    setIsAllSectionCollapsed(prev => !prev);
+  };
+
+  // Handle clicking on common column objects to add/remove columns
+  const handleCommonColumnClick = (commonObject, packageName) => {
+    const columnId = commonObject.id;
+    
+    setAddedColumns(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(columnId)) {
+        // Remove the column
+        newSet.delete(columnId);
+      } else {
+        // Add the column - create a proper column definition
+        newSet.add(columnId);
+      }
+      return newSet;
+    });
+    
+    // Store the column definition for later use
+    setColumnDefinitions(prev => ({
+      ...prev,
+      [columnId]: {
+        id: columnId,
+        label: commonObject.label,
+        dataType: commonObject.dataType,
+        isCurrency: commonObject.isCurrency,
+        isNumber: commonObject.isNumber,
+        isTrend: commonObject.isTrend,
+        stripeObject: commonObject.objectName,
+        stripeTable: commonObject.tableName,
+        isFromCommonColumns: true,
+        originalCommonId: commonObject.originalCommonId
+      }
+    }));
+  };
+
+  // Handle clicking on stripe schema objects to add/remove columns
+  const handleSchemaObjectClick = (stripeObject, tableName) => {
+    const columnId = stripeObject.id;
+    const objectKey = `${columnId}@${tableName}`;
+    
+    setAddedColumns(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(columnId)) {
+        // Remove the column
+        newSet.delete(columnId);
+      } else {
+        // Add the column - create a proper column definition
+        const columnDef = {
+          id: columnId,
+          label: stripeObject.label,
+          // Map to existing data types based on stripe object properties and mappedTo
+          dataType: getColumnDataType(stripeObject),
+          isCurrency: stripeObject.id.includes('amount') || stripeObject.id.includes('revenue') || stripeObject.id.includes('mrr') || stripeObject.id.includes('ltv'),
+          isNumber: stripeObject.id.includes('count') || stripeObject.id.includes('quantity') || stripeObject.id.includes('units') || stripeObject.id.includes('rate'),
+          isTrend: stripeObject.id.includes('growth') || stripeObject.id.includes('conversion'),
+          stripeTable: tableName,
+          stripeObject: stripeObject.id
+        };
+        
+        // Store the column definition for use in data generation
+        setColumnDefinitions(prev => ({
+          ...prev,
+          [columnId]: columnDef
+        }));
+        
+        newSet.add(columnId);
+      }
+      return newSet;
+    });
+  };
+
+  // Helper function to determine column data type from stripe object
+  const getColumnDataType = (stripeObject) => {
+    // Check mappedTo array for existing types
+    if (stripeObject.mappedTo.includes('date')) return 'date';
+    if (stripeObject.mappedTo.includes('amount') || stripeObject.mappedTo.includes('current_mrr')) return 'currency';
+    if (stripeObject.mappedTo.includes('status')) return 'category';
+    if (stripeObject.mappedTo.includes('usage_growth') || stripeObject.mappedTo.includes('rate')) return 'percentage';
+    if (stripeObject.mappedTo.includes('included_units') || stripeObject.mappedTo.includes('unitsUsed') || stripeObject.mappedTo.includes('customerCount')) return 'number';
+    if (stripeObject.mappedTo.includes('customer') || stripeObject.mappedTo.includes('name')) return 'text';
+    if (stripeObject.mappedTo.includes('product') || stripeObject.mappedTo.includes('plan')) return 'category';
+    
+    // Fallback based on stripe object id patterns
+    if (stripeObject.id.includes('amount') || stripeObject.id.includes('revenue') || stripeObject.id.includes('mrr') || stripeObject.id.includes('ltv')) return 'currency';
+    if (stripeObject.id.includes('created') || stripeObject.id.includes('date') || stripeObject.id.includes('timestamp')) return 'date';
+    if (stripeObject.id.includes('status') || stripeObject.id.includes('type')) return 'category';
+    if (stripeObject.id.includes('count') || stripeObject.id.includes('quantity') || stripeObject.id.includes('units')) return 'number';
+    if (stripeObject.id.includes('rate') || stripeObject.id.includes('percent')) return 'percentage';
+    if (stripeObject.id.includes('id')) return 'text';
+    
+    return 'text'; // default fallback
+  };
+
   // Generate chart data for visualization
   const generateChartData = (columnId) => {
     const dataPoints = 12; // 12 data points for trend
@@ -2389,6 +2992,20 @@ const MetricEditor = () => {
   // Unified function to find column mapping that ensures consistency between 
   // current spreadsheet columns display and highlighting
   const findColumnMapping = (columnId) => {
+    // First check if this is a dynamically added column with stored metadata
+    if (columnDefinitions[columnId]) {
+      const colDef = columnDefinitions[columnId];
+      return {
+        stripeObject: colDef.stripeObject,
+        stripeTable: colDef.stripeTable,
+        matchedObject: {
+          id: colDef.stripeObject,
+          label: colDef.label
+        }
+      };
+    }
+    
+    // Fallback to original mapping logic for existing schema columns
     let bestMatch = null;
     let bestTable = 'Unknown';
     let bestScore = 0;
@@ -2467,84 +3084,233 @@ const MetricEditor = () => {
   const currentlyUsedObjects = useMemo(() => {
     const usedObjects = new Set();
     
-    orderedSchema.forEach(column => {
-      const mapping = findColumnMapping(column.id);
-      if (mapping.matchedObject) {
-        usedObjects.add(`${mapping.matchedObject.id}@${mapping.stripeTable}`);
+    // Only include objects that were explicitly added via clicking on stripe schema or common columns
+    // Do NOT include objects that are just mapped from original schema columns
+    addedColumns.forEach(columnId => {
+      const colDef = columnDefinitions[columnId];
+      if (colDef && colDef.stripeTable && colDef.stripeObject) {
+        usedObjects.add(`${colDef.stripeObject}@${colDef.stripeTable}`);
       }
     });
     
     return usedObjects;
-  }, [orderedSchema]);
+  }, [addedColumns, columnDefinitions]);
 
   return (
     <>
-      <EditorContainer hasAnalysisPanel={showAnalysisPanel}>
-        <LeftPanel data-panel="left">
+      <EditorContainer hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
+        <LeftPanel data-panel="left" width={leftPanelWidth} isResizing={isResizingLeftPanel}>
+          <LeftPanelResizeHandle onMouseDown={handleLeftPanelResizeStart} />
           <InfoSection>
-            <SectionTitle>Current Spreadsheet Columns</SectionTitle>
+            <SectionTitle>Included</SectionTitle>
             <ColumnList>
               {getCurrentSpreadsheetColumns().map((col, index) => (
                 <ColumnItem key={index}>
-                  <ColumnLabel>{col.humanLabel}</ColumnLabel>
-                  <ColumnMeta>{col.objectName} • {col.tableName}</ColumnMeta>
+                  <ColumnLabel>
+                    <span>{col.humanLabel}</span>
+                    <ColumnActions>
+                      <SchemaObjectPin>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
+                        </svg>
+                      </SchemaObjectPin>
+                      <SchemaObjectCheckmark>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
+                          <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
+                        </svg>
+                      </SchemaObjectCheckmark>
+                    </ColumnActions>
+                  </ColumnLabel>
+                  <ColumnMeta>
+                    {col.tableName}
+                    <MetadataSeparator>
+                      <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                      </svg>
+                    </MetadataSeparator>
+                    {col.objectName}
+                  </ColumnMeta>
                 </ColumnItem>
               ))}
             </ColumnList>
-            <SectionTitle>Stripe Schema Objects</SectionTitle>
-            {Object.entries(STRIPE_SCHEMA).map(([sectionName, section]) => {
-              // Sort tables to put highlighted ones first
-              const sortedTables = Object.entries(section).sort(([tableNameA, objectsA], [tableNameB, objectsB]) => {
-                const hasHighlightedA = objectsA.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameA}`));
-                const hasHighlightedB = objectsB.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameB}`));
-                
-                if (hasHighlightedA && !hasHighlightedB) return -1;
-                if (!hasHighlightedA && hasHighlightedB) return 1;
-                return 0;
-              });
+            
+            <SectionTitle>Commonly used</SectionTitle>
+            <SearchContainer>
+              <SearchIcon>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </SearchIcon>
+              <SearchInput placeholder="Search commonly used" />
+            </SearchContainer>
+            {Object.entries(commonColumnObjects).map(([packageName, objects]) => {
+              const packageKey = packageName;
+              const isExpanded = !collapsedCommonTables.has(packageKey);
               
               return (
-                <SchemaSection key={sectionName}>
-                  <SectionTitle style={{ fontSize: "13px", marginBottom: "12px" }}>{sectionName}</SectionTitle>
-                  {sortedTables.map(([tableName, objects]) => {
-                    const tableKey = `${sectionName}-${tableName}`;
-                    const isExpanded = !collapsedTables.has(tableKey);
-                    
-                    return (
-                      <SchemaTable key={tableName}>
-                        <SchemaTableHeader onClick={() => handleTableToggle(tableKey)}>
-                          <SchemaTableHeaderTitle>{tableName}</SchemaTableHeaderTitle>
-                          <SchemaTableToggle isExpanded={isExpanded}>
-                            <svg fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </SchemaTableToggle>
-                        </SchemaTableHeader>
-                        {isExpanded && (
-                          <SchemaObjectList>
-                            {objects.map((obj, index) => (
-                              <SchemaObjectItem key={index} isHighlighted={currentlyUsedObjects.has(`${obj.id}@${tableName}`)}>
-                                <SchemaObjectLabel>
-                                  <span>{obj.label}</span>
-                                  {currentlyUsedObjects.has(`${obj.id}@${tableName}`) && (
+                <SchemaSection key={packageName}>
+                  <SchemaTable>
+                    <SchemaTableHeader onClick={() => handleCommonTableToggle(packageKey)}>
+                      <SchemaTableHeaderTitle>{packageName}</SchemaTableHeaderTitle>
+                      <SchemaTableToggle isExpanded={isExpanded}>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M0.381282 3.38128C0.72299 3.03957 1.27701 3.03957 1.61872 3.38128L6 7.76256L10.3813 3.38128C10.723 3.03957 11.277 3.03957 11.6187 3.38128C11.9604 3.72299 11.9604 4.27701 11.6187 4.61872L6.61872 9.61872C6.27701 9.96043 5.72299 9.96043 5.38128 9.61872L0.381282 4.61872C0.0395728 4.27701 0.0395728 3.72299 0.381282 3.38128Z" fill="#474E5A"/>
+                        </svg>
+                      </SchemaTableToggle>
+                    </SchemaTableHeader>
+                    {isExpanded && (
+                      <SchemaObjectList>
+                        {objects.map((obj, index) => {
+                          const isAdded = currentlyUsedObjects.has(`${obj.id}@${obj.tableName}`) || addedColumns.has(obj.id);
+                          return (
+                            <SchemaObjectItem 
+                              key={index} 
+                              isHighlighted={isAdded}
+                              onClick={() => handleCommonColumnClick(obj, packageName)}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <SchemaObjectLabel>
+                                <span>{obj.label}</span>
+                                <SchemaObjectActions>
+                                  <SchemaObjectPin>
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
+                                    </svg>
+                                  </SchemaObjectPin>
+                                  {isAdded ? (
                                     <SchemaObjectCheckmark>
-                                      <svg fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
+                                        <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
                                       </svg>
                                     </SchemaObjectCheckmark>
+                                  ) : (
+                                    <SchemaObjectPlus>
+                                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
+                                        <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
+                                      </svg>
+                                    </SchemaObjectPlus>
                                   )}
-                                </SchemaObjectLabel>
-                                <SchemaObjectMeta>{obj.id} • {tableName}</SchemaObjectMeta>
-                              </SchemaObjectItem>
-                            ))}
-                          </SchemaObjectList>
-                        )}
-                      </SchemaTable>
-                    );
-                  })}
+                                </SchemaObjectActions>
+                              </SchemaObjectLabel>
+                              <SchemaObjectMeta>
+                                {obj.tableName}
+                                <MetadataSeparator>
+                                  <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                                  </svg>
+                                </MetadataSeparator>
+                                {obj.objectName}
+                              </SchemaObjectMeta>
+                            </SchemaObjectItem>
+                          );
+                        })}
+                      </SchemaObjectList>
+                    )}
+                  </SchemaTable>
                 </SchemaSection>
               );
             })}
+            
+            <SchemaSection>
+              <SchemaTable>
+                <SchemaTableHeader onClick={handleAllSectionToggle}>
+                  <SchemaTableHeaderTitle>All</SchemaTableHeaderTitle>
+                  <SchemaTableToggle isExpanded={!isAllSectionCollapsed}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M0.381282 3.38128C0.72299 3.03957 1.27701 3.03957 1.61872 3.38128L6 7.76256L10.3813 3.38128C10.723 3.03957 11.277 3.03957 11.6187 3.38128C11.9604 3.72299 11.9604 4.27701 11.6187 4.61872L6.61872 9.61872C6.27701 9.96043 5.72299 9.96043 5.38128 9.61872L0.381282 4.61872C0.0395728 4.27701 0.0395728 3.72299 0.381282 3.38128Z" fill="#474E5A"/>
+                    </svg>
+                  </SchemaTableToggle>
+                </SchemaTableHeader>
+              </SchemaTable>
+            </SchemaSection>
+            {!isAllSectionCollapsed && (
+              <>
+                {Object.entries(STRIPE_SCHEMA).map(([sectionName, section]) => {
+                  // Sort tables to put highlighted ones first
+                  const sortedTables = Object.entries(section).sort(([tableNameA, objectsA], [tableNameB, objectsB]) => {
+                    const hasHighlightedA = objectsA.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameA}`));
+                    const hasHighlightedB = objectsB.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameB}`));
+                    
+                    if (hasHighlightedA && !hasHighlightedB) return -1;
+                    if (!hasHighlightedA && hasHighlightedB) return 1;
+                    return 0;
+                  });
+                  
+                  return (
+                    <SchemaSection key={sectionName}>
+                      <SubSectionTitle>{sectionName}</SubSectionTitle>
+                      {sortedTables.map(([tableName, objects]) => {
+                        const tableKey = `${sectionName}-${tableName}`;
+                        const isExpanded = !collapsedTables.has(tableKey);
+                        
+                        return (
+                          <SchemaTable key={tableName}>
+                            <SchemaTableHeader onClick={() => handleTableToggle(tableKey)}>
+                              <SchemaTableHeaderTitle>{tableName}</SchemaTableHeaderTitle>
+                              <SchemaTableToggle isExpanded={isExpanded}>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path fillRule="evenodd" clipRule="evenodd" d="M0.381282 3.38128C0.72299 3.03957 1.27701 3.03957 1.61872 3.38128L6 7.76256L10.3813 3.38128C10.723 3.03957 11.277 3.03957 11.6187 3.38128C11.9604 3.72299 11.9604 4.27701 11.6187 4.61872L6.61872 9.61872C6.27701 9.96043 5.72299 9.96043 5.38128 9.61872L0.381282 4.61872C0.0395728 4.27701 0.0395728 3.72299 0.381282 3.38128Z" fill="#474E5A"/>
+                                </svg>
+                              </SchemaTableToggle>
+                            </SchemaTableHeader>
+                            {isExpanded && (
+                              <SchemaObjectList>
+                                {objects.map((obj, index) => (
+                                  <SchemaObjectItem 
+                                    key={index} 
+                                    isHighlighted={currentlyUsedObjects.has(`${obj.id}@${tableName}`)}
+                                    onClick={() => handleSchemaObjectClick(obj, tableName)}
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    <SchemaObjectLabel>
+                                      <span>{obj.label}</span>
+                                      <SchemaObjectActions>
+                                        <SchemaObjectPin>
+                                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
+                                          </svg>
+                                        </SchemaObjectPin>
+                                        {currentlyUsedObjects.has(`${obj.id}@${tableName}`) ? (
+                                          <SchemaObjectCheckmark>
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                              <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
+                                              <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
+                                            </svg>
+                                          </SchemaObjectCheckmark>
+                                        ) : (
+                                          <SchemaObjectPlus>
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                              <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
+                                              <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
+                                            </svg>
+                                          </SchemaObjectPlus>
+                                        )}
+                                      </SchemaObjectActions>
+                                    </SchemaObjectLabel>
+                                    <SchemaObjectMeta>
+                                      {tableName}
+                                      <MetadataSeparator>
+                                        <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                          <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                                        </svg>
+                                      </MetadataSeparator>
+                                      {obj.id}
+                                    </SchemaObjectMeta>
+                                  </SchemaObjectItem>
+                                ))}
+                              </SchemaObjectList>
+                            )}
+                          </SchemaTable>
+                        );
+                      })}
+                    </SchemaSection>
+                  );
+                })}
+              </>
+            )}
           </InfoSection>
         </LeftPanel>
 
@@ -2571,7 +3337,7 @@ const MetricEditor = () => {
           </SpreadsheetHeader>
           <SpreadsheetWrapper>
             {orderedSchema.length > 0 ? (
-              <TableContainer>
+              <TableContainer hasSelection={!!selectionStats}>
                 <SpreadsheetTable>
                   <thead>
                     <tr>
@@ -2721,7 +3487,7 @@ const MetricEditor = () => {
 
       {/* Floating Action Buttons */}
       {shouldShowFloatingButtons && (
-        <FloatingActionContainer data-floating-buttons hasAnalysisPanel={showAnalysisPanel}>
+        <FloatingActionContainer data-floating-buttons hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
           <FloatingActionButton onClick={handleAnalyzeClick}>
             <svg fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -2735,7 +3501,8 @@ const MetricEditor = () => {
       )}
 
       {/* Analysis Panel */}
-      <AnalysisPanel isOpen={showAnalysisPanel} data-panel="analysis">
+      <AnalysisPanel isOpen={showAnalysisPanel} width={analysisPanelWidth} data-panel="analysis">
+        <AnalysisPanelResizeHandle onMouseDown={handleAnalysisPanelResizeStart} />
         <AnalysisPanelHeader>
           <AnalysisPanelTitle>
             {analysisColumns.length === 1 
@@ -2858,6 +3625,8 @@ const MetricEditor = () => {
           onMouseEnter={handleSummaryMouseEnter}
           onMouseLeave={handleSummaryMouseLeave}
           onClick={handleSummaryClick}
+          leftPanelWidth={leftPanelWidth}
+          isResizing={isResizingLeftPanel}
         >
           {/* Selection Icon */}
           {getSelectionIcon()}
