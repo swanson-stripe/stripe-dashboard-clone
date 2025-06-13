@@ -475,7 +475,7 @@ const TableContainer = styled.div`
   border: 1px solid rgb(227, 232, 238);
   border-radius: 8px;
   flex: 1;
-  margin-bottom: 40px; /* 40px bottom spacing as requested */
+  margin-bottom: ${props => props.hasSelection ? '0px' : '40px'}; /* Reduce margin when analyze button is shown */
   position: relative;
   overflow: auto;
   box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
@@ -3864,7 +3864,7 @@ const MetricEditor = () => {
             
             <SpreadsheetWrapper>
               {orderedSchema.length > 0 ? (
-                <TableContainer>
+                <TableContainer hasSelection={shouldShowFloatingButtons}>
                   <SpreadsheetTable>
                     <thead>
                       <tr>
