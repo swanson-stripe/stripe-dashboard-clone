@@ -3252,6 +3252,49 @@ const MetricEditor = () => {
         newSet.delete(columnId);
       } else {
         newSet.add(columnId);
+        
+        // Store column metadata if not already stored and not in current columns
+        const isInCurrentColumns = getCurrentSpreadsheetColumns().some(col => col.id === columnId);
+        if (!isInCurrentColumns && !columnDefinitions[columnId]) {
+          // Try to find metadata from common columns
+          let foundMetadata = false;
+          Object.entries(commonColumnObjects).forEach(([packageName, objects]) => {
+            if (foundMetadata) return;
+            const commonObj = objects.find(obj => obj.id === columnId);
+            if (commonObj) {
+              setColumnDefinitions(prev => ({
+                ...prev,
+                [columnId]: {
+                  label: commonObj.label,
+                  stripeObject: commonObj.stripeObject,
+                  stripeTable: commonObj.stripeTable,
+                  definition: commonObj.description || `${commonObj.label} from ${commonObj.stripeTable}`
+                }
+              }));
+              foundMetadata = true;
+            }
+          });
+          
+          // If not found in common columns, try schema objects
+          if (!foundMetadata) {
+            Object.entries(METRIC_SCHEMAS[currentId] || {}).forEach(([tableName, tableData]) => {
+              if (foundMetadata) return;
+              const schemaObj = tableData.objects?.find(obj => obj.id === columnId);
+              if (schemaObj) {
+                setColumnDefinitions(prev => ({
+                  ...prev,
+                  [columnId]: {
+                    label: createHumanLabel(columnId),
+                    stripeObject: schemaObj.stripeObject,
+                    stripeTable: tableName,
+                    definition: `${createHumanLabel(columnId)} from ${tableName}`
+                  }
+                }));
+                foundMetadata = true;
+              }
+            });
+          }
+        }
       }
       return newSet;
     });
@@ -3259,22 +3302,73 @@ const MetricEditor = () => {
 
   // Get pinned columns with their metadata for display
   const getPinnedColumns = () => {
-    const allColumns = [...getCurrentSpreadsheetColumns()];
+    const pinnedColumnsData = [];
     
-    // Add columns from addedColumns (from common columns and schema)
-    addedColumns.forEach(columnId => {
+    pinnedColumns.forEach(columnId => {
+      // First check if it's in current spreadsheet columns
+      const currentCol = getCurrentSpreadsheetColumns().find(col => col.id === columnId);
+      if (currentCol) {
+        pinnedColumnsData.push(currentCol);
+        return;
+      }
+      
+      // Check if it's in column definitions (from added columns)
       const colDef = columnDefinitions[columnId];
-      if (colDef && pinnedColumns.has(columnId)) {
-        allColumns.push({
+      if (colDef) {
+        pinnedColumnsData.push({
           id: columnId,
           humanLabel: colDef.label,
           objectName: colDef.stripeObject,
           tableName: colDef.stripeTable
         });
+        return;
+      }
+      
+      // Check if it's in common columns
+      let foundInCommon = false;
+      Object.entries(commonColumnObjects).forEach(([packageName, objects]) => {
+        if (foundInCommon) return;
+        const commonObj = objects.find(obj => obj.id === columnId);
+        if (commonObj) {
+          pinnedColumnsData.push({
+            id: columnId,
+            humanLabel: commonObj.label,
+            objectName: commonObj.stripeObject,
+            tableName: commonObj.stripeTable
+          });
+          foundInCommon = true;
+        }
+      });
+      
+      if (foundInCommon) return;
+      
+      // Check if it's in schema objects (All section)
+      Object.entries(METRIC_SCHEMAS[currentId] || {}).forEach(([tableName, tableData]) => {
+        if (foundInCommon) return;
+        const schemaObj = tableData.objects?.find(obj => obj.id === columnId);
+        if (schemaObj) {
+          pinnedColumnsData.push({
+            id: columnId,
+            humanLabel: createHumanLabel(columnId),
+            objectName: schemaObj.stripeObject,
+            tableName: tableName
+          });
+          foundInCommon = true;
+        }
+      });
+      
+      // If still not found, create a basic entry
+      if (!foundInCommon) {
+        pinnedColumnsData.push({
+          id: columnId,
+          humanLabel: createHumanLabel(columnId),
+          objectName: columnId,
+          tableName: 'Unknown'
+        });
       }
     });
     
-    return allColumns.filter(col => pinnedColumns.has(col.id));
+    return pinnedColumnsData;
   };
 
   // In the 'All' section, map section names to new display names
