@@ -3410,6 +3410,72 @@ const MetricEditor = () => {
     }
   };
 
+  // Handle adding a pinned column to the included section
+  const handleAddPinnedColumn = (columnId) => {
+    // Check if column is already in included section
+    const isAlreadyIncluded = getCurrentSpreadsheetColumns().some(col => col.id === columnId);
+    if (isAlreadyIncluded) return;
+
+    // Add to addedColumns
+    setAddedColumns(prev => {
+      const newSet = new Set(prev);
+      newSet.add(columnId);
+      return newSet;
+    });
+
+    // Ensure column definition exists
+    if (!columnDefinitions[columnId]) {
+      // Try to find metadata from common columns
+      let foundMetadata = false;
+      Object.entries(commonColumnObjects).forEach(([packageName, objects]) => {
+        if (foundMetadata) return;
+        const commonObj = objects.find(obj => obj.id === columnId);
+        if (commonObj) {
+          setColumnDefinitions(prev => ({
+            ...prev,
+            [columnId]: {
+              id: columnId,
+              label: commonObj.label,
+              dataType: commonObj.dataType,
+              isCurrency: commonObj.isCurrency,
+              isNumber: commonObj.isNumber,
+              isTrend: commonObj.isTrend,
+              stripeObject: commonObj.objectName,
+              stripeTable: commonObj.tableName,
+              isFromCommonColumns: true,
+              originalCommonId: commonObj.originalCommonId
+            }
+          }));
+          foundMetadata = true;
+        }
+      });
+
+      // If not found in common columns, try schema objects
+      if (!foundMetadata) {
+        Object.entries(METRIC_SCHEMAS[currentId] || {}).forEach(([tableName, tableData]) => {
+          if (foundMetadata) return;
+          const schemaObj = tableData.objects?.find(obj => obj.id === columnId);
+          if (schemaObj) {
+            setColumnDefinitions(prev => ({
+              ...prev,
+              [columnId]: {
+                id: columnId,
+                label: createHumanLabel(columnId),
+                dataType: getColumnDataType(schemaObj),
+                isCurrency: schemaObj.id.includes('amount') || schemaObj.id.includes('revenue') || schemaObj.id.includes('mrr') || schemaObj.id.includes('ltv'),
+                isNumber: schemaObj.id.includes('count') || schemaObj.id.includes('quantity') || schemaObj.id.includes('units') || schemaObj.id.includes('rate'),
+                isTrend: schemaObj.id.includes('growth') || schemaObj.id.includes('conversion'),
+                stripeTable: tableName,
+                stripeObject: schemaObj.id
+              }
+            }));
+            foundMetadata = true;
+          }
+        });
+      }
+    }
+  };
+
   return (
     <>
       <EditorContainer hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
@@ -3524,7 +3590,7 @@ const MetricEditor = () => {
                           /* Plus icon - show if column is pinned but not included */
                           <SchemaObjectPlus onClick={(e) => {
                             e.stopPropagation();
-                            handleToggleColumn(col.id);
+                            handleAddPinnedColumn(col.id);
                           }}>
                             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
