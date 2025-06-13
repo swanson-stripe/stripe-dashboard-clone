@@ -3785,7 +3785,7 @@ const MetricEditor = () => {
         {showColumnMenu && (
           <ColumnMenuPopover
             data-column-menu
-                        style={{
+            style={{
               left: columnMenuPosition.x,
               top: columnMenuPosition.y
             }}
@@ -3793,94 +3793,94 @@ const MetricEditor = () => {
             <ColumnMenuItem onClick={() => handleSort('asc')}>
               <svg fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                            </svg>
-              Sort Ascending
-            </ColumnMenuItem>
-            <ColumnMenuItem onClick={() => handleSort('desc')}>
-              <svg fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-              Sort Descending
-            </ColumnMenuItem>
-          </ColumnMenuPopover>
-        )}
+            </svg>
+            Sort Ascending
+          </ColumnMenuItem>
+          <ColumnMenuItem onClick={() => handleSort('desc')}>
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+            Sort Descending
+          </ColumnMenuItem>
+        </ColumnMenuPopover>
+      )}
 
-        {/* Floating Action Buttons */}
-        {shouldShowFloatingButtons && (
-          <FloatingActionContainer data-floating-buttons hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
-            <FloatingActionButton onClick={handleAnalyzeClick}>
-              <svg fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-              {selectedColumnsForAnalysis.length === 1 
-                ? `Analyze ${orderedSchema.find(col => col.id === selectedColumnsForAnalysis[0])?.label || selectedColumnsForAnalysis[0]}`
-                : `Analyze ${selectedColumnsForAnalysis.length} columns`
-              }
-            </FloatingActionButton>
-          </FloatingActionContainer>
-        )}
+      {/* Floating Action Buttons */}
+      {shouldShowFloatingButtons && (
+        <FloatingActionContainer data-floating-buttons hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
+          <FloatingActionButton onClick={handleAnalyzeClick}>
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            {selectedColumnsForAnalysis.length === 1 
+              ? `Analyze ${orderedSchema.find(col => col.id === selectedColumnsForAnalysis[0])?.label || selectedColumnsForAnalysis[0]}`
+              : `Analyze ${selectedColumnsForAnalysis.length} columns`
+            }
+          </FloatingActionButton>
+        </FloatingActionContainer>
+      )}
 
-        {/* Analysis Panel */}
-        <AnalysisPanel isOpen={showAnalysisPanel} width={analysisPanelWidth} data-panel="analysis">
-          <AnalysisPanelResizeHandle onMouseDown={handleAnalysisPanelResizeStart} />
-          <AnalysisPanelHeader>
-            <AnalysisPanelTitle>
-              {analysisColumns.length === 1 
-                ? `Analysis: ${orderedSchema.find(col => col.id === analysisColumns[0])?.label || analysisColumns[0]}`
-                : `Analysis: ${analysisColumns.length} columns`
-              }
-            </AnalysisPanelTitle>
-            <AnalysisPanelClose onClick={handleCloseAnalysisPanel}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-            </AnalysisPanelClose>
-          </AnalysisPanelHeader>
-          
-          <AnalysisPanelContent>
-            {/* AI Analysis Section - First */}
-            <AnalysisSection>
-              <AnalysisSectionTitle>AI Analysis</AnalysisSectionTitle>
-              <AnalysisSectionContent>
-                {getAIAnalysis(analysisColumns)}
-                
-                {/* Chart Widget */}
-                <ChartWidget>
-                  <ChartHeader>
-                    <div>
-                      <ChartTitle>
-                        {analysisColumns.length === 1 
-                          ? orderedSchema.find(col => col.id === analysisColumns[0])?.label 
-                          : 'Combined Metrics'} Trend
-                      </ChartTitle>
-                      <ChartValue>
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'current_mrr' && '$847.2K'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'usage_growth' && '+15.3%'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'amount' && '$2,347'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'subscription_revenue' && '$1.2M'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'status' && '94.2%'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'meter' && '2.7x Peak'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'plan' && '67% Upgrade'}
-                        {(analysisColumns.length > 1 || !['current_mrr', 'usage_growth', 'amount', 'subscription_revenue', 'status', 'meter', 'plan'].includes(analysisColumns[0])) && '+14.2%'}
-                      </ChartValue>
-                      <ChartTrend positive={true}>
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'current_mrr' && '+2.4% this period'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'usage_growth' && '+15.3% vs last month'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'amount' && '+8.7% QoQ'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'subscription_revenue' && '+12.1% growth'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'status' && '67% conversion rate'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'meter' && '+156% YoY growth'}
-                        {analysisColumns.length === 1 && analysisColumns[0] === 'plan' && '+28% Enterprise adoption'}
-                        {(analysisColumns.length > 1 || !['current_mrr', 'usage_growth', 'amount', 'subscription_revenue', 'status', 'meter', 'plan'].includes(analysisColumns[0])) && '+14.2% improvement'}
-                      </ChartTrend>
-                                      </div>
-                  </ChartHeader>
-                  <ChartArea>
-                                {(() => {
-                      const primaryColumn = analysisColumns[0] || 'default';
-                      const chartData = generateChartData(primaryColumn);
-                                  
-                                return (
+      {/* Analysis Panel */}
+      <AnalysisPanel isOpen={showAnalysisPanel} width={analysisPanelWidth} data-panel="analysis">
+        <AnalysisPanelResizeHandle onMouseDown={handleAnalysisPanelResizeStart} />
+        <AnalysisPanelHeader>
+          <AnalysisPanelTitle>
+            {analysisColumns.length === 1 
+              ? `Analysis: ${orderedSchema.find(col => col.id === analysisColumns[0])?.label || analysisColumns[0]}`
+              : `Analysis: ${analysisColumns.length} columns`
+            }
+          </AnalysisPanelTitle>
+          <AnalysisPanelClose onClick={handleCloseAnalysisPanel}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </AnalysisPanelClose>
+        </AnalysisPanelHeader>
+        
+        <AnalysisPanelContent>
+          {/* AI Analysis Section - First */}
+          <AnalysisSection>
+            <AnalysisSectionTitle>AI Analysis</AnalysisSectionTitle>
+            <AnalysisSectionContent>
+              {getAIAnalysis(analysisColumns)}
+              
+              {/* Chart Widget */}
+              <ChartWidget>
+                <ChartHeader>
+                  <div>
+                    <ChartTitle>
+                      {analysisColumns.length === 1 
+                        ? orderedSchema.find(col => col.id === analysisColumns[0])?.label 
+                        : 'Combined Metrics'} Trend
+                    </ChartTitle>
+                    <ChartValue>
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'current_mrr' && '$847.2K'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'usage_growth' && '+15.3%'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'amount' && '$2,347'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'subscription_revenue' && '$1.2M'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'status' && '94.2%'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'meter' && '2.7x Peak'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'plan' && '67% Upgrade'}
+                      {(analysisColumns.length > 1 || !['current_mrr', 'usage_growth', 'amount', 'subscription_revenue', 'status', 'meter', 'plan'].includes(analysisColumns[0])) && '+14.2%'}
+                    </ChartValue>
+                    <ChartTrend positive={true}>
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'current_mrr' && '+2.4% this period'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'usage_growth' && '+15.3% vs last month'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'amount' && '+8.7% QoQ'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'subscription_revenue' && '+12.1% growth'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'status' && '67% conversion rate'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'meter' && '+156% YoY growth'}
+                      {analysisColumns.length === 1 && analysisColumns[0] === 'plan' && '+28% Enterprise adoption'}
+                      {(analysisColumns.length > 1 || !['current_mrr', 'usage_growth', 'amount', 'subscription_revenue', 'status', 'meter', 'plan'].includes(analysisColumns[0])) && '+14.2% improvement'}
+                    </ChartTrend>
+                </div>
+              </ChartHeader>
+              <ChartArea>
+                {(() => {
+                  const primaryColumn = analysisColumns[0] || 'default';
+                  const chartData = generateChartData(primaryColumn);
+                              
+                  return (
                     <LineChart 
                       data={chartData}
                       height={60}
@@ -3891,163 +3891,162 @@ const MetricEditor = () => {
                       simplified={true}
                       unit={primaryColumn.includes('mrr') || primaryColumn.includes('amount') || primaryColumn.includes('revenue') ? 'currency' : 'number'}
                     />
-                            );
-                          })()}
-                  </ChartArea>
-                </ChartWidget>
-              </AnalysisSectionContent>
-            </AnalysisSection>
-            
-            {/* Related Columns Section - Second */}
-            <AnalysisSection>
-              <AnalysisSectionTitle>Related Columns</AnalysisSectionTitle>
-              <AnalysisSectionContent>
-                {getRelatedColumns(analysisColumns).map(column => (
-                  <RelatedColumnItem key={column.id}>
-                    <RelatedColumnHeader>
-                      <RelatedColumnName>{column.label}</RelatedColumnName>
-                      <ColumnActionLink 
-                        added={addedColumns.has(column.id)}
-                        onClick={() => handleToggleColumn(column.id)}
-                      >
-                        {addedColumns.has(column.id) ? 'Added' : '+ Add'}
-                      </ColumnActionLink>
-                    </RelatedColumnHeader>
-                    <RelatedColumnDescription>{column.description}</RelatedColumnDescription>
-                  </RelatedColumnItem>
-                ))}
-                {getRelatedColumns(analysisColumns).length === 0 && (
-                  <div style={{ color: '#6b7280', fontStyle: 'italic' }}>
-                    No related columns found for the current selection.
-                  </div>
-                            )}
-              </AnalysisSectionContent>
-            </AnalysisSection>
-            
-            {/* Definitions Section - Last */}
-            <AnalysisSection>
-              <AnalysisSectionTitle>Definitions</AnalysisSectionTitle>
-              <AnalysisSectionContent>
-                {getColumnDefinitions(analysisColumns).map(column => (
-                  <div key={column.id} style={{ marginBottom: '12px' }}>
-                    <strong>{column.label}:</strong> {column.definition}
-                            </div>
-                ))}
-              </AnalysisSectionContent>
-            </AnalysisSection>
-          </AnalysisPanelContent>
-        </AnalysisPanel>
-
-        {/* Selection Summary */}
-        {selectionStats && (
-          <SelectionSummary 
-            data-summary-component
-            onMouseEnter={handleSummaryMouseEnter}
-            onMouseLeave={handleSummaryMouseLeave}
-            onClick={handleSummaryClick}
-            leftPanelWidth={leftPanelWidth}
-            isResizing={isResizingLeftPanel}
-          >
-            {/* Selection Icon */}
-            {getSelectionIcon()}
-            
-            {(() => {
-              const primaryAgg = getPrimaryAggregation();
-              const hasMultipleAggregations = Object.keys(selectionStats.aggregations).length > 1;
-              
-              if (primaryAgg) {
-                    return (
-                  <>
-                    <SummaryLabel>{primaryAgg.label}</SummaryLabel>
-                    <SummaryValue>
-                      {primaryAgg.type === 'sum' && primaryAgg.isCurrency && 
-                        `$${primaryAgg.value.toLocaleString()}`
-                      }
-                      {primaryAgg.type === 'sum' && !primaryAgg.isCurrency && 
-                        primaryAgg.value.toLocaleString()
-                      }
-                      {primaryAgg.type === 'average' && primaryAgg.isPercentage && 
-                        `Average: ${primaryAgg.value >= 0 ? '+' : ''}${primaryAgg.value.toFixed(1)}%`
-                      }
-                      {primaryAgg.type === 'average' && !primaryAgg.isPercentage && 
-                        `Average: ${primaryAgg.value.toFixed(2)}`
-                      }
-                      {primaryAgg.type === 'dateRange' && 
-                        `${primaryAgg.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${primaryAgg.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                      }
-                      {primaryAgg.type === 'unique' && 
-                        `${primaryAgg.value} unique value${primaryAgg.value !== 1 ? 's' : ''}`
-                      }
-                    </SummaryValue>
-                  </>
-                );
-              } else {
-                // Fallback to cell count if no aggregations
-                return (
-                  <>
-                    <SummaryLabel>Cells Selected</SummaryLabel>
-                    <SummaryValue>{selectionStats.cellsSelected.toLocaleString()}</SummaryValue>
-                  </>
-                );
-              }
-            })()}
-          </SelectionSummary>
-        )}
-
-        {/* Summary Tooltip */}
-        {showSummaryTooltip && selectionStats && (
-          <SummaryTooltip
-            data-summary-tooltip
-            onMouseEnter={handleTooltipMouseEnter}
-            onMouseLeave={handleTooltipMouseLeave}
-            style={{ 
-              left: summaryTooltipPosition.x,
-              bottom: summaryTooltipPosition.bottom,
-              width: summaryTooltipWidth
-            }}
-          >
-            <TooltipItem>
-              <TooltipLabel>Cells Selected</TooltipLabel>
-              <TooltipValue>{selectionStats.cellsSelected.toLocaleString()}</TooltipValue>
-            </TooltipItem>
-            
-            {selectedRow !== null && (
-              <TooltipItem>
-                <TooltipLabel>Selected Row</TooltipLabel>
-                <TooltipValue>Row {selectedRow + 1}</TooltipValue>
-              </TooltipItem>
-            )}
-            
-            {Object.entries(selectionStats.aggregations).map(([columnId, agg]) => (
-              <TooltipItem key={columnId}>
-                <TooltipLabel>{agg.label}</TooltipLabel>
-                <TooltipValue>
-                  {agg.type === 'sum' && agg.isCurrency && 
-                    `$${agg.value.toLocaleString()}`
-                  }
-                  {agg.type === 'sum' && !agg.isCurrency && 
-                    agg.value.toLocaleString()
-                  }
-                  {agg.type === 'average' && agg.isPercentage && 
-                    `Average: ${agg.value >= 0 ? '+' : ''}${agg.value.toFixed(1)}%`
-                  }
-                  {agg.type === 'average' && !agg.isPercentage && 
-                    `Average: ${agg.value.toFixed(2)}`
-                  }
-                  {agg.type === 'dateRange' && 
-                    `${agg.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${agg.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  }
-                  {agg.type === 'unique' && 
-                    `${agg.value} unique value${agg.value !== 1 ? 's' : ''}`
-                  }
-                </TooltipValue>
-              </TooltipItem>
+                  );
+                })()}
+              </ChartArea>
+            </ChartWidget>
+          </AnalysisSectionContent>
+        </AnalysisSection>
+        
+        {/* Related Columns Section - Second */}
+        <AnalysisSection>
+          <AnalysisSectionTitle>Related Columns</AnalysisSectionTitle>
+          <AnalysisSectionContent>
+            {getRelatedColumns(analysisColumns).map(column => (
+              <RelatedColumnItem key={column.id}>
+                <RelatedColumnHeader>
+                  <RelatedColumnName>{column.label}</RelatedColumnName>
+                  <ColumnActionLink 
+                    added={addedColumns.has(column.id)}
+                    onClick={() => handleToggleColumn(column.id)}
+                  >
+                    {addedColumns.has(column.id) ? 'Added' : '+ Add'}
+                  </ColumnActionLink>
+                </RelatedColumnHeader>
+                <RelatedColumnDescription>{column.description}</RelatedColumnDescription>
+              </RelatedColumnItem>
             ))}
-          </SummaryTooltip>
+            {getRelatedColumns(analysisColumns).length === 0 && (
+              <div style={{ color: '#6b7280', fontStyle: 'italic' }}>
+                No related columns found for the current selection.
+              </div>
+            )}
+          </AnalysisSectionContent>
+        </AnalysisSection>
+        
+        {/* Definitions Section - Last */}
+        <AnalysisSection>
+          <AnalysisSectionTitle>Definitions</AnalysisSectionTitle>
+          <AnalysisSectionContent>
+            {getColumnDefinitions(analysisColumns).map(column => (
+              <div key={column.id} style={{ marginBottom: '12px' }}>
+                <strong>{column.label}:</strong> {column.definition}
+              </div>
+            ))}
+          </AnalysisSectionContent>
+        </AnalysisSection>
+      </AnalysisPanelContent>
+    </AnalysisPanel>
+
+    {/* Selection Summary */}
+    {selectionStats && (
+      <SelectionSummary 
+        data-summary-component
+        onMouseEnter={handleSummaryMouseEnter}
+        onMouseLeave={handleSummaryMouseLeave}
+        onClick={handleSummaryClick}
+        leftPanelWidth={leftPanelWidth}
+        isResizing={isResizingLeftPanel}
+      >
+        {/* Selection Icon */}
+        {getSelectionIcon()}
+        
+        {(() => {
+          const primaryAgg = getPrimaryAggregation();
+          const hasMultipleAggregations = Object.keys(selectionStats.aggregations).length > 1;
+          
+          if (primaryAgg) {
+            return (
+              <>
+                <SummaryLabel>{primaryAgg.label}</SummaryLabel>
+                <SummaryValue>
+                  {primaryAgg.type === 'sum' && primaryAgg.isCurrency && 
+                    `$${primaryAgg.value.toLocaleString()}`
+                  }
+                  {primaryAgg.type === 'sum' && !primaryAgg.isCurrency && 
+                    primaryAgg.value.toLocaleString()
+                  }
+                  {primaryAgg.type === 'average' && primaryAgg.isPercentage && 
+                    `Average: ${primaryAgg.value >= 0 ? '+' : ''}${primaryAgg.value.toFixed(1)}%`
+                  }
+                  {primaryAgg.type === 'average' && !primaryAgg.isPercentage && 
+                    `Average: ${primaryAgg.value.toFixed(2)}`
+                  }
+                  {primaryAgg.type === 'dateRange' && 
+                    `${primaryAgg.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${primaryAgg.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                  }
+                  {primaryAgg.type === 'unique' && 
+                    `${primaryAgg.value} unique value${primaryAgg.value !== 1 ? 's' : ''}`
+                  }
+                </SummaryValue>
+              </>
+            );
+          } else {
+            // Fallback to cell count if no aggregations
+            return (
+              <>
+                <SummaryLabel>Cells Selected</SummaryLabel>
+                <SummaryValue>{selectionStats.cellsSelected.toLocaleString()}</SummaryValue>
+              </>
+            );
+          }
+        })()}
+      </SelectionSummary>
+    )}
+
+    {/* Summary Tooltip */}
+    {showSummaryTooltip && selectionStats && (
+      <SummaryTooltip
+        data-summary-tooltip
+        onMouseEnter={handleTooltipMouseEnter}
+        onMouseLeave={handleTooltipMouseLeave}
+        style={{ 
+          left: summaryTooltipPosition.x,
+          bottom: summaryTooltipPosition.bottom,
+          width: summaryTooltipWidth
+        }}
+      >
+        <TooltipItem>
+          <TooltipLabel>Cells Selected</TooltipLabel>
+          <TooltipValue>{selectionStats.cellsSelected.toLocaleString()}</TooltipValue>
+        </TooltipItem>
+        
+        {selectedRow !== null && (
+          <TooltipItem>
+            <TooltipLabel>Selected Row</TooltipLabel>
+            <TooltipValue>Row {selectedRow + 1}</TooltipValue>
+          </TooltipItem>
         )}
-      </EditorContainer>
-    </>
-  );
+        
+        {Object.entries(selectionStats.aggregations).map(([columnId, agg]) => (
+          <TooltipItem key={columnId}>
+            <TooltipLabel>{agg.label}</TooltipLabel>
+            <TooltipValue>
+              {agg.type === 'sum' && agg.isCurrency && 
+                `$${agg.value.toLocaleString()}`
+              }
+              {agg.type === 'sum' && !agg.isCurrency && 
+                agg.value.toLocaleString()
+              }
+              {agg.type === 'average' && agg.isPercentage && 
+                `Average: ${agg.value >= 0 ? '+' : ''}${agg.value.toFixed(1)}%`
+              }
+              {agg.type === 'average' && !agg.isPercentage && 
+                `Average: ${agg.value.toFixed(2)}`
+              }
+              {agg.type === 'dateRange' && 
+                `${agg.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${agg.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+              }
+              {agg.type === 'unique' && 
+                `${agg.value} unique value${agg.value !== 1 ? 's' : ''}`
+              }
+            </TooltipValue>
+          </TooltipItem>
+        ))}
+      </SummaryTooltip>
+    )}
+  </>
+);
 };
 
 export default MetricEditor;
