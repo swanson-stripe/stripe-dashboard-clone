@@ -1963,6 +1963,7 @@ const MetricEditor = () => {
 
   // Event handlers
   const handleCellClick = (rowIndex, columnId, event) => {
+    event.stopPropagation(); // Prevent event bubbling to row click handler
     const colIndex = orderedSchema.findIndex(col => col.id === columnId);
     
     if (event.shiftKey && lastClickedCell) {
@@ -2140,6 +2141,7 @@ const MetricEditor = () => {
   };
 
   const handleRowNumberClick = (rowIndex, event) => {
+    event.stopPropagation(); // Prevent event bubbling to row click handler
     if (event.shiftKey && (selectedRow !== null || selectedRows.size > 0)) {
       // Shift+click for row range selection
       const startRow = selectedRow !== null ? selectedRow : Math.min(...Array.from(selectedRows));
