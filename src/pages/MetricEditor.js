@@ -474,9 +474,10 @@ const SpreadsheetWrapper = styled.div`
 const TableContainer = styled.div`
   border: 1px solid rgb(227, 232, 238);
   border-radius: 8px;
-  height: ${({ hasSelection }) => hasSelection ? 'calc(100vh - 158px)' : 'calc(100vh - 118px)'};
-  /* 158px = 40px (top) + 12px (spacing between action bar and spreadsheet) + 106px (bottom when selected) */
-  /* 118px = 40px (top) + 12px (spacing between action bar and spreadsheet) + 66px (bottom when not selected) */
+  height: ${({ hasSelection }) => hasSelection ? 'calc(100vh - 250px)' : 'calc(100vh - 210px)'};
+  /* Updated calculations:
+     250px = 92px (header) + 12px (spacing) + 40px (wrapper padding) + 106px (bottom when selected)
+     210px = 92px (header) + 12px (spacing) + 40px (wrapper padding) + 66px (bottom when not selected) */
   position: relative;
   overflow: auto;
   box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
@@ -3652,9 +3653,29 @@ const MetricEditor = () => {
 
           {/* Main spreadsheet content container */}
           <SpreadsheetContainer>
+            <SpreadsheetHeader>
+              <HeaderButtons>
+                <DoneButton onClick={handleClose} title="Close">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </DoneButton>
+              </HeaderButtons>
+              
+              <HeaderTitle>{getDisplayTitle()}</HeaderTitle>
+              
+              <HeaderButtonsRight>
+                <DoneButton onClick={handleSave} title="Save">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </DoneButton>
+              </HeaderButtonsRight>
+            </SpreadsheetHeader>
+            
             <SpreadsheetWrapper>
               {orderedSchema.length > 0 ? (
-                <TableContainer>
+                <TableContainer hasSelection={selectedColumns.size > 0 || selectedRows.size > 0 || selectedCells.size > 0 || selectedRow !== null || shouldShowFloatingButtons}>
                   <SpreadsheetTable>
                     <thead>
                       <tr>
