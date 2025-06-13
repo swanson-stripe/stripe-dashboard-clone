@@ -1248,7 +1248,7 @@ const SchemaObjectItem = styled.li`
   flex-direction: column;
   position: relative;
   box-shadow: none;
-  border: ${props => props.isHighlighted ? 'none' : '1px dotted #D8DEE4'};
+  border: ${props => props.isHighlighted ? 'none' : '1px dashed #D8DEE4'};
 `;
 const SchemaObjectLabel = styled.div`
   color: #23272f;
@@ -3634,8 +3634,7 @@ const MetricEditor = () => {
                 ) : (
                   /* Placeholder when no columns are pinned */
                   <div style={{ 
-                    padding: '16px', 
-                    textAlign: 'center', 
+                    textAlign: 'left', 
                     color: '#99A5B8', 
                     fontStyle: 'italic',
                     fontSize: '14px'
