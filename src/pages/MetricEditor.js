@@ -3510,7 +3510,7 @@ const MetricEditor = () => {
                           </svg>
                         </SchemaObjectPin>
                         {/* Check icon - only show if column is also in included */}
-                        {getCurrentSpreadsheetColumns().some(includedCol => includedCol.id === col.id) && (
+                        {getCurrentSpreadsheetColumns().some(includedCol => includedCol.id === col.id) ? (
                           <SchemaObjectCheckmark onClick={(e) => {
                             e.stopPropagation();
                             handleToggleColumn(col.id);
@@ -3520,17 +3520,36 @@ const MetricEditor = () => {
                               <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
                             </svg>
                           </SchemaObjectCheckmark>
+                        ) : (
+                          /* Plus icon - show if column is pinned but not included */
+                          <SchemaObjectPlus onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleColumn(col.id);
+                          }}>
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
+                              <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
+                            </svg>
+                          </SchemaObjectPlus>
                         )}
                       </ColumnIcons>
                     </ColumnLabelRow>
                     <ColumnMeta>
-                      {col.tableName}
-                      <span style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 6px' }}>
-                        <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
-                        </svg>
-                      </span>
-                      {col.objectName}
+                      {col.tableName && col.objectName ? (
+                        <>
+                          {col.tableName}
+                          <span style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 6px' }}>
+                            <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                            </svg>
+                          </span>
+                          {col.objectName}
+                        </>
+                      ) : (
+                        <span style={{ color: '#99A5B8', fontStyle: 'italic' }}>
+                          {col.tableName || col.objectName || 'Unknown source'}
+                        </span>
+                      )}
                     </ColumnMeta>
                   </ColumnItem>
                 ))}
