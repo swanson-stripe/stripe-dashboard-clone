@@ -1161,19 +1161,20 @@ const ColumnLabelRow = styled.div`
   width: 100%;
 `;
 
+const ColumnMeta = styled.div`
+  font-size: 12px;
+  color: #6c7688;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
 const ColumnLabel = styled.div`
   font-size: 14px;
   color: #23272f;
   font-weight: 600;
   margin-bottom: 4px;
-`;
-
-const ColumnMeta = styled.div`
-  font-size: 12px;
-  color: #6b7280;
-  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  margin-top: 2px;
-  letter-spacing: 0.01em;
 `;
 
 const ColumnIcons = styled.div`
@@ -1399,14 +1400,87 @@ const SubSectionTitle = styled.h3`
   padding-bottom: 8px;
   /* border-bottom: 1px solid #e5e7eb; */
 `;
+// Search styled components (moved outside component to prevent re-creation)
+const SectionSearchContainer = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 8px;
+  margin: 8px 0 12px 0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  width: 100%;
+  min-width: 200px;
+  
+  &:focus-within {
+    background: #fff;
+    box-shadow: 0 0 0 4px #088EF9;
+    box-shadow: 0 0 0 4px rgba(8, 142, 249, 0.36);
+  }
+`;
 
+const SectionSearchInput = styled.input`
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  font-size: 13px;
+  color: #1f2937;
+  height: 100%;
+  padding: 0;
+  margin: 0 6px;
+  min-width: 0;
+  width: 100%;
+  text-overflow: clip;
+  
+  &::placeholder {
+    color: #9ca3af;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+  }
+`;
+
+const SectionSearchIcon = styled.div`
+  color: #474E5A;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
+
+const SectionSearchClear = styled.button`
+  border: none;
+  background: none;
+  color: #474E5A;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  
+  &:hover {
+    opacity: 0.7;
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`; 
 // Helper for sentence case
 function toSentenceCase(str) {
-  if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').toLowerCase().replace(/\b([a-z])/g, function(match) { return match.toLowerCase(); });
 }
 
 const MetricEditor = () => {
+  
   const navigate = useNavigate();
   const { metricId, reportId } = useParams();
   const location = useLocation();
@@ -2264,6 +2338,8 @@ const MetricEditor = () => {
   // Add click outside handler for deselection
   useEffect(() => {
     const handleClickOutside = (event) => {
+      console.log('Click outside handler triggered, target:', event.target.tagName, event.target.className);
+      
       // Don't deselect if clicking in:
       // - Left panel
       // - Analysis panel
@@ -2271,6 +2347,7 @@ const MetricEditor = () => {
       // - Column menu
       // - Spreadsheet table itself
       // - Summary component
+      // - Search inputs
       
       const leftPanel = event.target.closest('[data-panel="left"]');
       const analysisPanel = event.target.closest('[data-panel="analysis"]');
@@ -2278,10 +2355,30 @@ const MetricEditor = () => {
       const columnMenu = event.target.closest('[data-column-menu]');
       const spreadsheetTable = event.target.closest('table');
       const summaryComponent = event.target.closest('[data-summary-component]');
+      const searchContainer = event.target.closest('[data-search-container]');
       
-      if (!leftPanel && !analysisPanel && !floatingButtons && !columnMenu && !spreadsheetTable && !summaryComponent) {
-        clearAllSelections();
+      // Additional specific checks for search inputs to prevent focus loss
+      const isSearchInput = event.target.tagName === 'INPUT' && 
+                           (event.target === commonSearchInputRef.current || 
+                            event.target === allSearchInputRef.current ||
+                            event.target.placeholder?.includes('Search'));
+      
+      console.log('Search checks:', {
+        searchContainer: !!searchContainer,
+        isSearchInput,
+        leftPanel: !!leftPanel,
+        target: event.target
+      });
+      
+      // Don't clear selections if clicking on search-related elements
+      if (leftPanel || analysisPanel || floatingButtons || columnMenu || 
+          spreadsheetTable || summaryComponent || searchContainer || isSearchInput) {
+        console.log('Skipping clearAllSelections due to exclusion');
+        return;
       }
+      
+      console.log('Calling clearAllSelections');
+      clearAllSelections();
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -2334,7 +2431,11 @@ const MetricEditor = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showColumnMenu) {
-        setShowColumnMenu(false);
+        // Don't close menu if clicking on search inputs
+        const searchContainer = event.target.closest('[data-search-container]');
+        if (!searchContainer) {
+          setShowColumnMenu(false);
+        }
       }
     };
 
@@ -2457,6 +2558,18 @@ const MetricEditor = () => {
 
   // Function to clear all selections
   const clearAllSelections = () => {
+    // SIMPLIFIED FOR TESTING - Check if a search input is currently focused
+    const activeElement = document.activeElement;
+    const isSearchInputFocused = activeElement === commonSearchInputRef.current || 
+                                 activeElement === allSearchInputRef.current;
+    
+    // Don't clear selections if search input is focused
+    if (isSearchInputFocused) {
+      console.log('Search input focused, not clearing selections');
+      return;
+    }
+    
+    // Normal clearing when search inputs are not focused
     setSelectedCell(null);
     setSelectedColumn(null);
     setSelectedRow(null);
@@ -2589,7 +2702,7 @@ const MetricEditor = () => {
             <g clipPath="url(#clip0_1767_99337)">
               <path d="M10 10.5V12H2V10.5H10ZM10.5 10V2C10.5 1.72386 10.2761 1.5 10 1.5H2C1.72386 1.5 1.5 1.72386 1.5 2V10C1.5 10.2761 1.72386 10.5 2 10.5V12L1.7959 11.9893C0.854347 11.8938 0.1062 11.1457 0.0107422 10.2041L0 10V2C1.20813e-07 0.96435 0.787223 0.113005 1.7959 0.0107422L2 0H10L10.2041 0.0107422C11.2128 0.113005 12 0.96435 12 2V10L11.9893 10.2041C11.8938 11.1457 11.1457 11.8938 10.2041 11.9893L10 12V10.5C10.2761 10.5 10.5 10.2761 10.5 10Z" fill="#6C7688"/>
               <path d="M6.75 0L6.75 12H5.25L5.25 0H6.75Z" fill="#6C7688"/>
-              <path d="M12 6.75H0L0 5.25H12V6.75Z" fill="#6C7688"/>
+              <path d="M12 6.75H0V5.25H12V6.75Z" fill="#6C7688"/>
             </g>
             <defs>
               <clipPath id="clip0_1767_99337">
@@ -3090,9 +3203,10 @@ const MetricEditor = () => {
   // Add click outside handler for tooltip
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Don't close if clicking on the summary component itself
+      // Don't close if clicking on the summary component itself or search inputs
       if (!event.target.closest('[data-summary-tooltip]') && 
-          !event.target.closest('[data-summary-component]')) {
+          !event.target.closest('[data-summary-component]') &&
+          !event.target.closest('[data-search-container]')) {
         setShowSummaryTooltip(false);
       }
     };
@@ -3236,10 +3350,134 @@ const MetricEditor = () => {
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
-  // Save pinned columns to session storage whenever it changes
+  // Add search state for commonly used and all sections
+  const [commonColumnsSearchTerm, setCommonColumnsSearchTerm] = useState('');
+  const [allColumnsSearchTerm, setAllColumnsSearchTerm] = useState('');
+
+  // Add refs for search inputs to maintain focus
+  const commonSearchInputRef = useRef(null);
+  const allSearchInputRef = useRef(null);
+
+  // Filter common columns based on search term
+  const filteredCommonColumnObjects = useMemo(() => {
+    if (!commonColumnsSearchTerm.trim()) return commonColumnObjects;
+    
+    const filtered = {};
+    Object.entries(commonColumnObjects).forEach(([packageName, objects]) => {
+      const filteredObjects = objects.filter(obj =>
+        obj.label.toLowerCase().includes(commonColumnsSearchTerm.toLowerCase()) ||
+        packageName.toLowerCase().includes(commonColumnsSearchTerm.toLowerCase()) ||
+        obj.id.toLowerCase().includes(commonColumnsSearchTerm.toLowerCase()) ||
+        obj.tableName.toLowerCase().includes(commonColumnsSearchTerm.toLowerCase())
+      );
+      
+      if (filteredObjects.length > 0) {
+        filtered[packageName] = filteredObjects;
+      }
+    });
+    
+    return filtered;
+  }, [commonColumnObjects, commonColumnsSearchTerm]);
+
+  // Filter all schema sections based on search term
+  const filteredSTRIPE_SCHEMA = useMemo(() => {
+    if (!allColumnsSearchTerm.trim()) return STRIPE_SCHEMA;
+    
+    const filtered = {};
+    Object.entries(STRIPE_SCHEMA).forEach(([sectionName, section]) => {
+      const filteredSection = {};
+      Object.entries(section).forEach(([tableName, objects]) => {
+        const filteredObjects = objects.filter(obj =>
+          obj.label.toLowerCase().includes(allColumnsSearchTerm.toLowerCase()) ||
+          tableName.toLowerCase().includes(allColumnsSearchTerm.toLowerCase()) ||
+          obj.id.toLowerCase().includes(allColumnsSearchTerm.toLowerCase()) ||
+          sectionName.toLowerCase().includes(allColumnsSearchTerm.toLowerCase())
+        );
+        
+        if (filteredObjects.length > 0) {
+          filteredSection[tableName] = filteredObjects;
+        }
+      });
+      
+      if (Object.keys(filteredSection).length > 0) {
+        filtered[sectionName] = filteredSection;
+      }
+    });
+    
+    return filtered;
+  }, [allColumnsSearchTerm]);
+
+  // Auto-expand tables when search has results (TEMPORARILY DISABLED FOR TESTING)
+  /*
   useEffect(() => {
-    sessionStorage.setItem(`pinnedColumns_${currentId}`, JSON.stringify([...pinnedColumns]));
-  }, [pinnedColumns, currentId]);
+    if (!commonColumnsSearchTerm.trim()) return;
+    
+    // Use a more reliable focus preservation approach
+    const activeElement = document.activeElement;
+    const isSearchInputFocused = activeElement === commonSearchInputRef.current;
+    
+    // Only update if there are actually changes needed
+    const newCollapsed = new Set(collapsedCommonTables);
+    let hasChanges = false;
+    
+    Object.keys(filteredCommonColumnObjects).forEach(packageName => {
+      if (newCollapsed.has(packageName)) {
+        newCollapsed.delete(packageName);
+        hasChanges = true;
+      }
+    });
+    
+    if (hasChanges) {
+      // Preserve focus during state update
+      if (isSearchInputFocused) {
+        // Use flushSync to ensure synchronous update and immediate focus restoration
+        setCollapsedCommonTables(newCollapsed);
+        // Restore focus immediately after state update
+        if (commonSearchInputRef.current) {
+          commonSearchInputRef.current.focus();
+        }
+      } else {
+        setCollapsedCommonTables(newCollapsed);
+      }
+    }
+  }, [commonColumnsSearchTerm]); // Removed filteredCommonColumnObjects dependency
+
+  useEffect(() => {
+    if (!allColumnsSearchTerm.trim()) return;
+    
+    // Use a more reliable focus preservation approach
+    const activeElement = document.activeElement;
+    const isSearchInputFocused = activeElement === allSearchInputRef.current;
+    
+    // Only update if there are actually changes needed
+    const newCollapsed = new Set(collapsedTables);
+    let hasChanges = false;
+    
+    Object.entries(filteredSTRIPE_SCHEMA).forEach(([sectionName, section]) => {
+      Object.keys(section).forEach(tableName => {
+        const tableKey = `${sectionName}-${tableName}`;
+        if (newCollapsed.has(tableKey)) {
+          newCollapsed.delete(tableKey);
+          hasChanges = true;
+        }
+      });
+    });
+    
+    if (hasChanges) {
+      // Preserve focus during state update
+      if (isSearchInputFocused) {
+        // Use flushSync to ensure synchronous update and immediate focus restoration
+        setCollapsedTables(newCollapsed);
+        // Restore focus immediately after state update
+        if (allSearchInputRef.current) {
+          allSearchInputRef.current.focus();
+        }
+      } else {
+        setCollapsedTables(newCollapsed);
+      }
+    }
+  }, [allColumnsSearchTerm]); // Removed filteredSTRIPE_SCHEMA dependency
+  */
 
   const handleSectionToggle = (sectionName) => {
     setExpandedSections(prev => ({
@@ -3480,216 +3718,249 @@ const MetricEditor = () => {
     }
   };
 
+
+  // Add focus lock to prevent focus loss during state updates
+  const [focusLocked, setFocusLocked] = useState(false);
+
   return (
     <>
-      <EditorContainer hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
-        <LeftPanel data-panel="left" width={leftPanelWidth} isResizing={isResizingLeftPanel}>
-          <LeftPanelResizeHandle onMouseDown={handleLeftPanelResizeStart} />
-          <InfoSection>
-            <SectionHeader>
-              <SectionTitle onClick={() => handleSectionToggle('currentColumns')}>
-                Included
-                <SectionToggle isExpanded={expandedSections.currentColumns}>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </SectionToggle>
-              </SectionTitle>
-              {isIncludedSectionModified && (
-                <ResetLink onClick={handleResetIncluded}>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1.5 5.99999C1.5 3.36434 3.64916 1.6875 5.8125 1.6875C7.6144 1.6875 9.20157 2.8702 9.63406 4.875H6.75C6.38756 4.875 6.09375 5.16881 6.09375 5.53125C6.09375 5.89369 6.38756 6.1875 6.75 6.1875H11.1562C11.5187 6.1875 11.8125 5.89369 11.8125 5.53125V1.125C11.8125 0.762563 11.5187 0.46875 11.1562 0.46875C10.7938 0.46875 10.5 0.762563 10.5 1.125V3.3725C9.616 1.49569 7.79649 0.375 5.8125 0.375C3.02518 0.375 0.1875 2.54252 0.1875 5.99999C0.1875 9.45745 3.02518 11.5875 5.8125 11.5875C7.29702 11.5875 8.70439 11.0375 9.77718 9.96467C10.0335 9.70839 10.0335 9.29287 9.77718 9.03659C9.5209 8.78031 9.10538 8.78031 8.8491 9.03659C8.02531 9.86039 6.95298 10.3125 5.8125 10.3125C3.64916 10.3125 1.5 8.63564 1.5 5.99999Z" fill="#6C7688"/>
-                  </svg>
-                  Reset
-                </ResetLink>
-              )}
-            </SectionHeader>
-            {expandedSections.currentColumns && (
-              <ColumnList>
-                {getCurrentSpreadsheetColumns().map((col, index) => (
-                  <ColumnItem key={index}>
-                    <ColumnLabelRow>
-                      <ColumnLabel>{col.humanLabel}</ColumnLabel>
-                      <ColumnIcons>
-                        {/* Pin icon */}
-                        <SchemaObjectPin onClick={(e) => {
-                          e.stopPropagation();
-                          handlePinColumn(col.id);
-                        }}>
-                          {pinnedColumns.has(col.id) ? (
+    <EditorContainer hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
+      <LeftPanel data-panel="left" width={leftPanelWidth} isResizing={isResizingLeftPanel}>
+        <LeftPanelResizeHandle onMouseDown={handleLeftPanelResizeStart} />
+        <InfoSection>
+          <SectionHeader>
+            <SectionTitle onClick={() => handleSectionToggle('currentColumns')}>
+              Included
+              <SectionToggle isExpanded={expandedSections.currentColumns}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </SectionToggle>
+            </SectionTitle>
+            {isIncludedSectionModified && (
+              <ResetLink onClick={handleResetIncluded}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1.5 5.99999C1.5 3.36434 3.64916 1.6875 5.8125 1.6875C7.6144 1.6875 9.20157 2.8702 9.63406 4.875H6.75C6.38756 4.875 6.09375 5.16881 6.09375 5.53125C6.09375 5.89369 6.38756 6.1875 6.75 6.1875H11.1562C11.5187 6.1875 11.8125 5.89369 11.8125 5.53125V1.125C11.8125 0.762563 11.5187 0.46875 11.1562 0.46875C10.7938 0.46875 10.5 0.762563 10.5 1.125V3.3725C9.616 1.49569 7.79649 0.375 5.8125 0.375C3.02518 0.375 0.1875 2.54252 0.1875 5.99999C0.1875 9.45745 3.02518 11.5875 5.8125 11.5875C7.29702 11.5875 8.70439 11.0375 9.77718 9.96467C10.0335 9.70839 10.0335 9.29287 9.77718 9.03659C9.5209 8.78031 9.10538 8.78031 8.8491 9.03659C8.02531 9.86039 6.95298 10.3125 5.8125 10.3125C3.64916 10.3125 1.5 8.63564 1.5 5.99999Z" fill="#6C7688"/>
+                </svg>
+                Reset
+              </ResetLink>
+            )}
+          </SectionHeader>
+          {expandedSections.currentColumns && (
+            <ColumnList>
+              {getCurrentSpreadsheetColumns().map((col, index) => (
+                <ColumnItem key={index}>
+                  <ColumnLabelRow>
+                    <ColumnLabel>{col.humanLabel}</ColumnLabel>
+                    <ColumnIcons>
+                      {/* Pin icon */}
+                      <SchemaObjectPin onClick={(e) => {
+                        e.stopPropagation();
+                        handlePinColumn(col.id);
+                      }}>
+                        {pinnedColumns.has(col.id) ? (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
+                          </svg>
+                        )}
+                      </SchemaObjectPin>
+                      {/* Check icon (reuse from SchemaObjectCheckmark) */}
+                      <SchemaObjectCheckmark onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleColumn(col.id);
+                      }}>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
+                          <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
+                        </svg>
+                      </SchemaObjectCheckmark>
+                    </ColumnIcons>
+                  </ColumnLabelRow>
+                  <ColumnMeta>
+                    {col.tableName}
+                    <span style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 6px' }}>
+                      <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                      </svg>
+                    </span>
+                    {col.objectName}
+                  </ColumnMeta>
+                </ColumnItem>
+              ))}
+            </ColumnList>
+          )}
+          
+          <SectionTitle onClick={() => handleSectionToggle('pinnedColumns')}>
+            Pinned
+            <SectionToggle isExpanded={expandedSections.pinnedColumns}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </SectionToggle>
+          </SectionTitle>
+          {expandedSections.pinnedColumns && (
+            <ColumnList>
+              {getPinnedColumns().length > 0 ? (
+                getPinnedColumns().map((col, index) => {
+                  const isIncluded = getCurrentSpreadsheetColumns().some(includedCol => includedCol.id === col.id);
+                  return (
+                    <ColumnItem 
+                      key={index}
+                      onClick={!isIncluded ? () => handleAddPinnedColumn(col.id) : undefined}
+                      style={{ cursor: !isIncluded ? 'pointer' : 'default' }}
+                    >
+                      <ColumnLabelRow>
+                        <ColumnLabel>{col.humanLabel}</ColumnLabel>
+                        <ColumnIcons>
+                          {/* Pin icon - always filled for pinned columns, shows remove icon on hover */}
+                          <SchemaObjectPin 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePinColumn(col.id);
+                            }}
+                            style={{ position: 'relative' }}
+                          >
                             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
                             </svg>
-                          ) : (
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
-                            </svg>
-                          )}
-                        </SchemaObjectPin>
-                        {/* Check icon (reuse from SchemaObjectCheckmark) */}
-                        <SchemaObjectCheckmark onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleColumn(col.id);
-                        }}>
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
-                            <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
-                          </svg>
-                        </SchemaObjectCheckmark>
-                      </ColumnIcons>
-                    </ColumnLabelRow>
-                    <ColumnMeta>
-                      {col.tableName}
-                      <span style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 6px' }}>
-                        <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
-                        </svg>
-                      </span>
-                      {col.objectName}
-                    </ColumnMeta>
-                  </ColumnItem>
-                ))}
-              </ColumnList>
-            )}
-            
-            <SectionTitle onClick={() => handleSectionToggle('pinnedColumns')}>
-              Pinned
-              <SectionToggle isExpanded={expandedSections.pinnedColumns}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </SectionToggle>
-            </SectionTitle>
-            {expandedSections.pinnedColumns && (
-              <ColumnList>
-                {getPinnedColumns().length > 0 ? (
-                  getPinnedColumns().map((col, index) => {
-                    const isIncluded = getCurrentSpreadsheetColumns().some(includedCol => includedCol.id === col.id);
-                    return (
-                      <ColumnItem 
-                        key={index}
-                        onClick={!isIncluded ? () => handleAddPinnedColumn(col.id) : undefined}
-                        style={{ cursor: !isIncluded ? 'pointer' : 'default' }}
-                      >
-                        <ColumnLabelRow>
-                          <ColumnLabel>{col.humanLabel}</ColumnLabel>
-                          <ColumnIcons>
-                            {/* Pin icon - always filled for pinned columns, shows remove icon on hover */}
-                            <SchemaObjectPin 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePinColumn(col.id);
-                              }}
-                              style={{ position: 'relative' }}
-                            >
+                          </SchemaObjectPin>
+                          {/* Check icon - only show if column is also in included */}
+                          {isIncluded ? (
+                            <SchemaObjectCheckmark onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleColumn(col.id);
+                            }}>
                               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
+                                <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
+                                <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
                               </svg>
-                            </SchemaObjectPin>
-                            {/* Check icon - only show if column is also in included */}
-                            {isIncluded ? (
-                              <SchemaObjectCheckmark onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleColumn(col.id);
-                              }}>
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
-                                  <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
-                                </svg>
-                              </SchemaObjectCheckmark>
-                            ) : (
-                              /* Plus icon - show if column is pinned but not included */
-                              <SchemaObjectPlus onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddPinnedColumn(col.id);
-                              }}>
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
-                                  <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
-                                </svg>
-                              </SchemaObjectPlus>
-                            )}
-                          </ColumnIcons>
-                        </ColumnLabelRow>
-                        <ColumnMeta>
-                          {col.tableName && col.objectName ? (
-                            <>
-                              {col.tableName}
-                              <span style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 6px' }}>
-                                <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
-                                </svg>
-                              </span>
-                              {col.objectName}
-                            </>
+                            </SchemaObjectCheckmark>
                           ) : (
-                            <span style={{ color: '#99A5B8', fontStyle: 'italic' }}>
-                              {col.tableName || col.objectName || 'Unknown source'}
-                            </span>
+                            /* Plus icon - show if column is pinned but not included */
+                            <SchemaObjectPlus onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddPinnedColumn(col.id);
+                            }}>
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
+                                <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
+                              </svg>
+                            </SchemaObjectPlus>
                           )}
-                        </ColumnMeta>
-                      </ColumnItem>
-                    );
-                  })
-                ) : (
-                  /* Placeholder when no columns are pinned */
-                  <div style={{ 
-                    textAlign: 'left', 
-                    color: '#99A5B8', 
-                    fontStyle: 'italic',
-                    fontSize: '14px'
+                        </ColumnIcons>
+                      </ColumnLabelRow>
+                      <ColumnMeta>
+                        {col.tableName && col.objectName ? (
+                          <>
+                            {col.tableName}
+                            <span style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 6px' }}>
+                              <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                              </svg>
+                            </span>
+                            {col.objectName}
+                          </>
+                        ) : (
+                          <span style={{ color: '#99A5B8', fontStyle: 'italic' }}>
+                            {col.tableName || col.objectName || 'Unknown source'}
+                          </span>
+                        )}
+                      </ColumnMeta>
+                    </ColumnItem>
+                  );
+                })
+              ) : (
+                /* Placeholder when no columns are pinned */
+                <div style={{ 
+                  textAlign: 'left', 
+                  color: '#99A5B8', 
+                  fontStyle: 'italic',
+                  fontSize: '14px'
+                }}>
+                  Pinned columns will appear here
+                </div>
+              )}
+            </ColumnList>
+          )}
+          
+          <SectionTitle onClick={() => handleSectionToggle('commonColumns')}>
+            Commonly used
+            <SectionToggle isExpanded={expandedSections.commonColumns}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </SectionToggle>
+          </SectionTitle>
+          {expandedSections.commonColumns && (
+            <>
+              <SectionSearchContainer data-search-container onClick={(e) => e.stopPropagation()}>
+                <SectionSearchIcon>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" clipRule="evenodd" d="M7.88334 9.08539C7.06854 9.6615 6.0738 10 5 10C2.23858 10 0 7.76142 0 5C0 2.23858 2.23858 0 5 0C7.76142 0 10 2.23858 10 5C10 6.07379 9.66151 7.06852 9.08542 7.88331L11.7511 10.549C11.9187 10.7166 12.0017 10.9368 12 11.1564C11.9984 11.3718 11.9154 11.5867 11.7511 11.751C11.5847 11.9174 11.3665 12.0004 11.1485 12C10.9315 11.9996 10.7146 11.9166 10.549 11.751L7.88334 9.08539ZM8.3 5C8.3 6.82254 6.82254 8.3 5 8.3C3.17746 8.3 1.7 6.82254 1.7 5C1.7 3.17746 3.17746 1.7 5 1.7C6.82254 1.7 8.3 3.17746 8.3 5Z" fill="#474E5A"/>
+                  </svg>
+                </SectionSearchIcon>
+                <SectionSearchInput
+                  type="text"
+                  placeholder="Search commonly used"
+                  value={commonColumnsSearchTerm}
+                  onChange={(e) => {
+                    console.log('Common search onChange:', e.target.value, 'Focus:', document.activeElement === e.target);
+                    setCommonColumnsSearchTerm(e.target.value);
+                  }}
+                  onFocus={() => console.log('Common search onFocus')}
+                  onBlur={() => console.log('Common search onBlur')}
+                  ref={commonSearchInputRef}
+                />
+                {commonColumnsSearchTerm && (
+                  <SectionSearchClear onClick={(e) => {
+                    e.stopPropagation();
+                    setCommonColumnsSearchTerm('');
                   }}>
-                    Pinned columns will appear here
-                  </div>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M6 12C9.31371 12 12 9.31371 12 6C12 2.68629 9.31371 0 6 0C2.68629 0 0 2.68629 0 6C0 9.31371 2.68629 12 6 12ZM4.14775 3.35225C3.92808 3.13258 3.57192 3.13258 3.35225 3.35225C3.13258 3.57192 3.13258 3.92808 3.35225 4.14775L5.20451 6L3.35225 7.85225C3.13258 8.07193 3.13258 8.42808 3.35225 8.64775C3.57193 8.86742 3.92808 8.86742 4.14775 8.64775L6 6.7955L7.85225 8.64775C8.07192 8.86742 8.42808 8.86742 8.64775 8.64775C8.86742 8.42808 8.86742 8.07192 8.64775 7.85225L6.7955 6L8.64775 4.14775C8.86742 3.92808 8.86742 3.57193 8.64775 3.35225C8.42808 3.13258 8.07193 3.13258 7.85225 3.35225L6 5.20451L4.14775 3.35225Z" fill="#474E5A"/>
+                    </svg>
+                  </SectionSearchClear>
                 )}
-              </ColumnList>
-            )}
-            
-            <SectionTitle onClick={() => handleSectionToggle('commonColumns')}>
-              Commonly used
-              <SectionToggle isExpanded={expandedSections.commonColumns}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </SectionToggle>
-            </SectionTitle>
-            {expandedSections.commonColumns && (
-              <>
-                {Object.entries(commonColumnObjects).map(([packageName, objects]) => {
-                  const packageKey = packageName;
-                  const isExpanded = !collapsedCommonTables.has(packageKey);
-                  
-                  return (
-                    <SchemaTable key={packageName}>
-                      <SchemaTableHeader onClick={() => handleCommonTableToggle(packageKey)}>
-                        <SchemaTableHeaderTitle>{packageName}</SchemaTableHeaderTitle>
-                        <SchemaTableToggle isExpanded={isExpanded}>
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        </SchemaTableToggle>
-                      </SchemaTableHeader>
-                      {isExpanded && (
-                        <SchemaObjectList>
-                          {objects.map((obj, index) => {
-                            const isAdded = currentlyUsedObjects.has(`${obj.id}@${obj.tableName}`) || addedColumns.has(obj.id);
-                            return (
-                              <SchemaObjectItem 
-                                key={index} 
-                                isHighlighted={isAdded}
-                                onClick={() => handleCommonColumnClick(obj, packageName)}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                <SchemaObjectLabel>
-                                  <span>{obj.label}</span>
-                                  <SchemaObjectActions>
-                                    <SchemaObjectPin onClick={(e) => {
-                                      e.stopPropagation();
-                                      handlePinColumn(obj.id);
-                                    }}>
-                                      {pinnedColumns.has(obj.id) ? (
-                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                          <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
+              </SectionSearchContainer>
+              {Object.entries(filteredCommonColumnObjects).map(([packageName, objects]) => {
+                const packageKey = packageName;
+                const isExpanded = !collapsedCommonTables.has(packageKey);
+                
+                return (
+                  <SchemaTable key={packageName}>
+                    <SchemaTableHeader onClick={() => handleCommonTableToggle(packageKey)}>
+                      <SchemaTableHeaderTitle>{packageName}</SchemaTableHeaderTitle>
+                      <SchemaTableToggle isExpanded={isExpanded}>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </SchemaTableToggle>
+                    </SchemaTableHeader>
+                    {isExpanded && (
+                      <SchemaObjectList>
+                        {objects.map((obj, index) => {
+                          const isAdded = currentlyUsedObjects.has(`${obj.id}@${obj.tableName}`) || addedColumns.has(obj.id);
+                          return (
+                            <SchemaObjectItem 
+                              key={index} 
+                              isHighlighted={isAdded}
+                              onClick={() => handleCommonColumnClick(obj, packageName)}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <SchemaObjectLabel>
+                                <span>{obj.label}</span>
+                                <SchemaObjectActions>
+                                  <SchemaObjectPin onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePinColumn(obj.id);
+                                  }}>
+                                    {pinnedColumns.has(obj.id) ? (
+                                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
                                         </svg>
                                       ) : (
                                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -3749,57 +4020,86 @@ const MetricEditor = () => {
             </SectionTitle>
             {expandedSections.allColumns && (
               <>
-                {Object.entries(STRIPE_SCHEMA).map(([sectionName, section]) => {
-                  // Sort tables to put highlighted ones first
-                  const sortedTables = Object.entries(section).sort(([tableNameA, objectsA], [tableNameB, objectsB]) => {
-                    const hasHighlightedA = objectsA.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameA}`));
-                    const hasHighlightedB = objectsB.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameB}`));
-                    
-                    if (hasHighlightedA && !hasHighlightedB) return -1;
-                    if (!hasHighlightedA && hasHighlightedB) return 1;
-                    return 0;
-                  });
+                <SectionSearchContainer data-search-container onClick={(e) => e.stopPropagation()}>
+                  <SectionSearchIcon>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M7.88334 9.08539C7.06854 9.6615 6.0738 10 5 10C2.23858 10 0 7.76142 0 5C0 2.23858 2.23858 0 5 0C7.76142 0 10 2.23858 10 5C10 6.07379 9.66151 7.06852 9.08542 7.88331L11.7511 10.549C11.9187 10.7166 12.0017 10.9368 12 11.1564C11.9984 11.3718 11.9154 11.5867 11.7511 11.751C11.5847 11.9174 11.3665 12.0004 11.1485 12C10.9315 11.9996 10.7146 11.9166 10.549 11.751L7.88334 9.08539ZM8.3 5C8.3 6.82254 6.82254 8.3 5 8.3C3.17746 8.3 1.7 6.82254 1.7 5C1.7 3.17746 3.17746 1.7 5 1.7C6.82254 1.7 8.3 3.17746 8.3 5Z" fill="#474E5A"/>
+                  </svg>
+                </SectionSearchIcon>
+                <SectionSearchInput
+                  type="text"
+                  placeholder="Search all columns..."
+                  value={allColumnsSearchTerm}
+                  onChange={(e) => {
+                    console.log('All search onChange:', e.target.value, 'Focus:', document.activeElement === e.target);
+                    setAllColumnsSearchTerm(e.target.value);
+                  }}
+                  onFocus={() => console.log('All search onFocus')}
+                  onBlur={() => console.log('All search onBlur')}
+                  ref={allSearchInputRef}
+                />
+                {allColumnsSearchTerm && (
+                  <SectionSearchClear onClick={(e) => {
+                    e.stopPropagation();
+                    setAllColumnsSearchTerm('');
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M6 12C9.31371 12 12 9.31371 12 6C12 2.68629 9.31371 0 6 0C2.68629 0 0 2.68629 0 6C0 9.31371 2.68629 12 6 12ZM4.14775 3.35225C3.92808 3.13258 3.57192 3.13258 3.35225 3.35225C3.13258 3.57192 3.13258 3.92808 3.35225 4.14775L5.20451 6L3.35225 7.85225C3.13258 8.07193 3.13258 8.42808 3.35225 8.64775C3.57193 8.86742 3.92808 8.86742 4.14775 8.64775L6 6.7955L7.85225 8.64775C8.07192 8.86742 8.42808 8.86742 8.64775 8.64775C8.86742 8.42808 8.86742 8.07192 8.64775 7.85225L6.7955 6L8.64775 4.14775C8.86742 3.92808 8.86742 3.57193 8.64775 3.35225C8.42808 3.13258 8.07193 3.13258 7.85225 3.35225L6 5.20451L4.14775 3.35225Z" fill="#474E5A"/>
+                    </svg>
+                  </SectionSearchClear>
+                )}
+              </SectionSearchContainer>
+              {Object.entries(filteredSTRIPE_SCHEMA).map(([sectionName, section]) => {
+                // Sort tables to put highlighted ones first
+                const sortedTables = Object.entries(section).sort(([tableNameA, objectsA], [tableNameB, objectsB]) => {
+                  const hasHighlightedA = objectsA.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameA}`));
+                  const hasHighlightedB = objectsB.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameB}`));
                   
-                  return (
-                    <SchemaSection key={sectionName}>
-                      <SubSectionTitle>{SECTION_DISPLAY_NAMES[sectionName] || sectionName}</SubSectionTitle>
-                      {sortedTables.map(([tableName, objects]) => {
-                        const tableKey = `${sectionName}-${tableName}`;
-                        const isExpanded = !collapsedTables.has(tableKey);
-                        
-                        return (
-                          <SchemaTable key={tableName}>
-                            <SchemaTableHeader onClick={() => handleTableToggle(tableKey)}>
-                              <SchemaTableHeaderTitle>{tableName}</SchemaTableHeaderTitle>
-                              <SchemaTableToggle isExpanded={isExpanded}>
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </SchemaTableToggle>
-                            </SchemaTableHeader>
-                            {isExpanded && (
-                              <SchemaObjectList>
-                                {objects.map((obj, index) => (
-                                  <SchemaObjectItem 
-                                    key={index} 
-                                    isHighlighted={currentlyUsedObjects.has(`${obj.id}@${tableName}`)}
-                                    onClick={() => handleSchemaObjectClick(obj, tableName)}
-                                    style={{ cursor: 'pointer' }}
-                                  >
-                                    <SchemaObjectLabel>
-                                      <span>{obj.label}</span>
-                                      <SchemaObjectActions>
-                                        <SchemaObjectPin onClick={(e) => {
-                                          e.stopPropagation();
-                                          handlePinColumn(obj.id);
-                                        }}>
-                                          {pinnedColumns.has(obj.id) ? (
+                  if (hasHighlightedA && !hasHighlightedB) return -1;
+                  if (!hasHighlightedA && hasHighlightedB) return 1;
+                  return 0;
+                });
+                
+                return (
+                  <SchemaSection key={sectionName}>
+                    <SubSectionTitle>{SECTION_DISPLAY_NAMES[sectionName] || sectionName}</SubSectionTitle>
+                    {sortedTables.map(([tableName, objects]) => {
+                      const tableKey = `${sectionName}-${tableName}`;
+                      const isExpanded = !collapsedTables.has(tableKey);
+                      
+                      return (
+                        <SchemaTable key={tableName}>
+                          <SchemaTableHeader onClick={() => handleTableToggle(tableKey)}>
+                            <SchemaTableHeaderTitle>{tableName}</SchemaTableHeaderTitle>
+                            <SchemaTableToggle isExpanded={isExpanded}>
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </SchemaTableToggle>
+                          </SchemaTableHeader>
+                          {isExpanded && (
+                            <SchemaObjectList>
+                              {objects.map((obj, index) => (
+                                <SchemaObjectItem 
+                                  key={index} 
+                                  isHighlighted={currentlyUsedObjects.has(`${obj.id}@${tableName}`)}
+                                  onClick={() => handleSchemaObjectClick(obj, tableName)}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  <SchemaObjectLabel>
+                                    <span>{obj.label}</span>
+                                    <SchemaObjectActions>
+                                      <SchemaObjectPin onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePinColumn(obj.id);
+                                      }}>
+                                        {pinnedColumns.has(obj.id) ? (
+                                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
+                                            </svg>
+                                          ) : (
                                             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                              <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
-                                              </svg>
-                                            ) : (
-                                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
+                                              <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
                                               </svg>
                                             )}
                                           </SchemaObjectPin>
@@ -4018,35 +4318,35 @@ const MetricEditor = () => {
           >
             <ColumnMenuItem onClick={() => handleSort('asc')}>
               <svg fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Sort Ascending
-          </ColumnMenuItem>
-          <ColumnMenuItem onClick={() => handleSort('desc')}>
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-            Sort Descending
-          </ColumnMenuItem>
-        </ColumnMenuPopover>
-      )}
+                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 11-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Sort Ascending
+            </ColumnMenuItem>
+            <ColumnMenuItem onClick={() => handleSort('desc')}>
+              <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              Sort Descending
+            </ColumnMenuItem>
+          </ColumnMenuPopover>
+        )}
 
-      {/* Floating Action Buttons */}
-      {shouldShowFloatingButtons && (
-        <FloatingActionContainer data-floating-buttons hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
-          <FloatingActionButton onClick={handleAnalyzeClick}>
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            {selectedColumnsForAnalysis.length === 1 
-              ? `Analyze ${orderedSchema.find(col => col.id === selectedColumnsForAnalysis[0])?.label || selectedColumnsForAnalysis[0]}`
-              : `Analyze ${selectedColumnsForAnalysis.length} columns`
-            }
-          </FloatingActionButton>
-        </FloatingActionContainer>
-      )}
+        {/* Floating Action Buttons */}
+        {shouldShowFloatingButtons && (
+          <FloatingActionContainer data-floating-buttons hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
+            <FloatingActionButton onClick={handleAnalyzeClick}>
+              <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              {selectedColumnsForAnalysis.length === 1 
+                ? `Analyze ${orderedSchema.find(col => col.id === selectedColumnsForAnalysis[0])?.label || selectedColumnsForAnalysis[0]}`
+                : `Analyze ${selectedColumnsForAnalysis.length} columns`
+              }
+            </FloatingActionButton>
+          </FloatingActionContainer>
+        )}
 
-      {/* Analysis Panel */}
+        {/* Analysis Panel */}
       <AnalysisPanel isOpen={showAnalysisPanel} width={analysisPanelWidth} data-panel="analysis">
         <AnalysisPanelResizeHandle onMouseDown={handleAnalysisPanelResizeStart} />
         <AnalysisPanelHeader>
