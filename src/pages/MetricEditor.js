@@ -462,22 +462,20 @@ const SpreadsheetContainer = styled.div`
 // Spreadsheet wrapper for scrolling
 const SpreadsheetWrapper = styled.div`
   flex: 1;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
   position: relative;
   user-select: none;
   padding: 0 40px;
-  overflow-x: auto;
-  overflow-y: auto;
+  overflow: hidden; /* Let TableContainer handle scrolling */
 `;
 
 // Table container for better overflow control
 const TableContainer = styled.div`
   border: 1px solid rgb(227, 232, 238);
   border-radius: 8px;
-  height: ${({ hasSelection }) => hasSelection ? 'calc(100vh - 250px)' : 'calc(100vh - 210px)'};
-  /* Updated calculations:
-     250px = 92px (header) + 12px (spacing) + 40px (wrapper padding) + 106px (bottom when selected)
-     210px = 92px (header) + 12px (spacing) + 40px (wrapper padding) + 66px (bottom when not selected) */
+  flex: 1;
+  margin-bottom: 40px; /* 40px bottom spacing as requested */
   position: relative;
   overflow: auto;
   box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
@@ -514,7 +512,7 @@ const SpreadsheetTable = styled.table`
   border-collapse: separate;
   border-spacing: 0;
   font-size: 14px;
-  margin: 0 0 40px 0;
+  margin: 0; /* Remove bottom margin, handled by TableContainer */
   
   th, td {
     border-right: 1px solid #e3e8ee;
@@ -3680,7 +3678,7 @@ const MetricEditor = () => {
             
             <SpreadsheetWrapper>
               {orderedSchema.length > 0 ? (
-                <TableContainer hasSelection={selectedColumns.size > 0 || selectedRows.size > 0 || selectedCells.size > 0 || selectedRow !== null || shouldShowFloatingButtons}>
+                <TableContainer>
                   <SpreadsheetTable>
                     <thead>
                       <tr>
