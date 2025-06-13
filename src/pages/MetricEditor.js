@@ -3656,8 +3656,15 @@ const MetricEditor = () => {
             <SpreadsheetHeader>
               <HeaderButtons>
                 <DoneButton onClick={handleClose} title="Close">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clipPath="url(#clip0_1746_99298)">
+                      <path d="M3.75265 7.88639C4.00064 8.15697 3.98232 8.57736 3.71174 8.82535C3.44115 9.07335 3.02076 9.05503 2.77277 8.78445L0.174383 5.94933C-0.0584551 5.69528 -0.0584754 5.3054 0.174335 5.05133L2.77272 2.21561C3.02068 1.945 3.44107 1.92663 3.71168 2.1746C3.9823 2.42256 4.00066 2.84295 3.75269 3.11356L2.17465 4.83575L8.28435 4.83544C10.1196 4.83535 11.6074 6.32309 11.6074 8.15835V8.21752C11.6074 8.58455 11.3099 8.8821 10.9428 8.8821C10.5758 8.8821 10.2783 8.58455 10.2783 8.21752V8.15835C10.2783 7.05719 9.38557 6.16455 8.28442 6.1646L2.17491 6.16491L3.75265 7.88639Z" fill="#474E5A"/>
+                    </g>
+                    <defs>
+                      <clipPath id="clip0_1746_99298">
+                        <rect width="12" height="12" fill="white"/>
+                      </clipPath>
+                    </defs>
                   </svg>
                 </DoneButton>
               </HeaderButtons>
@@ -3665,11 +3672,9 @@ const MetricEditor = () => {
               <HeaderTitle>{getDisplayTitle()}</HeaderTitle>
               
               <HeaderButtonsRight>
-                <DoneButton onClick={handleSave} title="Save">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </DoneButton>
+                <SaveButton onClick={handleSave} title="Save">
+                  Save
+                </SaveButton>
               </HeaderButtonsRight>
             </SpreadsheetHeader>
             
