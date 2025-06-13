@@ -1469,10 +1469,12 @@ const MetricEditor = () => {
   
   // Common columns state for collapsible packages
   const [collapsedCommonTables, setCollapsedCommonTables] = useState(() => {
-    // Collapse all common column packages by default
+    // Collapse all common column packages by default, except Customers
     const allPackages = new Set();
     Object.keys(COMMON_COLUMNS).forEach(packageName => {
-      allPackages.add(packageName);
+      if (packageName !== 'Customers') { // Keep Customers table open by default
+        allPackages.add(packageName);
+      }
     });
     return allPackages;
   });
@@ -3560,74 +3562,87 @@ const MetricEditor = () => {
             </SectionTitle>
             {expandedSections.pinnedColumns && (
               <ColumnList>
-                {getPinnedColumns().map((col, index) => {
-                  const isIncluded = getCurrentSpreadsheetColumns().some(includedCol => includedCol.id === col.id);
-                  return (
-                    <ColumnItem 
-                      key={index}
-                      onClick={!isIncluded ? () => handleAddPinnedColumn(col.id) : undefined}
-                      style={{ cursor: !isIncluded ? 'pointer' : 'default' }}
-                    >
-                      <ColumnLabelRow>
-                        <ColumnLabel>{col.humanLabel}</ColumnLabel>
-                        <ColumnIcons>
-                          {/* Pin icon - always filled for pinned columns, shows remove icon on hover */}
-                          <SchemaObjectPin 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePinColumn(col.id);
-                            }}
-                            style={{ position: 'relative' }}
-                          >
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
-                            </svg>
-                          </SchemaObjectPin>
-                          {/* Check icon - only show if column is also in included */}
-                          {isIncluded ? (
-                            <SchemaObjectCheckmark onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleColumn(col.id);
-                            }}>
+                {getPinnedColumns().length > 0 ? (
+                  getPinnedColumns().map((col, index) => {
+                    const isIncluded = getCurrentSpreadsheetColumns().some(includedCol => includedCol.id === col.id);
+                    return (
+                      <ColumnItem 
+                        key={index}
+                        onClick={!isIncluded ? () => handleAddPinnedColumn(col.id) : undefined}
+                        style={{ cursor: !isIncluded ? 'pointer' : 'default' }}
+                      >
+                        <ColumnLabelRow>
+                          <ColumnLabel>{col.humanLabel}</ColumnLabel>
+                          <ColumnIcons>
+                            {/* Pin icon - always filled for pinned columns, shows remove icon on hover */}
+                            <SchemaObjectPin 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePinColumn(col.id);
+                              }}
+                              style={{ position: 'relative' }}
+                            >
                               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
-                                <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
+                                <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
                               </svg>
-                            </SchemaObjectCheckmark>
+                            </SchemaObjectPin>
+                            {/* Check icon - only show if column is also in included */}
+                            {isIncluded ? (
+                              <SchemaObjectCheckmark onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleColumn(col.id);
+                              }}>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
+                                  <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
+                                </svg>
+                              </SchemaObjectCheckmark>
+                            ) : (
+                              /* Plus icon - show if column is pinned but not included */
+                              <SchemaObjectPlus onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddPinnedColumn(col.id);
+                              }}>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
+                                  <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
+                                </svg>
+                              </SchemaObjectPlus>
+                            )}
+                          </ColumnIcons>
+                        </ColumnLabelRow>
+                        <ColumnMeta>
+                          {col.tableName && col.objectName ? (
+                            <>
+                              {col.tableName}
+                              <span style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 6px' }}>
+                                <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                                </svg>
+                              </span>
+                              {col.objectName}
+                            </>
                           ) : (
-                            /* Plus icon - show if column is pinned but not included */
-                            <SchemaObjectPlus onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddPinnedColumn(col.id);
-                            }}>
-                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
-                                <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
-                              </svg>
-                            </SchemaObjectPlus>
-                          )}
-                        </ColumnIcons>
-                      </ColumnLabelRow>
-                      <ColumnMeta>
-                        {col.tableName && col.objectName ? (
-                          <>
-                            {col.tableName}
-                            <span style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 6px' }}>
-                              <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
-                              </svg>
+                            <span style={{ color: '#99A5B8', fontStyle: 'italic' }}>
+                              {col.tableName || col.objectName || 'Unknown source'}
                             </span>
-                            {col.objectName}
-                          </>
-                        ) : (
-                          <span style={{ color: '#99A5B8', fontStyle: 'italic' }}>
-                            {col.tableName || col.objectName || 'Unknown source'}
-                          </span>
-                        )}
-                      </ColumnMeta>
-                    </ColumnItem>
-                  );
-                })}
+                          )}
+                        </ColumnMeta>
+                      </ColumnItem>
+                    );
+                  })
+                ) : (
+                  /* Placeholder when no columns are pinned */
+                  <div style={{ 
+                    padding: '16px', 
+                    textAlign: 'center', 
+                    color: '#99A5B8', 
+                    fontStyle: 'italic',
+                    fontSize: '14px'
+                  }}>
+                    Pinned columns will appear here
+                  </div>
+                )}
               </ColumnList>
             )}
             
