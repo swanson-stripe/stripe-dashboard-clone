@@ -474,7 +474,7 @@ const SpreadsheetWrapper = styled.div`
 const TableContainer = styled.div`
   border: 1px solid rgb(227, 232, 238);
   border-radius: 8px;
-  flex: ${props => props.hasSelection ? '1 1 calc(100% - 40px)' : '1'};
+  height: ${props => props.hasSelection ? 'calc(100vh - 132px)' : 'calc(100vh - 92px)'};
   margin-bottom: 40px; /* Keep consistent bottom spacing */
   position: relative;
   overflow: auto;
