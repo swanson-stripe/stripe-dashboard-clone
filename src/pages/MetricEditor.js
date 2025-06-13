@@ -1104,6 +1104,39 @@ const SectionToggle = styled.div`
   }
 `;
 
+const ResetLink = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: auto;
+  
+  &:hover {
+    color: #4b5563;
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 12px;
+  
+  ${SectionTitle} {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+`;
+
 const ColumnList = styled.ul`
   list-style: none;
   padding: 0;
@@ -1459,12 +1492,17 @@ const MetricEditor = () => {
     }
   }, [currentId, isReport]);
 
+  // Track the original schema state for reset functionality
+  const [originalSchema, setOriginalSchema] = useState(null);
+
   // Initialize column order when schema changes
   useEffect(() => {
     if (schema.length > 0) {
       setColumnOrder(schema.map(col => col.id));
       // Reset removed columns when schema changes
       setRemovedColumns(new Set());
+      // Store the original schema state
+      setOriginalSchema(schema.map(col => col.id));
     }
   }, [schema]);
 
@@ -3168,6 +3206,7 @@ const MetricEditor = () => {
   // Add state for section expansion
   const [expandedSections, setExpandedSections] = useState({
     currentColumns: true,
+    pinnedColumns: true,
     commonColumns: true
   });
 
@@ -3188,20 +3227,59 @@ const MetricEditor = () => {
     'Events & Webhooks': 'Events & webhooks',
   };
 
+  // Check if the included section has been modified from its original state
+  const isIncludedSectionModified = useMemo(() => {
+    if (!originalSchema) return false;
+    
+    // Check if any columns have been added
+    if (addedColumns.size > 0) return true;
+    
+    // Check if any columns have been removed
+    if (removedColumns.size > 0) return true;
+    
+    // Check if column order has changed
+    const currentOrder = orderedSchema.map(col => col.id);
+    const filteredOriginalOrder = originalSchema.filter(id => !removedColumns.has(id));
+    const originalOrderString = filteredOriginalOrder.join(',');
+    const currentOrderString = currentOrder.filter(id => !addedColumns.has(id)).join(',');
+    
+    return originalOrderString !== currentOrderString;
+  }, [originalSchema, addedColumns, removedColumns, orderedSchema]);
+
+  // Reset the included section to its original state
+  const handleResetIncluded = () => {
+    if (originalSchema) {
+      setColumnOrder(originalSchema);
+      setAddedColumns(new Set());
+      setRemovedColumns(new Set());
+      setColumnDefinitions({});
+    }
+  };
+
   return (
     <>
       <EditorContainer hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
         <LeftPanel data-panel="left" width={leftPanelWidth} isResizing={isResizingLeftPanel}>
           <LeftPanelResizeHandle onMouseDown={handleLeftPanelResizeStart} />
           <InfoSection>
-            <SectionTitle onClick={() => handleSectionToggle('currentColumns')}>
-              Included
-              <SectionToggle isExpanded={expandedSections.currentColumns}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </SectionToggle>
-            </SectionTitle>
+            <SectionHeader>
+              <SectionTitle onClick={() => handleSectionToggle('currentColumns')}>
+                Included
+                <SectionToggle isExpanded={expandedSections.currentColumns}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </SectionToggle>
+              </SectionTitle>
+              {isIncludedSectionModified && (
+                <ResetLink onClick={handleResetIncluded}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1.5 5.99999C1.5 3.36434 3.64916 1.6875 5.8125 1.6875C7.6144 1.6875 9.20157 2.8702 9.63406 4.875H6.75C6.38756 4.875 6.09375 5.16881 6.09375 5.53125C6.09375 5.89369 6.38756 6.1875 6.75 6.1875H11.1562C11.5187 6.1875 11.8125 5.89369 11.8125 5.53125V1.125C11.8125 0.762563 11.5187 0.46875 11.1562 0.46875C10.7938 0.46875 10.5 0.762563 10.5 1.125V3.3725C9.616 1.49569 7.79649 0.375 5.8125 0.375C3.02518 0.375 0.1875 2.54252 0.1875 5.99999C0.1875 9.45745 3.02518 11.5875 5.8125 11.5875C7.29702 11.5875 8.70439 11.0375 9.77718 9.96467C10.0335 9.70839 10.0335 9.29287 9.77718 9.03659C9.5209 8.78031 9.10538 8.78031 8.8491 9.03659C8.02531 9.86039 6.95298 10.3125 5.8125 10.3125C3.64916 10.3125 1.5 8.63564 1.5 5.99999Z" fill="#6C7688"/>
+                  </svg>
+                  Reset
+                </ResetLink>
+              )}
+            </SectionHeader>
             {expandedSections.currentColumns && (
               <ColumnList>
                 {getCurrentSpreadsheetColumns().map((col, index) => (
@@ -3239,6 +3317,20 @@ const MetricEditor = () => {
                   </ColumnItem>
                 ))}
               </ColumnList>
+            )}
+            
+            <SectionTitle onClick={() => handleSectionToggle('pinnedColumns')}>
+              Pinned
+              <SectionToggle isExpanded={expandedSections.pinnedColumns}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </SectionToggle>
+            </SectionTitle>
+            {expandedSections.pinnedColumns && (
+              <div>
+                {/* Empty pinned section - no content for now */}
+              </div>
             )}
             
             <SectionTitle onClick={() => handleSectionToggle('commonColumns')}>
