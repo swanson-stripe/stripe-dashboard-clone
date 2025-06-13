@@ -3266,9 +3266,9 @@ const MetricEditor = () => {
                 ...prev,
                 [columnId]: {
                   label: commonObj.label,
-                  stripeObject: commonObj.stripeObject,
-                  stripeTable: commonObj.stripeTable,
-                  definition: commonObj.description || `${commonObj.label} from ${commonObj.stripeTable}`
+                  stripeObject: commonObj.objectName,
+                  stripeTable: commonObj.tableName,
+                  definition: commonObj.description || `${commonObj.label} from ${commonObj.tableName}`
                 }
               }));
               foundMetadata = true;
@@ -3333,8 +3333,8 @@ const MetricEditor = () => {
           pinnedColumnsData.push({
             id: columnId,
             humanLabel: commonObj.label,
-            objectName: commonObj.stripeObject,
-            tableName: commonObj.stripeTable
+            objectName: commonObj.objectName,
+            tableName: commonObj.tableName
           });
           foundInCommon = true;
         }
