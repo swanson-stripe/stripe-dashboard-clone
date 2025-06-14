@@ -312,13 +312,22 @@ const SaveButton = styled.button`
   border: none;
   border-radius: 6px;
   padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
   
   &:hover {
     background: #5b56f0;
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
   }
 `;
 
@@ -1454,26 +1463,165 @@ const SectionSearchIcon = styled.div`
   }
 `;
 
-const SectionSearchClear = styled.button`
-  border: none;
-  background: none;
-  color: #474E5A;
+const SectionSearchClear = styled.div`
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   cursor: pointer;
-  padding: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  flex-shrink: 0;
+  background: #f3f4f6;
   
   &:hover {
-    opacity: 0.7;
+    background: #e5e7eb;
   }
   
   svg {
-    width: 12px;
-    height: 12px;
+    width: 8px;
+    height: 8px;
   }
-`; 
+`;
+
+const SavePopoverOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  pointer-events: none;
+`;
+
+const SavePopoverContainer = styled.div`
+  position: absolute;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 380px;
+  overflow: hidden;
+  pointer-events: auto;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 1001;
+`;
+
+const SavePopoverTabs = styled.div`
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px;
+  margin: 12px;
+  margin-bottom: 0;
+`;
+
+const SavePopoverTab = styled.div`
+  flex: 1;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  
+  ${props => props.active && `
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+    color: #1f2937;
+  `}
+  
+  ${props => !props.active && `
+    color: #6b7280;
+    
+    &:hover {
+      color: #374151;
+    }
+  `}
+`;
+
+const SavePopoverContent = styled.div`
+  padding: 12px;
+`;
+
+const SavePopoverSection = styled.div`
+  margin-bottom: 16px;
+`;
+
+const SavePopoverSectionTitle = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+`;
+
+const SavePopoverAccessRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const SavePopoverAccessLabel = styled.div`
+  font-size: 14px;
+  color: #374151;
+`;
+
+const SavePopoverAccessValue = styled.div`
+  font-size: 14px;
+  color: #6b7280;
+`;
+
+const SavePopoverDropdown = styled.select`
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  text-align: right;
+  appearance: none;
+  padding-right: 16px;
+  background-image: url("data:image/svg+xml,%3csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M4 2L8 6L4 10' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right center;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: #6b7280;
+  
+  &:focus {
+    outline: none;
+  }
+`;
+
+const SavePopoverActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const SavePopoverButton = styled.button`
+  background: #625df5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  
+  &:hover {
+    background: #5b56f0;
+  }
+`;
+
 // Helper for sentence case
 function toSentenceCase(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').toLowerCase().replace(/\b([a-z])/g, function(match) { return match.toLowerCase(); });
@@ -1563,6 +1711,12 @@ const MetricEditor = () => {
   
   // Refs for tooltip hover management
   const tooltipTimeoutRef = useRef(null);
+
+  // Save popover state
+  const [showSavePopover, setShowSavePopover] = useState(false);
+  const [savePopoverTab, setSavePopoverTab] = useState('save');
+  const [reportType, setReportType] = useState('shared');
+  const [accessLevel, setAccessLevel] = useState('view');
 
   // Column definitions for dynamically added columns
   const [columnDefinitions, setColumnDefinitions] = useState({});
@@ -2388,15 +2542,40 @@ const MetricEditor = () => {
   }, []);
 
   const handleClose = () => {
-    if (isReport) {
-      navigate(`/data-studio/${currentId}`);
-    } else {
-      navigate(`/metrics/${currentId}`);
-    }
+    navigate(-1);
   };
 
   const handleSave = () => {
-    console.log('Save functionality to be implemented');
+    console.log('handleSave called, current showSavePopover:', showSavePopover);
+    setShowSavePopover(true);
+    console.log('setShowSavePopover(true) called');
+    // Force a re-render check
+    setTimeout(() => {
+      console.log('After timeout, showSavePopover should be:', showSavePopover);
+    }, 100);
+  };
+
+  // Save popover handlers
+  const handleSavePopoverClose = () => {
+    console.log('handleSavePopoverClose called');
+    setShowSavePopover(false);
+  };
+
+  const handleSavePopoverTabChange = (tab) => {
+    setSavePopoverTab(tab);
+  };
+
+  const handleSaveAction = () => {
+    console.log('Save action:', { savePopoverTab, reportType, accessLevel });
+    setShowSavePopover(false);
+  };
+
+  const getSaveButtonText = () => {
+    if (savePopoverTab === 'save') {
+      return 'Save and update';
+    } else {
+      return reportType === 'private' ? 'Save and create' : 'Save and publish';
+    }
   };
 
   // Column menu handlers
@@ -2437,13 +2616,21 @@ const MetricEditor = () => {
           setShowColumnMenu(false);
         }
       }
+      
+      // Handle save popover click outside
+      if (showSavePopover) {
+        const savePopover = event.target.closest('[data-save-popover]');
+        if (!savePopover) {
+          setShowSavePopover(false);
+        }
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
       return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showColumnMenu]);
+  }, [showColumnMenu, showSavePopover]);
 
   // Analysis panel handlers
   const handleAnalyzeClick = () => {
@@ -3719,8 +3906,9 @@ const MetricEditor = () => {
   };
 
 
-  // Add focus lock to prevent focus loss during state updates
-  const [focusLocked, setFocusLocked] = useState(false);
+  useEffect(() => {
+    console.log('showSavePopover state changed to:', showSavePopover);
+  }, [showSavePopover]);
 
   return (
     <>
@@ -4174,7 +4362,67 @@ const MetricEditor = () => {
               <HeaderButtonsRight>
                 <SaveButton onClick={handleSave} title="Save">
                   Save
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'rotate(90deg)' }}>
+                    <path d="M4 2L8 6L4 10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </SaveButton>
+                
+                {/* Save Popover */}
+                {console.log('Rendering save popover check, showSavePopover:', showSavePopover)}
+                {showSavePopover && (
+                  <SavePopoverContainer data-save-popover onClick={(e) => e.stopPropagation()}>
+                    {console.log('Save popover is rendering!')}
+                    <SavePopoverTabs>
+                      <SavePopoverTab 
+                        active={savePopoverTab === 'save'}
+                        onClick={() => handleSavePopoverTabChange('save')}
+                      >
+                        Save this report
+                      </SavePopoverTab>
+                      <SavePopoverTab 
+                        active={savePopoverTab === 'create'}
+                        onClick={() => handleSavePopoverTabChange('create')}
+                      >
+                        Create a new report
+                      </SavePopoverTab>
+                    </SavePopoverTabs>
+                    
+                    <SavePopoverContent>
+                      <SavePopoverSection>
+                        <SavePopoverSectionTitle>Who has access</SavePopoverSectionTitle>
+                        
+                        <SavePopoverAccessRow>
+                          <SavePopoverAccessLabel>You</SavePopoverAccessLabel>
+                          <SavePopoverAccessValue>Owner</SavePopoverAccessValue>
+                        </SavePopoverAccessRow>
+                        
+                        <SavePopoverAccessRow>
+                          <SavePopoverAccessLabel>Anyone at the company</SavePopoverAccessLabel>
+                          <SavePopoverDropdown
+                            value={reportType === 'private' ? 'none' : 'view'}
+                            onChange={(e) => {
+                              if (e.target.value === 'none') {
+                                setReportType('private');
+                              } else {
+                                setReportType('shared');
+                                setAccessLevel('view');
+                              }
+                            }}
+                          >
+                            <option value="view">Can view</option>
+                            <option value="none">Cannot view</option>
+                          </SavePopoverDropdown>
+                        </SavePopoverAccessRow>
+                      </SavePopoverSection>
+                      
+                      <SavePopoverActions>
+                        <SavePopoverButton onClick={handleSaveAction}>
+                          {getSaveButtonText()}
+                        </SavePopoverButton>
+                      </SavePopoverActions>
+                    </SavePopoverContent>
+                  </SavePopoverContainer>
+                )}
               </HeaderButtonsRight>
             </SpreadsheetHeader>
             
