@@ -904,30 +904,75 @@ const AnalysisSectionContent = styled.div`
 `;
 
 const RelatedColumnItem = styled.div`
-  background: #f8f9fa;
-  margin-bottom: 8px;
+  background: ${props => props.isHighlighted ? '#f7f8fa' : 'none'};
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: none;
+  border: ${props => props.isHighlighted ? 'none' : '1px dashed #D8DEE4'};
   
-  &:last-child {
-    margin-bottom: 0;
+  .icon-pin:not(.pinned-item),
+  .icon-plus {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  
+  &:hover .icon-pin:not(.pinned-item),
+  &:hover .icon-plus {
+    opacity: 1;
+  }
+  
+  .icon-check,
+  .icon-pin.pinned-item {
+    opacity: 1;
+  }
+  
+  @media (hover: none) {
+    .icon-pin, .icon-plus, .icon-check {
+      opacity: 1 !important;
+    }
   }
 `;
 
 const RelatedColumnName = styled.div`
-      font-weight: 500;
-  color: #1f2937;
-  margin-bottom: 2px;
+  font-size: 14px;
+  color: #23272f;
+  font-weight: 600;
+  margin-bottom: 4px;
 `;
 
 const RelatedColumnDescription = styled.div`
   font-size: 12px;
   color: #6b7280;
+  margin-bottom: 8px;
+  line-height: 1.4;
 `;
 
 const RelatedColumnHeader = styled.div`
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
+  width: 100%;
+`;
+
+const RelatedColumnIcons = styled.div`
+  display: flex;
   align-items: center;
-  margin-bottom: 2px;
+  gap: 16px;
+`;
+
+const RelatedColumnMeta = styled.div`
+  font-size: 12px;
+  color: #6b7280;
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  margin-top: 4px;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const ColumnActionLink = styled.button`
@@ -938,13 +983,20 @@ const ColumnActionLink = styled.button`
   font-weight: 500;
   cursor: pointer;
   padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   
   &:hover {
     text-decoration: underline;
   }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
 `;
 
-// Chart widget for analysis panel
 const ChartWidget = styled.div`
   background: #f8f9fa;
   border-radius: 8px;
@@ -976,9 +1028,9 @@ const ChartValue = styled.div`
 `;
 
 const ChartTrend = styled.div`
-    font-size: 12px;
+  font-size: 12px;
   color: ${props => props.positive ? '#059669' : '#dc2626'};
-    font-weight: 500;
+  font-weight: 500;
 `;
 
 const ChartArea = styled.div`
@@ -990,11 +1042,10 @@ const ChartArea = styled.div`
   padding: 0;
 `;
 
-// Selection summary at bottom of spreadsheet
 const SelectionSummary = styled.div`
   position: fixed;
   bottom: 20px;
-  left: ${props => (props.leftPanelWidth || 260) + 40}px; // Positioned to align with spreadsheet content
+  left: ${props => (props.leftPanelWidth || 340) + 40}px;
   background: white;
   border: 1px solid #e3e8ee;
   border-radius: 6px;
@@ -1083,7 +1134,6 @@ const SectionTitle = styled.h3`
   color: #1f2937;
   margin: 0 0 12px 0;
   padding-bottom: 8px;
-  /* border-bottom: 1px solid #e5e7eb; */
   display: flex;
   align-items: center;
   flex-direction: row;
@@ -1162,7 +1212,6 @@ const ColumnItem = styled.li`
   box-shadow: none;
   border: ${props => props.isHighlighted ? 'none' : '1px dashed #D8DEE4'};
   
-  /* Icon visibility on hover - use class selectors */
   .icon-pin:not(.pinned-item),
   .icon-plus {
     opacity: 0;
@@ -1174,13 +1223,11 @@ const ColumnItem = styled.li`
     opacity: 1;
   }
   
-  /* Always show check icons and pinned pin icons */
   .icon-check,
   .icon-pin.pinned-item {
     opacity: 1;
   }
   
-  /* Show all icons on touch devices */
   @media (hover: none) {
     .icon-pin, .icon-plus, .icon-check {
       opacity: 1 !important;
@@ -1721,7 +1768,7 @@ const MetricEditor = () => {
   const [isResizingAnalysisPanel, setIsResizingAnalysisPanel] = useState(false);
   
   // Left panel state
-  const [leftPanelWidth, setLeftPanelWidth] = useState(260);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(340);
   const [isResizingLeftPanel, setIsResizingLeftPanel] = useState(false);
   
   // Schema table collapsible state - all collapsed by default
@@ -3228,14 +3275,65 @@ const MetricEditor = () => {
       newAddedColumns.delete(columnId);
       setAddedColumns(newAddedColumns);
     } else {
-      // This is a base schema column, add to removedColumns to hide it
-      const newRemovedColumns = new Set(removedColumns);
-      newRemovedColumns.add(columnId);
-      setRemovedColumns(newRemovedColumns);
+      // Check if this column exists in the base schema
+      const isBaseSchemaColumn = schema.some(col => col.id === columnId);
       
-      // Also remove from columnOrder to maintain consistency
-      const newColumnOrder = columnOrder.filter(id => id !== columnId);
-      setColumnOrder(newColumnOrder);
+      if (isBaseSchemaColumn) {
+        // This is a base schema column, add to removedColumns to hide it
+        const newRemovedColumns = new Set(removedColumns);
+        newRemovedColumns.add(columnId);
+        setRemovedColumns(newRemovedColumns);
+        
+        // Also remove from columnOrder to maintain consistency
+        const newColumnOrder = columnOrder.filter(id => id !== columnId);
+        setColumnOrder(newColumnOrder);
+      } else {
+        // This is a new column (like from related columns), add it to addedColumns
+        const newAddedColumns = new Set(addedColumns);
+        newAddedColumns.add(columnId);
+        setAddedColumns(newAddedColumns);
+        
+        // Get all available columns to find the column definition
+        const allAvailableColumns = [
+          ...Object.values(METRIC_SCHEMAS).flat(),
+          ...Object.values(REPORT_SCHEMAS).flat()
+        ];
+        
+        const columnDef = allAvailableColumns.find(col => col.id === columnId);
+        if (columnDef) {
+          // Find the actual table and column information from STRIPE_SCHEMA
+          let foundTable = null;
+          let foundColumnName = null;
+          
+          // Search through STRIPE_SCHEMA to find where this column comes from
+          Object.entries(STRIPE_SCHEMA).forEach(([sectionName, section]) => {
+            Object.entries(section).forEach(([tableName, objects]) => {
+              const foundObject = objects.find(obj => obj.id === columnId);
+              if (foundObject) {
+                foundTable = tableName;
+                foundColumnName = foundObject.id;
+              }
+            });
+          });
+          
+          // Store the column definition for later use
+          setColumnDefinitions(prev => ({
+            ...prev,
+            [columnId]: {
+              id: columnId,
+              label: columnDef.label,
+              dataType: getColumnDataType(columnDef),
+              isCurrency: columnDef.id.includes('amount') || columnDef.id.includes('revenue') || columnDef.id.includes('mrr') || columnDef.id.includes('ltv'),
+              isNumber: columnDef.id.includes('count') || columnDef.id.includes('quantity') || columnDef.id.includes('units') || columnDef.id.includes('rate'),
+              isTrend: columnDef.id.includes('growth') || columnDef.id.includes('conversion'),
+              stripeTable: foundTable || 'related',
+              stripeObject: foundColumnName || columnDef.id,
+              tableName: foundTable,
+              objectName: foundColumnName
+            }
+          }));
+        }
+      }
     }
   };
 
@@ -3343,22 +3441,27 @@ const MetricEditor = () => {
 
   // Helper function to determine column data type from stripe object
   const getColumnDataType = (stripeObject) => {
-    // Check mappedTo array for existing types
-    if (stripeObject.mappedTo.includes('date')) return 'date';
-    if (stripeObject.mappedTo.includes('amount') || stripeObject.mappedTo.includes('current_mrr')) return 'currency';
-    if (stripeObject.mappedTo.includes('status')) return 'category';
-    if (stripeObject.mappedTo.includes('usage_growth') || stripeObject.mappedTo.includes('rate')) return 'percentage';
-    if (stripeObject.mappedTo.includes('included_units') || stripeObject.mappedTo.includes('unitsUsed') || stripeObject.mappedTo.includes('customerCount')) return 'number';
-    if (stripeObject.mappedTo.includes('customer') || stripeObject.mappedTo.includes('name')) return 'text';
-    if (stripeObject.mappedTo.includes('product') || stripeObject.mappedTo.includes('plan')) return 'category';
+    // Check if stripeObject and mappedTo exist before accessing
+    if (stripeObject && stripeObject.mappedTo && Array.isArray(stripeObject.mappedTo)) {
+      // Check mappedTo array for existing types
+      if (stripeObject.mappedTo.includes('date')) return 'date';
+      if (stripeObject.mappedTo.includes('amount') || stripeObject.mappedTo.includes('current_mrr')) return 'currency';
+      if (stripeObject.mappedTo.includes('status')) return 'category';
+      if (stripeObject.mappedTo.includes('usage_growth') || stripeObject.mappedTo.includes('rate')) return 'percentage';
+      if (stripeObject.mappedTo.includes('included_units') || stripeObject.mappedTo.includes('unitsUsed') || stripeObject.mappedTo.includes('customerCount')) return 'number';
+      if (stripeObject.mappedTo.includes('customer') || stripeObject.mappedTo.includes('name')) return 'text';
+      if (stripeObject.mappedTo.includes('product') || stripeObject.mappedTo.includes('plan')) return 'category';
+    }
     
-    // Fallback based on stripe object id patterns
-    if (stripeObject.id.includes('amount') || stripeObject.id.includes('revenue') || stripeObject.id.includes('mrr') || stripeObject.id.includes('ltv')) return 'currency';
-    if (stripeObject.id.includes('created') || stripeObject.id.includes('date') || stripeObject.id.includes('timestamp')) return 'date';
-    if (stripeObject.id.includes('status') || stripeObject.id.includes('type')) return 'category';
-    if (stripeObject.id.includes('count') || stripeObject.id.includes('quantity') || stripeObject.id.includes('units')) return 'number';
-    if (stripeObject.id.includes('rate') || stripeObject.id.includes('percent')) return 'percentage';
-    if (stripeObject.id.includes('id')) return 'text';
+    // Fallback based on stripe object id patterns (if stripeObject and id exist)
+    if (stripeObject && stripeObject.id) {
+      if (stripeObject.id.includes('amount') || stripeObject.id.includes('revenue') || stripeObject.id.includes('mrr') || stripeObject.id.includes('ltv')) return 'currency';
+      if (stripeObject.id.includes('created') || stripeObject.id.includes('date') || stripeObject.id.includes('timestamp')) return 'date';
+      if (stripeObject.id.includes('status') || stripeObject.id.includes('type')) return 'category';
+      if (stripeObject.id.includes('count') || stripeObject.id.includes('quantity') || stripeObject.id.includes('units')) return 'number';
+      if (stripeObject.id.includes('rate') || stripeObject.id.includes('percent')) return 'percentage';
+      if (stripeObject.id.includes('id')) return 'text';
+    }
     
     return 'text'; // default fallback
   };
@@ -3643,78 +3746,6 @@ const MetricEditor = () => {
     
     return filtered;
   }, [allColumnsSearchTerm]);
-
-  // Auto-expand tables when search has results (TEMPORARILY DISABLED FOR TESTING)
-  /*
-  useEffect(() => {
-    if (!commonColumnsSearchTerm.trim()) return;
-    
-    // Use a more reliable focus preservation approach
-    const activeElement = document.activeElement;
-    const isSearchInputFocused = activeElement === commonSearchInputRef.current;
-    
-    // Only update if there are actually changes needed
-    const newCollapsed = new Set(collapsedCommonTables);
-    let hasChanges = false;
-    
-    Object.keys(filteredCommonColumnObjects).forEach(packageName => {
-      if (newCollapsed.has(packageName)) {
-        newCollapsed.delete(packageName);
-        hasChanges = true;
-      }
-    });
-    
-    if (hasChanges) {
-      // Preserve focus during state update
-      if (isSearchInputFocused) {
-        // Use flushSync to ensure synchronous update and immediate focus restoration
-        setCollapsedCommonTables(newCollapsed);
-        // Restore focus immediately after state update
-        if (commonSearchInputRef.current) {
-          commonSearchInputRef.current.focus();
-        }
-      } else {
-        setCollapsedCommonTables(newCollapsed);
-      }
-    }
-  }, [commonColumnsSearchTerm]); // Removed filteredCommonColumnObjects dependency
-
-  useEffect(() => {
-    if (!allColumnsSearchTerm.trim()) return;
-    
-    // Use a more reliable focus preservation approach
-    const activeElement = document.activeElement;
-    const isSearchInputFocused = activeElement === allSearchInputRef.current;
-    
-    // Only update if there are actually changes needed
-    const newCollapsed = new Set(collapsedTables);
-    let hasChanges = false;
-    
-    Object.entries(filteredSTRIPE_SCHEMA).forEach(([sectionName, section]) => {
-      Object.keys(section).forEach(tableName => {
-        const tableKey = `${sectionName}-${tableName}`;
-        if (newCollapsed.has(tableKey)) {
-          newCollapsed.delete(tableKey);
-          hasChanges = true;
-        }
-      });
-    });
-    
-    if (hasChanges) {
-      // Preserve focus during state update
-      if (isSearchInputFocused) {
-        // Use flushSync to ensure synchronous update and immediate focus restoration
-        setCollapsedTables(newCollapsed);
-        // Restore focus immediately after state update
-        if (allSearchInputRef.current) {
-          allSearchInputRef.current.focus();
-        }
-      } else {
-        setCollapsedTables(newCollapsed);
-      }
-    }
-  }, [allColumnsSearchTerm]); // Removed filteredSTRIPE_SCHEMA dependency
-  */
 
   const handleSectionToggle = (sectionName) => {
     setExpandedSections(prev => ({
@@ -4264,30 +4295,30 @@ const MetricEditor = () => {
                   <SectionSearchIcon>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path fillRule="evenodd" clipRule="evenodd" d="M7.88334 9.08539C7.06854 9.6615 6.0738 10 5 10C2.23858 10 0 7.76142 0 5C0 2.23858 2.23858 0 5 0C7.76142 0 10 2.23858 10 5C10 6.07379 9.66151 7.06852 9.08542 7.88331L11.7511 10.549C11.9187 10.7166 12.0017 10.9368 12 11.1564C11.9984 11.3718 11.9154 11.5867 11.7511 11.751C11.5847 11.9174 11.3665 12.0004 11.1485 12C10.9315 11.9996 10.7146 11.9166 10.549 11.751L7.88334 9.08539ZM8.3 5C8.3 6.82254 6.82254 8.3 5 8.3C3.17746 8.3 1.7 6.82254 1.7 5C1.7 3.17746 3.17746 1.7 5 1.7C6.82254 1.7 8.3 3.17746 8.3 5Z" fill="#474E5A"/>
-                  </svg>
-                </SectionSearchIcon>
-                <SectionSearchInput
-                  type="text"
-                  placeholder="Search all columns..."
-                  value={allColumnsSearchTerm}
-                  onChange={(e) => {
-                    console.log('All search onChange:', e.target.value, 'Focus:', document.activeElement === e.target);
-                    setAllColumnsSearchTerm(e.target.value);
-                  }}
-                  onFocus={() => console.log('All search onFocus')}
-                  onBlur={() => console.log('All search onBlur')}
-                  ref={allSearchInputRef}
-                />
-                {allColumnsSearchTerm && (
-                  <SectionSearchClear onClick={(e) => {
-                    e.stopPropagation();
-                    setAllColumnsSearchTerm('');
-                  }}>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path fillRule="evenodd" clipRule="evenodd" d="M6 12C9.31371 12 12 9.31371 12 6C12 2.68629 9.31371 0 6 0C2.68629 0 0 2.68629 0 6C0 9.31371 2.68629 12 6 12ZM4.14775 3.35225C3.92808 3.13258 3.57192 3.13258 3.35225 3.35225C3.13258 3.57192 3.13258 3.92808 3.35225 4.14775L5.20451 6L3.35225 7.85225C3.13258 8.07193 3.13258 8.42808 3.35225 8.64775C3.57193 8.86742 3.92808 8.86742 4.14775 8.64775L6 6.7955L7.85225 8.64775C8.07192 8.86742 8.42808 8.86742 8.64775 8.64775C8.86742 8.42808 8.86742 8.07192 8.64775 7.85225L6.7955 6L8.64775 4.14775C8.86742 3.92808 8.86742 3.57193 8.64775 3.35225C8.42808 3.13258 8.07193 3.13258 7.85225 3.35225L6 5.20451L4.14775 3.35225Z" fill="#474E5A"/>
                     </svg>
-                  </SectionSearchClear>
-                )}
+                  </SectionSearchIcon>
+                  <SectionSearchInput
+                    type="text"
+                    placeholder="Search all columns..."
+                    value={allColumnsSearchTerm}
+                    onChange={(e) => {
+                      console.log('All search onChange:', e.target.value, 'Focus:', document.activeElement === e.target);
+                      setAllColumnsSearchTerm(e.target.value);
+                    }}
+                    onFocus={() => console.log('All search onFocus')}
+                    onBlur={() => console.log('All search onBlur')}
+                    ref={allSearchInputRef}
+                  />
+                  {allColumnsSearchTerm && (
+                    <SectionSearchClear onClick={(e) => {
+                      e.stopPropagation();
+                      setAllColumnsSearchTerm('');
+                    }}>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path fillRule="evenodd" clipRule="evenodd" d="M6 12C9.31371 12 12 9.31371 12 6C12 2.68629 9.31371 0 6 0C2.68629 0 0 2.68629 0 6C0 9.31371 2.68629 12 6 12ZM4.14775 3.35225C3.92808 3.13258 3.57192 3.13258 3.35225 3.35225C3.13258 3.57192 3.13258 3.92808 3.35225 4.14775L5.20451 6L3.35225 7.85225C3.13258 8.07193 3.13258 8.42808 3.35225 8.64775C3.57193 8.86742 3.92808 8.86742 4.14775 8.64775L6 6.7955L7.85225 8.64775C8.07192 8.86742 8.42808 8.86742 8.64775 8.64775C8.86742 8.42808 8.86742 8.07192 8.64775 7.85225L6.7955 6L8.64775 4.14775C8.86742 3.92808 8.86742 3.57193 8.64775 3.35225C8.42808 3.13258 8.07193 3.13258 7.85225 3.35225L6 5.20451L4.14775 3.35225Z" fill="#474E5A"/>
+                      </svg>
+                    </SectionSearchClear>
+                  )}
               </SectionSearchContainer>
               {Object.entries(filteredSTRIPE_SCHEMA).map(([sectionName, section]) => {
                   // Sort tables to put highlighted ones first
@@ -4618,9 +4649,9 @@ const MetricEditor = () => {
             <ColumnMenuItem onClick={() => handleSort('asc')}>
               <svg fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 11-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Sort Ascending
-          </ColumnMenuItem>
+              </svg>
+              Sort Ascending
+            </ColumnMenuItem>
           <ColumnMenuItem onClick={() => handleSort('desc')}>
             <svg fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -4728,17 +4759,110 @@ const MetricEditor = () => {
           <AnalysisSectionTitle>Related Columns</AnalysisSectionTitle>
           <AnalysisSectionContent>
             {getRelatedColumns(analysisColumns).map(column => (
-              <RelatedColumnItem key={column.id}>
+              <RelatedColumnItem key={column.id} isHighlighted={addedColumns.has(column.id)} onClick={!addedColumns.has(column.id) ? () => handleToggleColumn(column.id) : undefined} style={{ cursor: !addedColumns.has(column.id) ? 'pointer' : 'default' }}>
                 <RelatedColumnHeader>
                   <RelatedColumnName>{column.label}</RelatedColumnName>
-                  <ColumnActionLink 
-                    added={addedColumns.has(column.id)}
-                    onClick={() => handleToggleColumn(column.id)}
-                  >
-                    {addedColumns.has(column.id) ? 'Added' : '+ Add'}
-                  </ColumnActionLink>
+                  <RelatedColumnIcons>
+                    <SchemaObjectPin className="icon-pin" onClick={(e) => { e.stopPropagation(); handlePinColumn(column.id); }}>
+                      {pinnedColumns.has(column.id) ? (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M11.09 2.09014L9.90993 0.910061C9.61833 0.618453 9.2325 0.469651 8.84472 0.470709C8.53633 0.47155 8.2267 0.567169 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067L11.239 4.03785C11.4323 3.77421 11.5279 3.46571 11.5294 3.15829C11.5312 2.76952 11.3824 2.38248 11.09 2.09014Z" fill="#6C7688"/>
+                        </svg>
+                      ) : (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M8.98555 7.11067L11.239 4.03785C11.4286 3.77924 11.5242 3.47745 11.5292 3.17587C11.5275 2.78121 11.3868 2.38689 11.09 2.09014L9.90993 0.910061C9.61906 0.619191 9.23445 0.470404 8.84766 0.470704C8.5383 0.470943 8.22754 0.566552 7.96223 0.761113L4.8894 3.01452L4.55977 2.68489C4.30697 2.43209 3.91088 2.39287 3.61341 2.59118L1.5112 3.99265C1.11741 4.25518 1.06224 4.81236 1.3969 5.14702L3.72725 7.47737L0.539752 10.6649C0.429917 10.7747 0.375 10.9187 0.375 11.0626C0.375 11.2066 0.429917 11.3505 0.539752 11.4604C0.649587 11.5702 0.793544 11.6251 0.9375 11.6251C1.08146 11.6251 1.22541 11.5702 1.33525 11.4604L4.52275 8.27287L6.8531 10.6032C7.18776 10.9379 7.74494 10.8827 8.00747 10.4889L9.40894 8.38671C9.60725 8.08924 9.56803 7.69315 9.31523 7.44036L8.98555 7.11067ZM5.69425 3.81937L8.1807 6.30582L10.3318 3.37256C10.4412 3.2233 10.4254 3.01651 10.2945 2.88564L9.11444 1.70556C8.98356 1.57468 8.77677 1.55886 8.62751 1.66832L5.69425 3.81937ZM3.98165 3.69777L2.51584 4.67497L7.32515 9.48428L8.30236 8.01847L3.98165 3.69777Z" fill="#675DFF"/>
+                        </svg>
+                      )}
+                    </SchemaObjectPin>
+                    {addedColumns.has(column.id) ? (
+                      <SchemaObjectCheckmark 
+                        className="icon-check"
+                        onClick={(e) => { e.stopPropagation(); handleToggleColumn(column.id); }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M9.21025 3.91475C9.42992 4.13442 9.42992 4.49058 9.21025 4.71025L5.64775 8.27275C5.42808 8.49242 5.07192 8.49242 4.85225 8.27275L2.97725 6.39775C2.75758 6.17808 2.75758 5.82192 2.97725 5.60225C3.19692 5.38258 3.55308 5.38258 3.77275 5.60225L5.25 7.0795L8.41475 3.91475C8.63442 3.69508 8.99058 3.69508 9.21025 3.91475Z" fill="#6C7688"/>
+                          <path fillRule="evenodd" clipRule="evenodd" d="M6 10.875C8.69272 10.875 10.875 8.69272 10.875 5.99999C10.875 3.30626 8.69998 1.125 6 1.125C3.30727 1.125 1.125 3.30727 1.125 5.99999C1.125 8.69272 3.30728 10.875 6 10.875ZM6 12C9.31405 12 12 9.31404 12 5.99999C12 2.68595 9.32231 0 6 0C2.68595 0 0 2.68595 0 5.99999C0 9.31404 2.68595 12 6 12Z" fill="#6C7688"/>
+                        </svg>
+                      </SchemaObjectCheckmark>
+                    ) : (
+                      <SchemaObjectPlus 
+                        className="icon-plus"
+                        onClick={(e) => { e.stopPropagation(); handleToggleColumn(column.id); }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M6.5625 3.1875C6.5625 2.87684 6.31066 2.625 6 2.625C5.68934 2.625 5.4375 2.87684 5.4375 3.1875V5.4375H3.1875C2.87684 5.4375 2.625 5.68934 2.625 6C2.625 6.31066 2.87684 6.5625 3.1875 6.5625H5.4375V8.8125C5.4375 9.12316 5.68934 9.375 6 9.375C6.31066 9.375 6.5625 9.12316 6.5625 8.8125V6.5625H8.8125C9.12316 6.5625 9.375 6.31066 9.375 6C9.375 5.68934 9.12316 5.4375 8.8125 5.4375H6.5625V3.1875Z" fill="#675DFF"/>
+                          <path fillRule="evenodd" clipRule="evenodd" d="M12 5.99999C12 9.31404 9.31405 12 6 12C2.68595 12 0 9.31404 0 5.99999C0 2.68595 2.68595 0 6 0C9.32231 0 12 2.68595 12 5.99999ZM10.875 5.99999C10.875 8.69272 8.69272 10.875 6 10.875C3.30728 10.875 1.125 8.69272 1.125 5.99999C1.125 3.30727 3.30727 1.125 6 1.125C8.69998 1.125 10.875 3.30626 10.875 5.99999Z" fill="#675DFF"/>
+                        </svg>
+                      </SchemaObjectPlus>
+                    )}
+                  </RelatedColumnIcons>
                 </RelatedColumnHeader>
                 <RelatedColumnDescription>{column.description}</RelatedColumnDescription>
+                <RelatedColumnMeta>
+                  {(() => {
+                    // First try to find in current schema
+                    const schemaColumn = orderedSchema.find(col => col.id === column.id);
+                    if (schemaColumn) {
+                      const mapping = findColumnMapping(column.id);
+                      if (mapping) {
+                        return (
+                          <>
+                            {mapping.stripeTable}
+                            <MetadataSeparator>
+                              <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                              </svg>
+                            </MetadataSeparator>
+                            {mapping.stripeObject}
+                          </>
+                        );
+                      }
+                    }
+                    
+                    // Enhanced fallback: search through all schema sections to find the column
+                    let foundTable = null;
+                    let foundColumn = null;
+                    
+                    // Search through STRIPE_SCHEMA
+                    Object.entries(STRIPE_SCHEMA).forEach(([sectionName, section]) => {
+                      Object.entries(section).forEach(([tableName, objects]) => {
+                        const foundObject = objects.find(obj => obj.id === column.id);
+                        if (foundObject) {
+                          foundTable = tableName;
+                          foundColumn = foundObject.id;
+                        }
+                      });
+                    });
+                    
+                    // If found in schema, display properly
+                    if (foundTable && foundColumn) {
+                      return (
+                        <>
+                          {foundTable}
+                          <MetadataSeparator>
+                            <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                            </svg>
+                          </MetadataSeparator>
+                          {foundColumn}
+                        </>
+                      );
+                    }
+                    
+                    // Final fallback if not found anywhere
+                    return (
+                      <>
+                        unknown
+                        <MetadataSeparator>
+                          <svg width="4" height="8" viewBox="0 0 4 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 0H4L2 8H0L2 0Z" fill="#99A5B8"/>
+                          </svg>
+                        </MetadataSeparator>
+                        {column.id}
+                      </>
+                    );
+                  })()}
+                </RelatedColumnMeta>
               </RelatedColumnItem>
             ))}
             {getRelatedColumns(analysisColumns).length === 0 && (
