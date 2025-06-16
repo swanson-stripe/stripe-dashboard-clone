@@ -309,7 +309,7 @@ const CloseButton = styled.button`
 const SaveButton = styled.button`
   background: #625df5;
   color: white;
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 6px;
   padding: 8px 16px;
   font-size: 16px;
@@ -323,6 +323,7 @@ const SaveButton = styled.button`
   
   &:hover {
     background: #5b56f0;
+    border-color: rgba(0, 0, 0, 0.15);
   }
   
   svg {
@@ -1605,6 +1606,7 @@ const SavePopoverContainer = styled.div`
   top: calc(100% + 4px);
   right: 0;
   z-index: 1001;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 `;
 
 const SavePopoverTabs = styled.div`
@@ -1621,19 +1623,20 @@ const SavePopoverTab = styled.div`
   padding: 8px 12px;
   text-align: center;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px; height: 28px; display: flex; align-items: center; justify-content: center;
   transition: all 0.2s ease;
   
   ${props => props.active && `
     background: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
     color: #1f2937;
+    border: 1px solid rgba(0, 0, 0, 0.1);
   `}
   
   ${props => !props.active && `
-    color: #6b7280;
+    color: #6b7280; border: 1px solid transparent;
     
     &:hover {
       color: #374151;
@@ -1753,7 +1756,7 @@ const MetricEditor = () => {
   const [columnMenuTarget, setColumnMenuTarget] = useState(null);
   
   // Sorting state
-  const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
+  const [sortConfig, setSortConfig] = useState({ column: 'date', direction: 'desc' });
   
   // Column reordering state
   const [columnOrder, setColumnOrder] = useState([]);
@@ -1814,6 +1817,10 @@ const MetricEditor = () => {
   const [savePopoverTab, setSavePopoverTab] = useState('save');
   const [reportType, setReportType] = useState('shared');
   const [accessLevel, setAccessLevel] = useState('view');
+
+  // Copy button state
+  const [copyButtonText, setCopyButtonText] = useState('Copy');
+  const copyTimeoutRef = useRef(null);
 
   // Column definitions for dynamically added columns
   const [columnDefinitions, setColumnDefinitions] = useState({});
@@ -2004,12 +2011,12 @@ const MetricEditor = () => {
   }, [orderedSchema, addedColumns, columnDefinitions]);
 
   // Sort data based on sort configuration
-  const sortedData = useMemo(() => {
+  const sortedData = useMemo(() => { 
     if (!sortConfig.column || !sortConfig.direction) {
       return data;
     }
 
-    const column = orderedSchema.find(col => col.id === sortConfig.column);
+    const column = orderedSchema.find(col => col.id === sortConfig.column); 
     if (!column) return data;
 
     return [...data].sort((a, b) => {
@@ -2033,7 +2040,7 @@ const MetricEditor = () => {
 
       return sortConfig.direction === 'desc' ? -comparison : comparison;
     });
-  }, [data, sortConfig, orderedSchema]);
+  }, [data, sortConfig, orderedSchema]); 
 
   // Helper functions for selection
   const getCellKey = (rowIndex, columnId) => `${rowIndex}-${columnId}`;
@@ -2605,8 +2612,9 @@ const MetricEditor = () => {
       const floatingButtons = event.target.closest('[data-floating-buttons]');
       const columnMenu = event.target.closest('[data-column-menu]');
       const spreadsheetTable = event.target.closest('table');
-      const summaryComponent = event.target.closest('[data-summary-component]');
-      const searchContainer = event.target.closest('[data-search-container]');
+      const summaryComponent = event.target.closest("[data-summary-component]");
+      const headerButtons = event.target.closest(".header-buttons, [data-header-buttons]");
+        const searchContainer = event.target.closest("[data-search-container]");
       
       // Additional specific checks for search inputs to prevent focus loss
       const isSearchInput = event.target.tagName === 'INPUT' && 
@@ -2623,7 +2631,7 @@ const MetricEditor = () => {
       
       // Don't clear selections if clicking on search-related elements
       if (leftPanel || analysisPanel || floatingButtons || columnMenu || 
-          spreadsheetTable || summaryComponent || searchContainer || isSearchInput) {
+          spreadsheetTable || summaryComponent || searchContainer || isSearchInput || headerButtons) {
         console.log('Skipping clearAllSelections due to exclusion');
         return;
       }
@@ -2642,14 +2650,9 @@ const MetricEditor = () => {
     navigate(-1);
   };
 
-  const handleSave = () => {
-    console.log('handleSave called, current showSavePopover:', showSavePopover);
-    setShowSavePopover(true);
-    console.log('setShowSavePopover(true) called');
-    // Force a re-render check
-    setTimeout(() => {
-      console.log('After timeout, showSavePopover should be:', showSavePopover);
-    }, 100);
+  const handleSave = (event) => {
+    event.stopPropagation(); // Prevent event from bubbling up
+    setShowSavePopover(prev => !prev); // Toggle the popover state
   };
 
   // Save popover handlers
@@ -2667,7 +2670,7 @@ const MetricEditor = () => {
     setShowSavePopover(false);
   };
 
-  const getSaveButtonText = () => {
+  const handleCopy = async (event) => { event.stopPropagation(); try { let data = ""; if (selectedCells.size > 0) { const cellsArray = Array.from(selectedCells); data = cellsArray.map(cellKey => { const [rowIndex, columnId] = cellKey.split("-"); const row = sortedData[parseInt(rowIndex)]; const column = orderedSchema.find(col => col.id === columnId); return column ? formatCellValue(row[columnId], column) : ""; }).join("\t"); } else if (selectedColumns.size > 0) { const columnIds = Array.from(selectedColumns); const headers = columnIds.map(id => orderedSchema.find(col => col.id === id)?.label || id); data = headers.join("\t") + "\n" + sortedData.map(row => columnIds.map(id => formatCellValue(row[id], orderedSchema.find(col => col.id === id))).join("\t")).join("\n"); } await navigator.clipboard.writeText(data); if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); setCopyButtonText("Copied"); copyTimeoutRef.current = setTimeout(() => setCopyButtonText("Copy"), 5000); } catch (error) { console.error("Copy failed:", error); } }; const getSaveButtonText = () => {
     if (savePopoverTab === 'save') {
       return 'Save and update';
     } else {
@@ -2684,10 +2687,10 @@ const MetricEditor = () => {
       y: rect.bottom + 4
     });
     setColumnMenuTarget(columnId);
-    setShowColumnMenu(true);
+    setShowColumnMenu(true); 
   };
 
-  const handleSort = (direction) => {
+  const handleSort = (direction) => { 
     if (columnMenuTarget) {
       setSortConfig({
         column: columnMenuTarget,
@@ -2708,8 +2711,9 @@ const MetricEditor = () => {
     const handleClickOutside = (event) => {
       if (showColumnMenu) {
         // Don't close menu if clicking on search inputs
-        const searchContainer = event.target.closest('[data-search-container]');
-        if (!searchContainer) {
+        const columnMenu = event.target.closest("[data-column-menu]");
+        const searchContainer = event.target.closest("[data-search-container]");
+        if (!columnMenu && !searchContainer) {
         setShowColumnMenu(false);
         }
       }
@@ -4442,8 +4446,8 @@ const MetricEditor = () => {
               
               <HeaderTitle>{getDisplayTitle()}</HeaderTitle>
               
-              <HeaderButtonsRight>
-                <SaveButton onClick={handleSave} title="Save">
+              <HeaderButtonsRight data-header-buttons>
+                {(selectedCells.size > 0 || selectedColumns.size > 0 || selectedRows.size > 0 || selectedRow !== null || isAllSelected) && (<CopyButton onClick={handleCopy} title="Copy selected data"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M4 6.375C4 6.02982 4.27982 5.75 4.625 5.75H7.375C7.72018 5.75 8 6.02982 8 6.375C8 6.72018 7.72018 7 7.375 7H4.625C4.27982 7 4 6.72018 4 6.375Z" fill="#474E5A"/><path fillRule="evenodd" clipRule="evenodd" d="M4 8.625C4 8.27982 4.27982 8 4.625 8H7.375C7.72018 8 8 8.27982 8 8.625C8 8.97018 7.72018 9.25 7.375 9.25H4.625C4.27982 9.25 4 8.97018 4 8.625Z" fill="#474E5A"/><path fillRule="evenodd" clipRule="evenodd" d="M8.43699 1.5C8.21497 0.637386 7.43192 0 6.5 0H5.5C4.56808 0 3.78503 0.637386 3.56301 1.5H3C1.89543 1.5 1 2.39543 1 3.5V10C1 11.1046 1.89543 12 3 12H9C10.1046 12 11 11.1046 11 10V3.5C11 2.39543 10.1046 1.5 9 1.5H8.43699ZM4.9 3.1H7.1V2C7.1 1.66863 6.83137 1.4 6.5 1.4H5.5C5.16863 1.4 4.9 1.66863 4.9 2V3.1ZM8 4.5H4C3.72386 4.5 3.5 4.27614 3.5 4V2.9H3C2.66863 2.9 2.4 3.16863 2.4 3.5V10C2.4 10.3314 2.66863 10.6 3 10.6H9C9.33137 10.6 9.6 10.3314 9.6 10V3.5C9.6 3.16863 9.33137 2.9 9 2.9H8.5V4C8.5 4.27614 8.27614 4.5 8 4.5Z" fill="#474E5A"/></svg>{copyButtonText}</CopyButton>)} <SaveButton onClick={handleSave} title="Save" data-save-button>
                   Save
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'rotate(90deg)' }}>
                     <path d="M4 2L8 6L4 10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4517,17 +4521,21 @@ const MetricEditor = () => {
                       <tr>
                         {/* Select all button */}
                         <th 
-                          className={`select-all-button ${isAllSelected ? 'selected' : ''}`}
+                          style={{
+                                  fontWeight: 'normal'
+                                }}
+                                className={`select-all-button ${isAllSelected ? 'selected' : ''}`}
                           onClick={handleSelectAll}
                           title="Select all"
                         >
                           <svg viewBox="0 0 20 20">
                             <circle cx="10" cy="10" r="8" />
-                          </svg>
+                  </svg>
                         </th>
                         {orderedSchema.map((column, index) => {
                           const isSelected = selectedColumns.has(column.id) || selectedColumn === column.id;
                           const isDraggingThis = isDraggingColumnReorder && isSelected;
+                          const isSorted = sortConfig.column === column.id;
                           const isDropTarget = isDraggingColumnReorder && 
                             dragTargetIndex === index && 
                             !dragSourceColumns.includes(column.id);
@@ -4535,7 +4543,10 @@ const MetricEditor = () => {
                           return (
                             <th 
                               key={column.id} 
-                              className={`
+                              style={{
+                                  fontWeight: isSorted ? 600 : 'normal'
+                                }}
+                                className={`
                                 ${isSelected ? 'selected' : ''}
                                 ${isDraggingThis ? 'dragging' : ''}
                                 ${isDropTarget ? 'drop-target' : ''}
@@ -4550,9 +4561,9 @@ const MetricEditor = () => {
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span>{column.label}</span>
+                                <span>{column.label}</span>{sortConfig.column === column.id && sortConfig.direction && (<svg width="8" height="8" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ opacity: 0.7, marginLeft: "4px", transform: sortConfig.direction === "asc" ? "rotate(180deg)" : "none" }}><path d="M0.96967 7.28033C0.676777 6.98744 0.676777 6.51256 0.96967 6.21967C1.26256 5.92678 1.73744 5.92678 2.03033 6.21967L5.25 9.43934L5.25 0.75C5.25 0.335786 5.58579 1.81059e-08 6 0C6.41421 -1.81059e-08 6.75 0.335786 6.75 0.75L6.75 9.43934L9.96967 6.21967C10.2626 5.92678 10.7374 5.92678 11.0303 6.21967C11.3232 6.51256 11.3232 6.98744 11.0303 7.28033L6.53033 11.7803C6.38388 11.9268 6.19194 12 6 12C5.80806 12 5.61612 11.9268 5.46967 11.7803L0.96967 7.28033Z" fill="#474E5A"/></svg>)}
                                 <button 
-                                  onClick={(event) => handleChevronClick(column.id, event)}
+                                  onClick={(event) => {handleChevronClick(column.id, event);}}
                                   style={{ 
                                     background: 'none', 
                                     border: 'none', 
@@ -4563,8 +4574,8 @@ const MetricEditor = () => {
                                     alignItems: 'center'
                                   }}
                                 >
-                                  <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M1.92637 7.24258C2.23422 6.92566 2.7407 6.91831 3.05762 7.22617L6.00023 10.0846L8.94277 7.22622C9.25969 6.91836 9.76617 6.92571 10.074 7.24263C10.3819 7.55954 10.3745 8.06602 10.0576 8.37388L6.55765 11.7738C6.40243 11.9246 6.20133 12 6.00023 12C5.79912 12 5.59802 11.9246 5.4428 11.7738L1.94277 8.37383C1.62586 8.06597 1.61851 7.5595 1.92637 7.24258Z" fill="#474E5A"/><path fill-rule="evenodd" clip-rule="evenodd" d="M5.4428 0.22617C5.59802 0.0753911 5.79912 1.15422e-06 6.00022 0C6.20133 -1.15424e-06 6.40243 0.0753906 6.55765 0.226175L10.0576 3.62613C10.3745 3.93398 10.3819 4.44046 10.074 4.75738C9.76616 5.07429 9.25968 5.08163 8.94277 4.77378L6.00022 1.91532L3.05762 4.77378C2.7407 5.08164 2.23422 5.07429 1.92637 4.75737C1.61851 4.44046 1.62586 3.93398 1.94277 3.62612L5.4428 0.22617Z" fill="#474E5A"/>
                                   </svg>
                                 </button>
                               </div>
@@ -4581,7 +4592,10 @@ const MetricEditor = () => {
                         >
                           {/* Row number */}
                           <td 
-                            className={`row-number ${selectedRow === rowIndex || selectedRows.has(rowIndex) ? 'selected' : ''}`}
+                            style={{
+                                  fontWeight: 'normal'
+                                }}
+                                className={`row-number ${selectedRow === rowIndex || selectedRows.has(rowIndex) ? 'selected' : ''}`}
                             onClick={(event) => handleRowNumberClick(rowIndex, event)}
                             onMouseDown={(event) => handleRowNumberMouseDown(rowIndex, event)}
                             onMouseEnter={() => handleRowNumberMouseEnter(rowIndex)}
@@ -4599,10 +4613,14 @@ const MetricEditor = () => {
                               (selectedCell?.row === rowIndex && selectedCell?.column === column.id);
                             const isColumnSelected = selectedColumns.has(column.id);
                             const isRowSelected = selectedRow === rowIndex || selectedRows.has(rowIndex);
+                            const isSorted = sortConfig.column === column.id;
                       
                             return (
                               <td
                                 key={`${rowIndex}-${column.id}`}
+                                style={{
+                                  fontWeight: isSorted ? 600 : 'normal'
+                                }}
                                 className={`
                                   ${isSelected ? 'selected' : ''}
                                   ${isColumnSelected ? 'column-selected' : ''}
@@ -4641,20 +4659,21 @@ const MetricEditor = () => {
         {showColumnMenu && (
           <ColumnMenuPopover
             data-column-menu
+            data-header-buttons
             style={{
               left: columnMenuPosition.x,
               top: columnMenuPosition.y
             }}
           >
-            <ColumnMenuItem onClick={() => handleSort('asc')}>
-              <svg fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 11-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+            <ColumnMenuItem onClick={() => {handleSort('asc');}}>
+              <svg width="8" height="8" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: "rotate(180deg)" }}>
+                <path d="M0.96967 7.28033C0.676777 6.98744 0.676777 6.51256 0.96967 6.21967C1.26256 5.92678 1.73744 5.92678 2.03033 6.21967L5.25 9.43934L5.25 0.75C5.25 0.335786 5.58579 1.81059e-08 6 0C6.41421 -1.81059e-08 6.75 0.335786 6.75 0.75L6.75 9.43934L9.96967 6.21967C10.2626 5.92678 10.7374 5.92678 11.0303 6.21967C11.3232 6.51256 11.3232 6.98744 11.0303 7.28033L6.53033 11.7803C6.38388 11.9268 6.19194 12 6 12C5.80806 12 5.61612 11.9268 5.46967 11.7803L0.96967 7.28033Z" fill="#474E5A"/>
               </svg>
               Sort Ascending
             </ColumnMenuItem>
-          <ColumnMenuItem onClick={() => handleSort('desc')}>
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 011.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+          <ColumnMenuItem onClick={() => {handleSort('desc');}}>
+            <svg width="8" height="8" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" >
+              <path d="M0.96967 7.28033C0.676777 6.98744 0.676777 6.51256 0.96967 6.21967C1.26256 5.92678 1.73744 5.92678 2.03033 6.21967L5.25 9.43934L5.25 0.75C5.25 0.335786 5.58579 1.81059e-08 6 0C6.41421 -1.81059e-08 6.75 0.335786 6.75 0.75L6.75 9.43934L9.96967 6.21967C10.2626 5.92678 10.7374 5.92678 11.0303 6.21967C11.3232 6.51256 11.3232 6.98744 11.0303 7.28033L6.53033 11.7803C6.38388 11.9268 6.19194 12 6 12C5.80806 12 5.61612 11.9268 5.46967 11.7803L0.96967 7.28033Z" fill="#474E5A"/>
             </svg>
             Sort Descending
           </ColumnMenuItem>
@@ -4665,7 +4684,7 @@ const MetricEditor = () => {
       {shouldShowFloatingButtons && (
         <FloatingActionContainer data-floating-buttons hasAnalysisPanel={showAnalysisPanel} analysisPanelWidth={analysisPanelWidth} leftPanelWidth={leftPanelWidth} isResizing={isResizingLeftPanel}>
           <FloatingActionButton onClick={handleAnalyzeClick}>
-            <svg fill="currentColor" viewBox="0 0 20 20">
+            <svg width="8" height="8" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" >
               <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             {selectedColumnsForAnalysis.length === 1 
@@ -4997,5 +5016,31 @@ const MetricEditor = () => {
   </>
 );
 };
+
+const CopyButton = styled.button`
+  background: white;
+  color: #374151;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  
+  &:hover {
+    background: #f9fafb;
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
 
 export default MetricEditor;
