@@ -5,6 +5,7 @@ import { standardizedMetrics, getMetricData } from '../data/companyData';
 import { METRIC_SCHEMAS, REPORT_SCHEMAS } from '../data/reportSchemas';
 import { STRIPE_SCHEMA, findStripeMapping } from '../data/stripeSchema';
 import LineChart from '../components/LineChart';
+// Custom SQL syntax highlighting implementation
 
 // Common columns organized by business packages
 const COMMON_COLUMNS = {
@@ -357,6 +358,217 @@ const ButtonsContainer = styled.div`
   width: 100%;
 `;
 
+// Code mode components
+const CodeModeContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+`;
+
+const PromptInputContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+`;
+
+const PromptInput = styled.textarea`
+  background: ${props => props.theme.surfaceBg};
+  border: 1px solid ${props => props.theme.borderColor};
+  border-radius: 6px;
+  padding: 12px 48px 12px 12px;
+  color: ${props => props.theme.primaryText};
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  resize: none;
+  min-height: 40px;
+  max-height: 120px;
+  overflow-y: auto;
+  transition: border-color 0.2s ease;
+
+  &::placeholder {
+    color: ${props => props.theme.mutedText};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #0072E9;
+  }
+`;
+
+const SQLEditorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const SQLEditorWrapper = styled.div`
+  position: relative;
+  border: 1px solid ${props => props.isFocused ? '#0072E9' : props.theme.borderColor};
+  border-radius: 6px;
+  background: ${props => props.theme.surfaceBg};
+  transition: border-color 0.2s ease;
+  overflow: visible;
+  display: flex;
+  min-height: fit-content;
+`;
+
+const LineNumbers = styled.div`
+  background: ${props => props.theme.secondaryBg};
+  color: ${props => props.theme.mutedText};
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 16px 12px 16px 8px;
+  text-align: right;
+  user-select: none;
+  min-width: 45px;
+  border-right: 1px solid ${props => props.theme.borderColor};
+  
+  div {
+    height: 19.5px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+`;
+
+const CodeContainer = styled.div`
+  position: relative;
+  flex: 1;
+  overflow: visible;
+  min-height: fit-content;
+`;
+
+const SQLTextarea = styled.textarea`
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: transparent;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 19.5px;
+  padding: 16px 20px;
+  border: none;
+  resize: none;
+  outline: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  overflow: visible;
+  
+  /* Force cursor visibility - use bright colors for better visibility */
+  caret-color: ${props => props.isDarkMode ? '#00D4FF' : '#0066CC'} !important;
+  
+  &::placeholder {
+    color: ${props => props.theme.mutedText};
+    opacity: 0.7;
+  }
+  
+  &:focus {
+    outline: none;
+    caret-color: ${props => props.isDarkMode ? '#00D4FF' : '#0066CC'} !important;
+  }
+  
+  /* Ensure selection is visible */
+  &::selection {
+    background: ${props => props.isDarkMode ? 'rgba(0, 212, 255, 0.3)' : 'rgba(0, 102, 204, 0.3)'};
+    color: transparent;
+  }
+  
+  /* Webkit specific cursor styling */
+  &::-webkit-input-placeholder {
+    color: ${props => props.theme.mutedText};
+  }
+  
+  /* Force cursor to be visible in webkit browsers */
+  &:focus::-webkit-input-placeholder {
+    color: transparent;
+  }
+`;
+
+const SyntaxHighlight = styled.pre`
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: ${props => props.theme.primaryText};
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 19.5px;
+  padding: 16px 20px;
+  margin: 0;
+  border: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: visible;
+  
+  .sql-keyword {
+    color: ${props => props.isDarkMode ? '#8B7CF6' : '#d73a49'};
+    font-weight: normal;
+  }
+  
+  .sql-string {
+    color: ${props => props.isDarkMode ? '#FCD34D' : '#032f62'};
+  }
+  
+  .sql-function {
+    color: ${props => props.isDarkMode ? '#F97316' : '#6f42c1'};
+  }
+  
+  .sql-number {
+    color: ${props => props.isDarkMode ? '#FCD34D' : '#005cc5'};
+  }
+  
+  .sql-comment {
+    color: ${props => props.isDarkMode ? '#6B7280' : '#6a737d'};
+    font-style: italic;
+  }
+`;
+
+const PromptSubmitButton = styled.button`
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: ${props => props.hasText ? '#625df5' : 'transparent'};
+  color: ${props => props.hasText ? 'white' : '#9ca3af'};
+  border: 1px solid ${props => props.hasText ? '#625df5' : props.theme.borderColor};
+  border-radius: 15px;
+  width: 42px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ${props => props.hasText ? 'pointer' : 'default'};
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: ${props => props.hasText ? '#5b56f0' : 'transparent'};
+    border-color: ${props => props.hasText ? '#5b56f0' : props.theme.borderColor};
+  }
+  
+  &:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  svg path {
+    fill: ${props => props.hasText ? 'white' : '#9ca3af'};
+    transition: fill 0.2s ease;
+  }
+`;
+
 // Non-functional button styling
 const NonFunctionalButton = styled.button`
   background: var(--button-bg, white);
@@ -406,7 +618,7 @@ const EditorTitle = styled.h1`
 const InfoSection = styled.div`
   padding: 16px;
   flex: 1;
-  overflow-y: auto;
+  overflow-y: ${props => props.hasScrollableContent ? 'auto' : 'hidden'};
 `;
 
 const InfoItem = styled.div`
@@ -1861,9 +2073,14 @@ const MetricEditor = () => {
   const [analysisPanelWidth, setAnalysisPanelWidth] = useState(400);
   const [isResizingAnalysisPanel, setIsResizingAnalysisPanel] = useState(false);
   
-  // Left panel state
+  // Left panel state with mode-specific widths
   const [leftPanelWidth, setLeftPanelWidth] = useState(340);
   const [isResizingLeftPanel, setIsResizingLeftPanel] = useState(false);
+  
+  // Mode-specific panel widths
+  const getDefaultPanelWidth = (mode) => {
+    return mode === 'code' ? 460 : 340;
+  };
   
   // Schema table collapsible state - all collapsed by default
   const [collapsedTables, setCollapsedTables] = useState(() => {
@@ -1919,6 +2136,279 @@ const MetricEditor = () => {
   // Derived state from editor mode
   const isDarkMode = editorMode === 'code';
 
+  // Code mode state variables
+  const [promptText, setPromptText] = useState('');
+  const [sqlCode, setSqlCode] = useState('');
+  const [isSQLEditorFocused, setIsSQLEditorFocused] = useState(false);
+  const sqlEditorRef = useRef(null);
+
+  // Generate realistic SQL query based on current metric/report
+  const generateRealisticSQLQuery = () => {
+    const displayTitle = getDisplayTitle();
+    const lowerTitle = displayTitle.toLowerCase();
+    
+    if (lowerTitle.includes('revenue') || lowerTitle.includes('mrr')) {
+      return `SELECT 
+  DATE_TRUNC('month', created) as month,
+  SUM(amount) as total_revenue,
+  COUNT(DISTINCT customer_id) as unique_customers,
+  AVG(amount) as avg_transaction_value
+FROM charges
+WHERE 
+  status = 'succeeded'
+  AND created >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+GROUP BY DATE_TRUNC('month', created)
+ORDER BY month DESC;`;
+    } else if (lowerTitle.includes('subscriber') || lowerTitle.includes('customer')) {
+      return `SELECT 
+  DATE_TRUNC('week', created) as week,
+  COUNT(*) as new_subscribers,
+  COUNT(CASE WHEN trial_end IS NOT NULL THEN 1 END) as trial_subscribers,
+  COUNT(CASE WHEN trial_end IS NULL THEN 1 END) as paid_subscribers
+FROM customers
+WHERE 
+  created >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+GROUP BY DATE_TRUNC('week', created)
+ORDER BY week DESC;`;
+    } else if (lowerTitle.includes('churn')) {
+      return `SELECT 
+  DATE_TRUNC('month', canceled_at) as month,
+  COUNT(*) as churned_subscriptions,
+  COUNT(DISTINCT customer_id) as churned_customers,
+  AVG(DATEDIFF(canceled_at, created)) as avg_subscription_days
+FROM subscriptions
+WHERE 
+  status = 'canceled'
+  AND canceled_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+GROUP BY DATE_TRUNC('month', canceled_at)
+ORDER BY month DESC;`;
+    } else if (lowerTitle.includes('usage') || lowerTitle.includes('growth')) {
+      return `SELECT 
+  DATE_TRUNC('day', created) as date,
+  SUM(quantity) as total_usage,
+  COUNT(DISTINCT customer_id) as active_customers,
+  AVG(quantity) as avg_usage_per_customer
+FROM usage_records
+WHERE 
+  created >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+GROUP BY DATE_TRUNC('day', created)
+ORDER BY date DESC;`;
+    } else {
+      return `SELECT 
+  DATE_TRUNC('month', created) as month,
+  COUNT(*) as total_count,
+  COUNT(DISTINCT customer_id) as unique_customers
+FROM charges
+WHERE 
+  status = 'succeeded'
+  AND created >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+GROUP BY DATE_TRUNC('month', created)
+ORDER BY month DESC;`;
+    }
+  };
+
+  // Initialize SQL code when switching to code mode
+  useEffect(() => {
+    if (editorMode === 'code' && sqlCode === '') {
+      setSqlCode(generateRealisticSQLQuery());
+    }
+  }, [editorMode]);
+
+  // Set initial panel width based on mode
+  useEffect(() => {
+    setLeftPanelWidth(getDefaultPanelWidth(editorMode));
+  }, []);
+
+  // Force re-render when sqlCode changes to update height
+  useEffect(() => {
+    // Ensure textarea height is updated when SQL code changes
+    if (sqlEditorRef.current && sqlCode) {
+      // Small delay to ensure content is rendered
+      setTimeout(() => {
+        const textarea = sqlEditorRef.current;
+        if (textarea) {
+          textarea.style.height = 'auto';
+          const newHeight = Math.min(Math.max(textarea.scrollHeight + 20, 200), 500);
+          textarea.style.height = newHeight + 'px';
+        }
+      }, 10);
+    }
+  }, [sqlCode]);
+
+  // Handle prompt input auto-resize
+  const handlePromptInputChange = (e) => {
+    const textarea = e.target;
+    setPromptText(textarea.value);
+    
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Set height based on content, with min and max constraints
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 40), 120);
+    textarea.style.height = newHeight + 'px';
+  };
+
+  // Handle prompt submission
+  const handlePromptSubmit = () => {
+    if (promptText.trim()) {
+      console.log('Submitting prompt:', promptText);
+      console.log('Current SQL query:', sqlCode);
+      // TODO: Implement actual prompt processing
+    }
+  };
+
+  // SQL syntax highlighting function
+  const highlightSQL = (code) => {
+    if (!code) return '';
+    
+    const keywords = /\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|HAVING|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|UNION|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|INDEX|TABLE|DATABASE|AS|AND|OR|NOT|IN|LIKE|BETWEEN|IS|NULL|TRUE|FALSE|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MIN|MAX|DISTINCT|LIMIT|OFFSET|ASC|DESC|DATE_TRUNC|DATE_SUB|CURRENT_DATE|INTERVAL|MONTH|YEAR|DAY|WEEK)\b/gi;
+    const strings = /'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/g;
+    const numbers = /\b\d+(\.\d+)?\b/g;
+    const functions = /\b([A-Za-z_][A-Za-z0-9_]*)\s*(?=\()/g;
+    const comments = /--.*$/gm;
+    
+    return code
+      .replace(comments, '<span class="sql-comment">$&</span>')
+      .replace(strings, '<span class="sql-string">$&</span>')
+      .replace(keywords, '<span class="sql-keyword">$1</span>')
+      .replace(functions, '<span class="sql-function">$1</span>')
+      .replace(numbers, '<span class="sql-number">$&</span>');
+  };
+
+  // Calculate SQL editor height based on content with text wrapping
+  const calculateSQLEditorHeight = () => {
+    if (!sqlCode) return 200; // Default height when empty
+    
+    // Estimate character width and container width for wrapping calculation
+    const charWidth = 8; // Approximate character width in Monaco font at 13px
+    const containerWidth = leftPanelWidth - 100; // Use actual panel width minus padding and line numbers
+    const availableWidth = containerWidth - 40; // Account for padding (20px left + 20px right)
+    const charsPerLine = Math.floor(availableWidth / charWidth);
+    
+    // Calculate total visual lines including wrapped lines
+    let totalVisualLines = 0;
+    const textLines = sqlCode.split('\n');
+    
+    textLines.forEach(line => {
+      if (line.length === 0) {
+        totalVisualLines += 1; // Empty lines still take space
+      } else {
+        // Calculate how many visual lines this text line will take
+        const wrappedLines = Math.ceil(line.length / charsPerLine);
+        totalVisualLines += Math.max(1, wrappedLines);
+      }
+    });
+    
+    const lineHeight = 19.5; // Exact line height to match line numbers
+    const verticalPadding = 32; // 16px top + 16px bottom padding
+    const minHeight = 200; // Minimum height
+    const extraBuffer = 80; // Increased buffer to prevent cutoff
+    
+    const calculatedHeight = (totalVisualLines * lineHeight) + verticalPadding + extraBuffer;
+    
+    // Always show all content - no maximum height limit
+    return Math.max(minHeight, calculatedHeight);
+  };
+
+  // Get visual line count including wrapped lines for line numbers
+  const getVisualLineCount = () => {
+    if (!sqlCode) return 1;
+    
+    // Use the same calculation as height calculation for consistency
+    const charWidth = 8;
+    const containerWidth = leftPanelWidth - 100;
+    const availableWidth = containerWidth - 40;
+    const charsPerLine = Math.floor(availableWidth / charWidth);
+    
+    let totalVisualLines = 0;
+    const textLines = sqlCode.split('\n');
+    
+    textLines.forEach(line => {
+      if (line.length === 0) {
+        totalVisualLines += 1;
+      } else {
+        const wrappedLines = Math.ceil(line.length / charsPerLine);
+        totalVisualLines += Math.max(1, wrappedLines);
+      }
+    });
+    
+    return Math.max(1, totalVisualLines);
+  };
+
+  // Generate line numbers for visual lines
+  const generateLineNumbers = () => {
+    if (!sqlCode) return [1];
+    
+    const charWidth = 8;
+    const containerWidth = leftPanelWidth - 100;
+    const availableWidth = containerWidth - 40;
+    const charsPerLine = Math.floor(availableWidth / charWidth);
+    
+    const lineNumbers = [];
+    const textLines = sqlCode.split('\n');
+    
+    textLines.forEach((line, index) => {
+      const lineNumber = index + 1;
+      
+      if (line.length === 0) {
+        lineNumbers.push(lineNumber);
+      } else {
+        const wrappedLines = Math.ceil(line.length / charsPerLine);
+        for (let i = 0; i < Math.max(1, wrappedLines); i++) {
+          // Only show line number on the first visual line of each actual line
+          lineNumbers.push(i === 0 ? lineNumber : '');
+        }
+      }
+    });
+    
+    return lineNumbers;
+  };
+
+  // Update editor height when SQL code changes
+  useEffect(() => {
+    if (sqlEditorRef.current) {
+      const editorWrapper = sqlEditorRef.current.closest('[style*="height"]');
+      if (editorWrapper) {
+        const newHeight = calculateSQLEditorHeight();
+        editorWrapper.style.height = newHeight + 'px';
+        
+        // Also update the container height to ensure proper scrolling
+        const container = editorWrapper.parentElement;
+        if (container) {
+          container.style.minHeight = newHeight + 'px';
+        }
+      }
+    }
+  }, [sqlCode]);
+
+  // Additional effect to handle dynamic resize based on actual content
+  useEffect(() => {
+    const handleResize = () => {
+      if (sqlEditorRef.current) {
+        const textarea = sqlEditorRef.current;
+        const editorWrapper = textarea.closest('[style*="height"]');
+        if (editorWrapper) {
+                     // Use scrollHeight for more accurate measurement
+           const contentHeight = textarea.scrollHeight;
+           const minHeight = 200;
+           const extraBuffer = 80;
+           const newHeight = Math.max(minHeight, contentHeight + extraBuffer);
+          editorWrapper.style.height = newHeight + 'px';
+        }
+      }
+    };
+
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
+    
+    // Initial resize
+    setTimeout(handleResize, 100);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [sqlCode]);
+
   // Theme colors based on the editor mode
   const theme = {
     light: {
@@ -1947,13 +2437,30 @@ const MetricEditor = () => {
 
   const currentTheme = isDarkMode ? theme.dark : theme.light;
   
-  // Mode toggle handlers
-  const handleVisualModeToggle = () => setEditorMode('visual');
-  const handleCodeModeToggle = () => setEditorMode('code');
+  // Debug logging
+  console.log('SQL Editor focused state:', isSQLEditorFocused);
+  
+  // Mode toggle handlers with width transitions
+  const handleVisualModeToggle = () => {
+    setEditorMode('visual');
+    setLeftPanelWidth(getDefaultPanelWidth('visual'));
+  };
+  
+  const handleCodeModeToggle = () => {
+    setEditorMode('code');
+    setLeftPanelWidth(getDefaultPanelWidth('code'));
+  };
   
   // Legacy handlers for compatibility (can be removed later)
-  const handleDarkModeToggle = () => setEditorMode('code');
-  const handleLightModeToggle = () => setEditorMode('visual');
+  const handleDarkModeToggle = () => {
+    setEditorMode('code');
+    setLeftPanelWidth(getDefaultPanelWidth('code'));
+  };
+  
+  const handleLightModeToggle = () => {
+    setEditorMode('visual');
+    setLeftPanelWidth(getDefaultPanelWidth('visual'));
+  };
 
   // Column definitions for dynamically added columns
   const [columnDefinitions, setColumnDefinitions] = useState({});
@@ -4189,10 +4696,13 @@ const MetricEditor = () => {
           }}
         >
           <LeftPanelResizeHandle onMouseDown={handleLeftPanelResizeStart} />
-          <InfoSection style={{
-            backgroundColor: currentTheme.primaryBg,
-            color: currentTheme.primaryText
-          }}>
+          <InfoSection 
+            hasScrollableContent={editorMode === 'visual'}
+            style={{
+              backgroundColor: currentTheme.primaryBg,
+              color: currentTheme.primaryText
+            }}
+          >
             {/* Visual and Code mode toggle buttons */}
             <ButtonsContainer>
               <NonFunctionalButton 
@@ -4690,19 +5200,97 @@ const MetricEditor = () => {
               </>
             )}
             
-            {/* Code mode content - blank panel */}
+            {/* Code mode content - Prompt input and SQL editor */}
             {editorMode === 'code' && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '200px',
-                color: currentTheme.mutedText,
-                fontSize: '14px',
-                fontStyle: 'italic'
-              }}>
-                Code mode - Panel content hidden
-              </div>
+              <CodeModeContainer theme={currentTheme}>
+                <PromptInputContainer>
+                  <PromptInput
+                    theme={currentTheme}
+                    value={promptText}
+                    onChange={handlePromptInputChange}
+                    placeholder="Describe what you want to change"
+                    rows={1}
+                  />
+                  <PromptSubmitButton
+                    hasText={promptText.trim().length > 0}
+                    theme={currentTheme}
+                    onClick={handlePromptSubmit}
+                    disabled={promptText.trim().length === 0}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4.26465 12.0684C4.08008 12.0684 3.88184 11.9863 3.73828 11.8428L0.744141 8.90332C0.600586 8.75977 0.518555 8.55469 0.518555 8.35645C0.518555 8.1582 0.600586 7.95312 0.744141 7.81641L3.73828 4.87695C3.88184 4.7334 4.08008 4.64453 4.26465 4.64453C4.69531 4.64453 4.97559 4.94531 4.97559 5.35547C4.97559 5.57422 4.89355 5.73145 4.75684 5.86816L3.59473 6.98926L2.74707 7.68652L3.9707 7.625H10.335C10.8408 7.625 11.0391 7.42676 11.0391 6.9209V3.89941C11.0391 3.38672 10.8408 3.18848 10.335 3.18848H7.5459C7.11523 3.18848 6.80078 2.86035 6.80078 2.45703C6.80078 2.05371 7.11523 1.72559 7.5459 1.72559H10.3828C11.8594 1.72559 12.4814 2.34766 12.4814 3.82422V6.98926C12.4814 8.44531 11.8594 9.08789 10.3828 9.08789H3.9707L2.74707 9.0332L3.59473 9.72363L4.75684 10.8516C4.89355 10.9814 4.97559 11.1455 4.97559 11.3643C4.97559 11.7744 4.69531 12.0684 4.26465 12.0684Z" fill="#818DA0"/>
+                    </svg>
+                  </PromptSubmitButton>
+                </PromptInputContainer>
+                
+                <SQLEditorContainer>
+                  <SQLEditorWrapper 
+                    isFocused={isSQLEditorFocused}
+                    theme={currentTheme}
+                    style={{ height: calculateSQLEditorHeight() + 'px' }}
+                  >
+                                         <LineNumbers theme={currentTheme}>
+                       {generateLineNumbers().map((lineNumber, index) => (
+                         <div key={index}>{lineNumber}</div>
+                       ))}
+                     </LineNumbers>
+                    
+                    <CodeContainer>
+                      <SQLTextarea
+                        ref={sqlEditorRef}
+                        theme={currentTheme}
+                        isDarkMode={isDarkMode}
+                        value={sqlCode}
+                        onChange={(e) => {
+                          setSqlCode(e.target.value);
+                          // Dynamic height adjustment based on actual content
+                          setTimeout(() => {
+                            if (sqlEditorRef.current) {
+                              const textarea = sqlEditorRef.current;
+                              const editorWrapper = textarea.closest('[style*="height"]');
+                              if (editorWrapper) {
+                                // Reset height to auto to get accurate scrollHeight
+                                const originalHeight = editorWrapper.style.height;
+                                editorWrapper.style.height = 'auto';
+                                
+                                // Calculate new height based on content
+                                const contentHeight = textarea.scrollHeight;
+                                const minHeight = 200;
+                                const extraBuffer = 80;
+                                const newHeight = Math.max(minHeight, contentHeight + extraBuffer);
+                                
+                                editorWrapper.style.height = newHeight + 'px';
+                              }
+                            }
+                          }, 0);
+                        }}
+                        onFocus={() => {
+                          console.log('SQL Editor focused');
+                          setIsSQLEditorFocused(true);
+                        }}
+                        onBlur={() => {
+                          console.log('SQL Editor blurred');
+                          setIsSQLEditorFocused(false);
+                        }}
+                        onInput={(e) => {
+                          // Additional handler to ensure real-time updates
+                          setSqlCode(e.target.value);
+                        }}
+                        placeholder="Enter your SQL query here..."
+                        spellCheck={false}
+                      />
+                      
+                      <SyntaxHighlight 
+                        isDarkMode={isDarkMode}
+                        theme={currentTheme}
+                        dangerouslySetInnerHTML={{ 
+                          __html: highlightSQL(sqlCode) || sqlCode || 'Enter your SQL query here...'
+                        }}
+                      />
+                    </CodeContainer>
+                  </SQLEditorWrapper>
+                </SQLEditorContainer>
+              </CodeModeContainer>
             )}
           </InfoSection>
           </LeftPanel>

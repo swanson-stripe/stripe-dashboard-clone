@@ -1,0 +1,36 @@
+/* Basic Prism token styles for SQL highlighting */
+.token.keyword {
+  font-weight: bold;
+}
+
+.token.string {
+  color: inherit;
+}
+
+.token.function {
+  color: inherit;
+}
+
+.token.number {
+  color: inherit;
+}
+
+.token.operator {
+  color: inherit;
+}
+
+.token.punctuation {
+  color: inherit;
+}
+
+.token.comment {
+  font-style: italic;
+}
+
+.token.builtin {
+  color: inherit;
+}
+
+.token.variable {
+  color: inherit;
+} 
