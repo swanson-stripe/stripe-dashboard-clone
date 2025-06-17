@@ -9,6 +9,7 @@
   flex: 1;
   margin-left: var(--sidebar-width);
   padding: 20px 32px;
+  padding-top: 80px; /* Add top padding to account for fixed header (60px height + 20px spacing) */
   overflow-x: hidden;
   transition: margin-left 0.3s ease, padding 0.3s ease, width 0.3s ease;
   display: flex;
