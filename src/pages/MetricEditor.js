@@ -2371,9 +2371,8 @@ const MetricEditor = () => {
     return !sortedSelected.every((col, index) => col === sortedAnalyzed[index]);
   }, [selectedColumnsForAnalysis, analysisColumns]);
 
-  // Show floating buttons when there's a selection and either panel is closed or selection differs
-  const shouldShowFloatingButtons = selectedColumnsForAnalysis.length > 0 && 
-    (!showAnalysisPanel || selectionDiffersFromAnalysis);
+  // Show floating buttons when there's a selection
+  const shouldShowFloatingButtons = selectedColumnsForAnalysis.length > 0;
 
   // Get display title
   const getDisplayTitle = () => {
