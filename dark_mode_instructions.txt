@@ -1,0 +1,1 @@
+After making the manual changes above, run: npm start
