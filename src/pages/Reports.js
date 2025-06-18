@@ -980,6 +980,13 @@ const DraftsPlaceholder = styled.div`
   justify-content: center;
   min-height: 300px;
   color: #697386;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  
+  &:hover {
+    background: #f1f3f4;
+    border-color: #d1d5db;
+  }
   
   svg {
     margin-bottom: 12px;
@@ -1614,7 +1621,7 @@ const Reports = () => {
             </DraftsMetricCard>
           ))}
           
-          <DraftsPlaceholder>
+          <DraftsPlaceholder onClick={() => navigate('/data-studio/new/edit')}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
