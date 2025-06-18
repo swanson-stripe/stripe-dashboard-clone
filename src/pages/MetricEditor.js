@@ -2692,6 +2692,13 @@ ORDER BY month DESC;`;
     
     // Handle blank state (when schema is empty)
     if (schema.length === 0) {
+      // If we have a columnOrder that includes dynamically added columns, use it
+      if (columnOrder.length > 0) {
+        return columnOrder.map(id => {
+          const dynamicCol = dynamicallyAddedCols.find(col => col.id === id);
+          return dynamicCol;
+        }).filter(Boolean);
+      }
       return dynamicallyAddedCols;
     }
     
@@ -2700,11 +2707,20 @@ ORDER BY month DESC;`;
       return [...schema.filter(col => !removedColumns.has(col.id)), ...dynamicallyAddedCols];
     }
     
-    const orderedCols = columnOrder.map(id => schema.find(col => col.id === id)).filter(Boolean);
-    // Add any new columns that aren't in the order yet, but exclude removed columns
-    const newCols = schema.filter(col => !columnOrder.includes(col.id) && !removedColumns.has(col.id));
+    // Build ordered columns from columnOrder, supporting both schema and dynamic columns
+    const allColumns = [
+      ...schema.filter(col => !removedColumns.has(col.id)),
+      ...dynamicallyAddedCols
+    ];
     
-    return [...orderedCols, ...newCols, ...dynamicallyAddedCols];
+    const orderedCols = columnOrder.map(id => {
+      return allColumns.find(col => col.id === id);
+    }).filter(Boolean);
+    
+    // Add any columns that aren't in the order yet
+    const unorderedCols = allColumns.filter(col => !columnOrder.includes(col.id));
+    
+    return [...orderedCols, ...unorderedCols];
   }, [schema, columnOrder, addedColumns, columnDefinitions, removedColumns]);
 
   // Generate realistic data based on the schema
@@ -3254,7 +3270,9 @@ ORDER BY month DESC;`;
     if (isDraggingColumnReorder) {
       // Handle drag-to-reorder completion
       if (dragTargetIndex !== null && dragSourceColumns.length > 0) {
-        const newOrder = [...columnOrder];
+        // Create a new order based on the current orderedSchema
+        const currentSchemaOrder = orderedSchema.map(col => col.id);
+        const newOrder = [...currentSchemaOrder];
         
         // Remove the dragged columns from their current positions
         const columnsToMove = dragSourceColumns.map(id => ({
@@ -3263,13 +3281,15 @@ ORDER BY month DESC;`;
         })).sort((a, b) => b.originalIndex - a.originalIndex); // Remove from back to front
         
         columnsToMove.forEach(({ originalIndex }) => {
-          newOrder.splice(originalIndex, 1);
+          if (originalIndex !== -1) { // Only remove if found
+            newOrder.splice(originalIndex, 1);
+          }
         });
         
         // Calculate the adjusted target index (accounting for removed columns)
         let adjustedTargetIndex = dragTargetIndex;
         columnsToMove.forEach(({ originalIndex }) => {
-          if (originalIndex < dragTargetIndex) {
+          if (originalIndex !== -1 && originalIndex < dragTargetIndex) {
             adjustedTargetIndex--;
           }
         });
@@ -3278,6 +3298,7 @@ ORDER BY month DESC;`;
         const columnIds = dragSourceColumns.map(id => id);
         newOrder.splice(adjustedTargetIndex, 0, ...columnIds);
         
+        // Update columnOrder to include all columns in their new order
         setColumnOrder(newOrder);
       }
       
