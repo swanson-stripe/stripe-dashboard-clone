@@ -5056,6 +5056,10 @@ ORDER BY month DESC;`;
                 ) : (
                   /* Placeholder when no columns are included */
                   <div style={{ 
+                    border: '1px dashed var(--item-border, #D8DEE4)',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    background: 'var(--item-bg, none)',
                     textAlign: 'left', 
                     color: currentTheme.mutedText, 
                     fontStyle: 'italic',
@@ -5155,6 +5159,10 @@ ORDER BY month DESC;`;
                 ) : (
                   /* Placeholder when no columns are pinned */
                   <div style={{ 
+                    border: '1px dashed var(--item-border, #D8DEE4)',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    background: 'var(--item-bg, none)',
                     textAlign: 'left', 
                     color: currentTheme.mutedText, 
                     fontStyle: 'italic',
