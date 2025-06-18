@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler } from 'chart.js';
+import LineChart from '../components/LineChart';
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
@@ -58,6 +59,7 @@ const ButtonGroup = styled.div`
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: flex-end;
 `;
 
 const ManageGroupsButton = styled.button`
@@ -71,6 +73,7 @@ const ManageGroupsButton = styled.button`
   cursor: pointer;
   display: flex;
   align-items: center;
+  position: relative;
   
   svg {
     margin-right: 6px;
@@ -79,6 +82,22 @@ const ManageGroupsButton = styled.button`
   &:hover {
     background-color: #f7fafc;
   }
+`;
+
+const ButtonBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f6f8fa;
+  color: #656d76;
+  border: 1px solid #d1d9e0;
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 6px;
+  min-width: 16px;
+  height: 16px;
 `;
 
 const SectionTitleRow = styled.div`
@@ -239,6 +258,114 @@ const PopoverItem = styled.div`
   }
 `;
 
+const ManageDataPopover = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1000;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 280px;
+  padding: 0;
+  display: ${props => props.isOpen ? 'block' : 'none'};
+  border: 1px solid #e3e8ee;
+`;
+
+const ManageDataItem = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f3f6;
+  cursor: pointer;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background-color: #f7f9fc;
+  }
+`;
+
+const ManageDataHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+`;
+
+const ManageDataTitle = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1f36;
+`;
+
+const ManageDataActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+const ManageDataSync = styled.div`
+  display: flex;
+  align-items: center;
+  color: #697386;
+  cursor: pointer;
+  
+  &:hover {
+    color: #424770;
+  }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const StatusDot = styled.div`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  flex-shrink: 0;
+  position: relative;
+  cursor: pointer;
+  
+  &:hover::after {
+    content: 'Status: Good';
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1a1f36;
+    color: white;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1001;
+    pointer-events: none;
+  }
+  
+  &:hover::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 3px solid transparent;
+    border-top-color: #1a1f36;
+    z-index: 1001;
+    pointer-events: none;
+  }
+`;
+
+const ManageDataMeta = styled.div`
+  font-size: 12px;
+  color: #697386;
+  margin-top: 2px;
+  text-align: left;
+`;
+
 const ReportsTable = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -394,17 +521,39 @@ const ChangeCell = styled(TableCell)`
 const TrendingCard = styled.div`
   background: white;
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px;
   cursor: pointer;
   position: relative;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
   border: 1px solid #e3e8ee;
+  height: 90px;
   
   &:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     transform: translateY(-2px);
+    
+    .explore-action {
+      opacity: 1;
+    }
+  }
+`;
+
+const TrendingExploreAction = styled.div`
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  color: #635bff;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  svg {
+    margin-left: 4px;
   }
 `;
 
@@ -418,30 +567,39 @@ const TrendingTitle = styled.div`
 const TrendingContent = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 `;
 
 const TrendingValueSection = styled.div`
   display: flex;
   flex-direction: column;
+  flex: 1;
+`;
+
+const TrendingValueRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const TrendingValue = styled.div`
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
-  margin-bottom: 4px;
 `;
 
 const TrendingTrend = styled.span`
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  color: #1a1f36;
+  color: ${props => props.trend > 0 
+    ? (props.isNegative ? '#B13600' : '#217005') 
+    : '#B13600'};
 `;
 
 const SparklineContainer = styled.div`
-  height: 50px;
-  width: 100px;
+  height: 30px;
+  width: 90px;
   margin-left: 8px;
+  flex-shrink: 0;
 `;
 
 const ExploreAction = styled.div`
@@ -459,6 +617,381 @@ const ExploreAction = styled.div`
   svg {
     margin-left: 4px;
   }
+`;
+
+// Pinned grid components (matching home page structure)
+const PinnedGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 40px;
+  ${props => !props.expanded && `
+    overflow: hidden;
+    max-height: 450px;
+  `}
+`;
+
+const PinnedMetricCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+    
+    .explore-action {
+      opacity: 1;
+    }
+  }
+`;
+
+const PinnedExploreAction = styled.div`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  color: #635bff;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  svg {
+    margin-left: 4px;
+  }
+`;
+
+const PinnedIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99, 91, 255, 0.05);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #635bff;
+  margin-top: 12px;
+  width: fit-content;
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const PinnedMetricHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+`;
+
+const PinnedMetricTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 500;
+  color: #697386;
+  margin: 0 0 4px 0;
+`;
+
+const PinnedMetricValueRow = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+`;
+
+const PinnedMetricValue = styled.div`
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+`;
+
+const PinnedMetricTrend = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: ${props => props.trend > 0 
+    ? (props.isNegative ? '#B13600' : '#217005') 
+    : '#B13600'};
+  white-space: nowrap;
+  font-weight: 500;
+  margin-left: 8px;
+`;
+
+const PinnedMetricChartContainer = styled.div`
+  flex-grow: 1;
+  min-height: 160px;
+  margin-top: auto;
+  margin-bottom: 8px;
+  position: relative;
+`;
+
+// Gradient overlay and show all components
+const PinnedGridContainer = styled.div`
+  position: relative;
+  margin-bottom: 40px;
+`;
+
+const GradientOverlay = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 1) 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 24px;
+  pointer-events: none;
+  z-index: 10;
+`;
+
+const ShowAllButton = styled.button`
+  background: white;
+  color: #635bff;
+  border: 1px solid #e3e8ee;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    background: #f7fafc;
+    border-color: #635bff;
+  }
+`;
+
+// Weekly section components (similar to pinned but without pin indicators)
+const WeeklyGridContainer = styled.div`
+  position: relative;
+  margin-bottom: 40px;
+`;
+
+const WeeklyGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 40px;
+  ${props => !props.expanded && `
+    overflow: hidden;
+    max-height: 450px;
+  `}
+`;
+
+const WeeklyMetricCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+    
+    .explore-action {
+      opacity: 1;
+    }
+  }
+`;
+
+const WeeklyExploreAction = styled.div`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  color: #635bff;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  svg {
+    margin-left: 4px;
+  }
+`;
+
+const WeeklyMetricHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+`;
+
+const WeeklyMetricTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 500;
+  color: #697386;
+  margin: 0 0 4px 0;
+`;
+
+const WeeklyMetricValueRow = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+`;
+
+const WeeklyMetricValue = styled.div`
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+`;
+
+const WeeklyMetricTrend = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: ${props => props.trend > 0 
+    ? (props.isNegative ? '#B13600' : '#217005') 
+    : '#B13600'};
+  white-space: nowrap;
+  font-weight: 500;
+  margin-left: 8px;
+`;
+
+const WeeklyMetricChartContainer = styled.div`
+  flex-grow: 1;
+  min-height: 160px;
+  margin-top: auto;
+  margin-bottom: 8px;
+  position: relative;
+`;
+
+// Drafts section components (similar to weekly but only 3 charts, no show all)
+const DraftsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 40px;
+`;
+
+const DraftsMetricCard = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+    
+    .explore-action {
+      opacity: 1;
+    }
+  }
+`;
+
+const DraftsExploreAction = styled.div`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  color: #635bff;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  svg {
+    margin-left: 4px;
+  }
+`;
+
+const DraftsMetricHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+`;
+
+const DraftsMetricTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 500;
+  color: #697386;
+  margin: 0 0 4px 0;
+`;
+
+const DraftsMetricValueRow = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+`;
+
+const DraftsMetricValue = styled.div`
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+`;
+
+const DraftsMetricTrend = styled.div`
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: ${props => props.trend > 0 
+    ? (props.isNegative ? '#B13600' : '#217005') 
+    : '#B13600'};
+  white-space: nowrap;
+  font-weight: 500;
+  margin-left: 8px;
+`;
+
+const DraftsMetricChartContainer = styled.div`
+  flex-grow: 1;
+  min-height: 160px;
+  margin-top: auto;
+  margin-bottom: 8px;
+  position: relative;
+`;
+
+const DraftsPlaceholder = styled.div`
+  background: #f8f9fa;
+  border: 2px dashed #e3e8ee;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #697386;
+  
+  svg {
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+`;
+
+const PlaceholderText = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.4;
 `;
 
 // Sample data
@@ -533,6 +1066,25 @@ const creatorOptions = [
   { value: 'stripe', label: 'Created by Stripe' }
 ];
 
+// Weekly check reports data
+const weeklyReports = [
+  { id: 'weekly-revenue', title: 'Weekly revenue', value: '$1.2M', trend: 15.2, isNegative: false, sparklineData: [850, 920, 980, 1050, 1120, 1180, 1200] },
+  { id: 'user-engagement', title: 'User engagement rate', value: '87.3%', trend: 5.8, isNegative: false, sparklineData: [82, 84, 85, 86, 87, 87, 87] },
+  { id: 'support-resolution', title: 'Support resolution time', value: '2.4hrs', trend: -18.5, isNegative: false, sparklineData: [3.2, 3.0, 2.8, 2.6, 2.5, 2.4, 2.4] },
+  { id: 'conversion-funnel', title: 'Conversion funnel', value: '12.8%', trend: 22.1, isNegative: false, sparklineData: [10.5, 11.2, 11.8, 12.1, 12.4, 12.6, 12.8] },
+  { id: 'server-uptime', title: 'Server uptime', value: '99.97%', trend: 0.1, isNegative: false, sparklineData: [99.95, 99.96, 99.97, 99.97, 99.98, 99.97, 99.97] },
+  { id: 'customer-acquisition', title: 'New customer acquisition', value: '234', trend: 28.9, isNegative: false, sparklineData: [180, 195, 210, 220, 225, 230, 234] },
+  { id: 'retention-rate', title: 'Customer retention', value: '94.2%', trend: 2.3, isNegative: false, sparklineData: [92, 92.5, 93, 93.5, 94, 94.1, 94.2] },
+  { id: 'api-performance', title: 'API response times', value: '185ms', trend: -12.3, isNegative: false, sparklineData: [220, 210, 200, 195, 190, 187, 185] }
+];
+
+// Drafts reports data (only 3 charts)
+const draftsReports = [
+  { id: 'draft-mobile-analytics', title: 'Mobile app analytics', value: '$2.8M', trend: 45.3, isNegative: false, sparklineData: [1200, 1350, 1500, 1650, 1800, 2100, 2800] },
+  { id: 'draft-social-metrics', title: 'Social media engagement', value: '156K', trend: 67.8, isNegative: false, sparklineData: [85, 95, 105, 120, 135, 145, 156] },
+  { id: 'draft-email-campaigns', title: 'Email campaign performance', value: '23.4%', trend: -8.2, isNegative: false, sparklineData: [28, 27, 26, 25, 24, 23.5, 23.4] }
+];
+
 const Reports = () => {
   const [pinnedSortField, setPinnedSortField] = useState('dateCreated');
   const [pinnedSortDirection, setPinnedSortDirection] = useState('desc');
@@ -540,16 +1092,22 @@ const Reports = () => {
   const [allSortDirection, setAllSortDirection] = useState('desc');
   const [creatorFilter, setCreatorFilter] = useState('anyone');
   const [creatorPopoverOpen, setCreatorPopoverOpen] = useState(false);
-  const [pinnedReports, setPinnedReports] = useState([0, 1, 2, 8]); // Added churn-risk (index 8) to pinned reports
+  const [manageDataPopoverOpen, setManageDataPopoverOpen] = useState(false);
+  const [pinnedReports, setPinnedReports] = useState([0, 1, 2, 8, 6, 9, 10, 12]); // Added more key business metrics to pinned reports
+  const [pinnedExpanded, setPinnedExpanded] = useState(false); // Track if pinned section shows all charts
+  const [weeklyExpanded, setWeeklyExpanded] = useState(false); // Track if weekly section shows all charts
   const [expandedSections, setExpandedSections] = useState({
     trending: true,
     pinned: true,
+    weekly: true,
+    drafts: true,
     all: true
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [reportsPerPage] = useState(10);
   
   const creatorRef = useRef(null);
+  const manageDataRef = useRef(null);
   const navigate = useNavigate();
   
   // Toggle section expansion
@@ -565,6 +1123,9 @@ const Reports = () => {
     const handleClickOutside = (event) => {
       if (creatorRef.current && !creatorRef.current.contains(event.target)) {
         setCreatorPopoverOpen(false);
+      }
+      if (manageDataRef.current && !manageDataRef.current.contains(event.target)) {
+        setManageDataPopoverOpen(false);
       }
     };
     
@@ -740,16 +1301,57 @@ const Reports = () => {
         <ButtonGroup>
           <NewButton>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1.25 11.5V10C1.25 9.58579 1.58579 9.25 2 9.25C2.41421 9.25 2.75 9.58579 2.75 10V11.5C2.75 12.4665 3.5335 13.25 4.5 13.25H6C6.41421 13.25 6.75 13.5858 6.75 14C6.75 14.4142 6.41421 14.75 6 14.75H4.5C2.70507 14.75 1.25 13.2949 1.25 11.5ZM13.25 11.5V10C13.25 9.58579 13.5858 9.25 14 9.25C14.4142 9.25 14.75 9.58579 14.75 10V11.5C14.75 13.2949 13.2949 14.75 11.5 14.75H10C9.58579 14.75 9.25 14.4142 9.25 14C9.25 13.5858 9.58579 13.25 10 13.25H11.5C12.4665 13.25 13.25 12.4665 13.25 11.5ZM1.25 6V4.5C1.25 2.70507 2.70507 1.25 4.5 1.25H6C6.41421 1.25 6.75 1.58579 6.75 2C6.75 2.41421 6.41421 2.75 6 2.75H4.5C3.5335 2.75 2.75 3.5335 2.75 4.5V6C2.75 6.41421 2.41421 6.75 2 6.75C1.58579 6.75 1.25 6.41421 1.25 6ZM13.25 6V4.5C13.25 3.5335 12.4665 2.75 11.5 2.75H10C9.58579 2.75 9.25 2.41421 9.25 2C9.25 1.58579 9.58579 1.25 10 1.25H11.5C13.2949 1.25 14.75 2.70507 14.75 4.5V6C14.75 6.41421 14.4142 6.75 14 6.75C13.5858 6.75 13.25 6.41421 13.25 6Z" fill="white"/>
+              <path d="M8 3.5C8.27614 3.5 8.5 3.72386 8.5 4V7.5H12C12.2761 7.5 12.5 7.72386 12.5 8C12.5 8.27614 12.2761 8.5 12 8.5H8.5V12C8.5 12.2761 8.27614 12.5 8 12.5C7.72386 12.5 7.5 12.2761 7.5 12V8.5H4C3.72386 8.5 3.5 8.27614 3.5 8C3.5 7.72386 3.72386 7.5 4 7.5H7.5V4C7.5 3.72386 7.72386 3.5 8 3.5Z" fill="white"/>
             </svg>
-            Open explorer
+            New
           </NewButton>
-          <ManageGroupsButton>
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 1.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
-              <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M7.41 14.5h1.18l.053-.832a1.753 1.753 0 0 1 1.08-1.509 1.752 1.752 0 0 1 1.83.303l.625.552.836-.835-.552-.626a1.752 1.752 0 0 1-.303-1.83 1.753 1.753 0 0 1 1.509-1.08l.832-.052V7.409l-.832-.052a1.753 1.753 0 0 1-1.509-1.08 1.752 1.752 0 0 1 .303-1.83l.552-.625-.836-.836-.625.552a1.752 1.752 0 0 1-1.83.303 1.753 1.753 0 0 1-1.08-1.509L8.59 1.5H7.409l-.052.832a1.753 1.753 0 0 1-1.08 1.509 1.752 1.752 0 0 1-1.83-.303l-.625-.552-.836.836.552.625a1.753 1.753 0 0 1-1.205 2.91L1.5 7.41v1.182l.832.052a1.753 1.753 0 0 1 1.509 1.08 1.752 1.752 0 0 1-.303 1.83l-.552.625.836.836.625-.552a1.752 1.752 0 0 1 1.83-.303 1.753 1.753 0 0 1 1.08 1.509l.052.832Zm-2.896-.122c.064-.04.125-.085.183-.136l.742-.655a.252.252 0 0 1 .264-.042.25.25 0 0 1 .157.216l.062.989a1.34 1.34 0 0 0 .07.35c.18.526.679.9 1.26.9h1.495a1.334 1.334 0 0 0 1.331-1.25l.062-.989a.253.253 0 0 1 .157-.216.252.252 0 0 1 .263.042l.743.655a1.338 1.338 0 0 0 .297.199c.5.244 1.117.156 1.528-.256l1.057-1.057a1.334 1.334 0 0 0 .057-1.825l-.655-.742a.252.252 0 0 1-.042-.264.253.253 0 0 1 .216-.157l.989-.062a1.341 1.341 0 0 0 .35-.07c.526-.18.9-.679.9-1.26V7.252a1.334 1.334 0 0 0-1.25-1.331l-.989-.062a.253.253 0 0 1-.216-.157.252.252 0 0 1 .042-.264l.655-.742a1.34 1.34 0 0 0 .199-.297c.244-.5.156-1.117-.256-1.528l-1.057-1.057a1.334 1.334 0 0 0-1.825-.057l-.742.655a.252.252 0 0 1-.264.042.253.253 0 0 1-.157-.216l-.062-.989a1.34 1.34 0 0 0-.07-.35A1.33 1.33 0 0 0 8.749 0H7.252a1.334 1.334 0 0 0-1.331 1.25l-.062.989a.253.253 0 0 1-.157.216.252.252 0 0 1-.264-.042l-.742-.655a1.34 1.34 0 0 0-.297-.199 1.334 1.334 0 0 0-1.528.256L1.815 2.872a1.334 1.334 0 0 0-.057 1.825l.655.743c.064.072.08.174.042.263a.253.253 0 0 1-.216.157l-.989.062a1.34 1.34 0 0 0-.35.07c-.526.18-.9.679-.9 1.26v1.495a1.334 1.334 0 0 0 1.25 1.331l.989.062c.096.006.18.068.216.157a.252.252 0 0 1-.042.264l-.655.742a1.344 1.344 0 0 0-.199.297c-.244.5-.156 1.117.256 1.528l1.057 1.057a1.334 1.334 0 0 0 1.642.193Z"></path>
+          <ManageGroupsButton 
+            ref={manageDataRef}
+            onClick={() => setManageDataPopoverOpen(!manageDataPopoverOpen)}
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" clipRule="evenodd" d="M1 2.75C1 1.23122 3.23858 0 6 0C8.76142 0 11 1.23122 11 2.75C11 2.83427 10.9931 2.91766 10.9796 3H11V9.5C11 10.8807 8.7614 12 6 12C3.2386 12 1.00004 10.8807 1 9.5V3H1.02038C1.00689 2.91766 1 2.83427 1 2.75ZM2.4 2.75C2.4 2.73712 2.4275 2.42356 3.13915 2.03216C3.80039 1.66848 4.80919 1.4 6 1.4C7.19081 1.4 8.19961 1.66848 8.86085 2.03216C9.5725 2.42357 9.6 2.73712 9.6 2.75C9.6 2.76288 9.5725 3.07644 8.86085 3.46784C8.19961 3.83152 7.19081 4.1 6 4.1C4.80919 4.1 3.80039 3.83152 3.13915 3.46784C2.4275 3.07643 2.4 2.76288 2.4 2.75ZM2.4 4.65843V6.29363C2.52893 6.41588 2.72415 6.55597 3.00112 6.69445C3.7066 7.04719 4.76519 7.3 6 7.3C7.23481 7.3 8.2934 7.04719 8.99888 6.69445C9.27585 6.55597 9.47107 6.41588 9.6 6.29363V4.65843C8.69056 5.17726 7.41381 5.5 6 5.5C4.58619 5.5 3.30944 5.17726 2.4 4.65843ZM2.4 9.5V7.73494C3.30944 8.2066 4.58619 8.5 6 8.5C7.41381 8.5 8.69056 8.2066 9.6 7.73494V9.5H9.58558C9.54415 9.57405 9.39909 9.77071 8.90944 10.0155C8.23718 10.3517 7.2105 10.6 6 10.6C4.7895 10.6 3.76282 10.3517 3.09057 10.0155C2.60091 9.77071 2.45585 9.57405 2.41442 9.5H2.4Z" fill="#474E5A"/>
             </svg>
-            Configure data
+            Manage data
+            <ButtonBadge>2</ButtonBadge>
+            
+            <ManageDataPopover isOpen={manageDataPopoverOpen}>
+              <ManageDataItem>
+                <ManageDataHeader>
+                  <ManageDataTitle>Stripe</ManageDataTitle>
+                  <ManageDataActions>
+                    <ManageDataSync>
+                      <svg viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        <path d="M8 12a5 5 0 1 1-4.546-2.914.5.5 0 0 0-.908.417A6 6 0 1 0 8 14v-1z"/>
+                        <path d="M8 11.534V15.466a.25.25 0 0 0 .41.192l2.36-1.966c.12-.1.12-.284 0-.384L8.41 11.342a.25.25 0 0 0-.41.192z"/>
+                      </svg>
+                    </ManageDataSync>
+                    <StatusDot />
+                  </ManageDataActions>
+                </ManageDataHeader>
+                <ManageDataMeta>Last updated 2 hours ago</ManageDataMeta>
+              </ManageDataItem>
+              
+              <ManageDataItem>
+                <ManageDataHeader>
+                  <ManageDataTitle>Snowflake</ManageDataTitle>
+                  <ManageDataActions>
+                    <ManageDataSync>
+                      <svg viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                        <path d="M8 12a5 5 0 1 1-4.546-2.914.5.5 0 0 0-.908.417A6 6 0 1 0 8 14v-1z"/>
+                        <path d="M8 11.534V15.466a.25.25 0 0 0 .41.192l2.36-1.966c.12-.1.12-.284 0-.384L8.41 11.342a.25.25 0 0 0-.41.192z"/>
+                      </svg>
+                    </ManageDataSync>
+                    <StatusDot />
+                  </ManageDataActions>
+                </ManageDataHeader>
+                <ManageDataMeta>Last updated 1 day ago</ManageDataMeta>
+              </ManageDataItem>
+            </ManageDataPopover>
           </ManageGroupsButton>
         </ButtonGroup>
       </HeaderRow>
@@ -761,7 +1363,7 @@ const Reports = () => {
               <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </ChevronIcon>
-          Trending
+          Recently viewed
         </SectionTitle>
         <CarouselControls>
           <CarouselButton>
@@ -781,28 +1383,30 @@ const Reports = () => {
         <TrendingGrid>
           {trendingReports.map(report => (
             <TrendingCard key={report.id} onClick={() => navigate(`/data-studio/${report.id}`)}>
-              <ExploreAction className="explore-action">
+              <TrendingExploreAction className="explore-action">
                 Explore
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-              </ExploreAction>
+              </TrendingExploreAction>
               
               <TrendingTitle>{report.title}</TrendingTitle>
               <TrendingContent>
                 <TrendingValueSection>
-                  <TrendingValue>{report.value}</TrendingValue>
-                  <TrendingTrend trend={report.trend > 0 ? 'up' : 'down'} isNegative={report.isNegative}>
-                    {report.trend > 0 ? '+' : ''}{report.trend}%
-                  </TrendingTrend>
+                  <TrendingValueRow>
+                    <TrendingValue>{report.value}</TrendingValue>
+                    <TrendingTrend trend={report.trend} isNegative={report.isNegative}>
+                      {report.trend > 0 ? '+' : ''}{report.trend}%
+                    </TrendingTrend>
+                  </TrendingValueRow>
                 </TrendingValueSection>
                 <SparklineContainer>
                   {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
                     <Line
                       data={getSparklineData(report.sparklineData)}
                       options={getSparklineOptions()}
-                      height={50}
+                      height={30}
                     />
                   )}
                 </SparklineContainer>
@@ -823,86 +1427,202 @@ const Reports = () => {
       <div style={{ marginBottom: '12px' }}></div>
       
       {expandedSections.pinned && (
-        <ReportsTable>
-          <TableHead>
-            <tr>
-              <TableHeaderCell style={{ width: '40px' }}></TableHeaderCell>
-              <TableHeaderCell sorted={pinnedSortField === 'title'} onClick={() => handlePinnedSort('title')}>
-                Title {getPinnedSortIcon('title')}
-              </TableHeaderCell>
-              <SparklineHeaderCell>
-                Last 7 days
-              </SparklineHeaderCell>
-              <TableHeaderCell sorted={pinnedSortField === 'value'} onClick={() => handlePinnedSort('value')}>
-                Value {getPinnedSortIcon('value')}
-              </TableHeaderCell>
-              <TableHeaderCell sorted={pinnedSortField === 'trend'} onClick={() => handlePinnedSort('trend')}>
-                Change {getPinnedSortIcon('trend')}
-              </TableHeaderCell>
-              <TableHeaderCell sorted={pinnedSortField === 'creator'} onClick={() => handlePinnedSort('creator')}>
-                Created by {getPinnedSortIcon('creator')}
-              </TableHeaderCell>
-              <TableHeaderCell sorted={pinnedSortField === 'dateCreated'} onClick={() => handlePinnedSort('dateCreated')}>
-                Date created {getPinnedSortIcon('dateCreated')}
-              </TableHeaderCell>
-              <TableHeaderCell sorted={pinnedSortField === 'lastUpdated'} onClick={() => handlePinnedSort('lastUpdated')}>
-                Last updated date {getPinnedSortIcon('lastUpdated')}
-              </TableHeaderCell>
-              <TableHeaderCell></TableHeaderCell>
-            </tr>
-          </TableHead>
-          <tbody>
+        <PinnedGridContainer>
+          <PinnedGrid expanded={pinnedExpanded}>
             {sortedPinnedReports.map((report) => {
               const originalIndex = reportsList.findIndex(r => r.id === report.id);
               return (
-                <tr 
-                  key={report.id} 
+                <PinnedMetricCard 
+                  key={report.id}
                   onClick={() => navigate(`/data-studio/${report.id}`)}
                 >
-                  <PinColumn onClick={(e) => e.stopPropagation()}>
-                    <PinButton 
-                      pinned={true}
-                      onClick={(e) => handlePinToggle(originalIndex, e)}
-                    >
-                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-    <path fillRule="evenodd" clipRule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
-  </svg>
-                    </PinButton>
-                  </PinColumn>
-                  <TableCell sorted={pinnedSortField === 'title'}>
-                    {report.title}
-                  </TableCell>
-                  <SparklineCell onClick={(e) => e.stopPropagation()}>
-                    <div style={{ width: '100%', height: '30px' }}>
-                      {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
-                        <Line
-                          data={getSparklineData(report.sparklineData)}
-                          options={getSparklineOptions()}
-                        />
-                      )}
-                    </div>
-                  </SparklineCell>
-                  <ValueCell sorted={pinnedSortField === 'value'}>{report.value}</ValueCell>
-                  <ChangeCell sorted={pinnedSortField === 'trend'} trend={report.trend} isNegative={report.isNegative}>
-                    {report.trend > 0 ? '+' : ''}{report.trend}%
-                  </ChangeCell>
-                  <TableCell sorted={pinnedSortField === 'creator'}>{report.creator}</TableCell>
-                  <DateColumn sorted={pinnedSortField === 'dateCreated'}>{report.dateCreated}</DateColumn>
-                  <DateColumn sorted={pinnedSortField === 'lastUpdated'}>{report.lastUpdated}</DateColumn>
-                  <ActionColumn onClick={(e) => e.stopPropagation()}>
-                    <OptionsDots>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
-                        <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
-                        <circle cx="12" cy="18" r="1.5" fill="currentColor"/>
-                      </svg>
-                    </OptionsDots>
-                  </ActionColumn>
-                </tr>
+                  <PinnedExploreAction className="explore-action">
+                    Explore
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </PinnedExploreAction>
+                  
+
+                  
+                  <PinnedMetricHeader>
+                    <PinnedMetricTitle>{report.title}</PinnedMetricTitle>
+                    <PinnedMetricValueRow>
+                      <PinnedMetricValue>
+                        {report.value}
+                        {report.trend !== 0 && (
+                          <PinnedMetricTrend trend={report.trend} isNegative={report.isNegative}>
+                            {report.trend > 0 ? '+' : ''}{report.trend}%
+                          </PinnedMetricTrend>
+                        )}
+                      </PinnedMetricValue>
+                    </PinnedMetricValueRow>
+                  </PinnedMetricHeader>
+                  
+                  <PinnedMetricChartContainer>
+                    {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
+                      <LineChart 
+                        data={getSparklineData(report.sparklineData)}
+                        height={160} 
+                        showLegend={false}
+                        simplified={true}
+                        type="line" 
+                        unit={report.value.includes('$') ? 'currency' : 'number'}
+                      />
+                    )}
+                  </PinnedMetricChartContainer>
+                  
+                  <PinnedIndicator>
+                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                      <path fillRule="evenodd" clipRule="evenodd" d="m11.98 9.48 3.005-4.096a2 2 0 0 0 .387-1.15 2.042 2.042 0 0 0-.585-1.447l-1.574-1.574a1.997 1.997 0 0 0-2.597-.198L6.52 4.019l-.44-.44a1 1 0 0 0-1.261-.124L2.015 5.323a1 1 0 0 0-.152 1.54L4.97 9.97.72 14.22a.748.748 0 0 0 0 1.06.747.747 0 0 0 1.06 0l4.25-4.25 3.107 3.107a1 1 0 0 0 1.54-.152l1.868-2.803a1 1 0 0 0-.125-1.262l-.44-.44ZM7.593 5.093l3.316 3.316 2.868-3.911a.5.5 0 0 0-.05-.65l-1.573-1.573a.5.5 0 0 0-.65-.05l-3.91 2.868ZM5.31 4.93 3.354 6.233l6.413 6.413 1.303-1.955-5.761-5.76Z"></path>
+                    </svg>
+                    Pinned
+                  </PinnedIndicator>
+                </PinnedMetricCard>
               );
             })}
-          </tbody>
-        </ReportsTable>
+          </PinnedGrid>
+          
+          {!pinnedExpanded && sortedPinnedReports.length > 4 && (
+            <GradientOverlay>
+              <ShowAllButton onClick={() => setPinnedExpanded(true)}>
+                Show all
+              </ShowAllButton>
+            </GradientOverlay>
+          )}
+        </PinnedGridContainer>
+      )}
+      
+      <SectionTitle onClick={() => toggleSection('weekly')}>
+        <ChevronIcon expanded={expandedSections.weekly}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ChevronIcon>
+        My check weekly
+      </SectionTitle>
+      <div style={{ marginBottom: '12px' }}></div>
+      
+      {expandedSections.weekly && (
+        <WeeklyGridContainer>
+          <WeeklyGrid expanded={weeklyExpanded}>
+            {weeklyReports.map((report) => (
+              <WeeklyMetricCard 
+                key={report.id}
+                onClick={() => navigate(`/data-studio/${report.id}`)}
+              >
+                <WeeklyExploreAction className="explore-action">
+                  Explore
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </WeeklyExploreAction>
+                
+                <WeeklyMetricHeader>
+                  <WeeklyMetricTitle>{report.title}</WeeklyMetricTitle>
+                  <WeeklyMetricValueRow>
+                    <WeeklyMetricValue>
+                      {report.value}
+                      {report.trend !== 0 && (
+                        <WeeklyMetricTrend trend={report.trend} isNegative={report.isNegative}>
+                          {report.trend > 0 ? '+' : ''}{report.trend}%
+                        </WeeklyMetricTrend>
+                      )}
+                    </WeeklyMetricValue>
+                  </WeeklyMetricValueRow>
+                </WeeklyMetricHeader>
+                
+                <WeeklyMetricChartContainer>
+                  {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
+                    <LineChart 
+                      data={getSparklineData(report.sparklineData)}
+                      height={160} 
+                      showLegend={false}
+                      simplified={true}
+                      type="line" 
+                      unit={report.value.includes('$') ? 'currency' : 'number'}
+                    />
+                  )}
+                </WeeklyMetricChartContainer>
+              </WeeklyMetricCard>
+            ))}
+          </WeeklyGrid>
+          
+          {!weeklyExpanded && weeklyReports.length > 4 && (
+            <GradientOverlay>
+              <ShowAllButton onClick={() => setWeeklyExpanded(true)}>
+                Show all
+              </ShowAllButton>
+            </GradientOverlay>
+          )}
+        </WeeklyGridContainer>
+      )}
+      
+      <SectionTitle onClick={() => toggleSection('drafts')}>
+        <ChevronIcon expanded={expandedSections.drafts}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ChevronIcon>
+        Drafts
+      </SectionTitle>
+      <div style={{ marginBottom: '12px' }}></div>
+      
+      {expandedSections.drafts && (
+        <DraftsGrid>
+          {draftsReports.map((report) => (
+            <DraftsMetricCard 
+              key={report.id}
+              onClick={() => navigate(`/data-studio/${report.id}`)}
+            >
+              <DraftsExploreAction className="explore-action">
+                Explore
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 17L17 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 7H17V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </DraftsExploreAction>
+              
+              <DraftsMetricHeader>
+                <DraftsMetricTitle>{report.title}</DraftsMetricTitle>
+                <DraftsMetricValueRow>
+                  <DraftsMetricValue>
+                    {report.value}
+                    {report.trend !== 0 && (
+                      <DraftsMetricTrend trend={report.trend} isNegative={report.isNegative}>
+                        {report.trend > 0 ? '+' : ''}{report.trend}%
+                      </DraftsMetricTrend>
+                    )}
+                  </DraftsMetricValue>
+                </DraftsMetricValueRow>
+              </DraftsMetricHeader>
+              
+              <DraftsMetricChartContainer>
+                {report.sparklineData && Array.isArray(report.sparklineData) && report.sparklineData.length > 0 && (
+                  <LineChart 
+                    data={getSparklineData(report.sparklineData)}
+                    height={160} 
+                    showLegend={false}
+                    simplified={true}
+                    type="line" 
+                    unit={report.value.includes('$') ? 'currency' : 'number'}
+                  />
+                )}
+              </DraftsMetricChartContainer>
+            </DraftsMetricCard>
+          ))}
+          
+          <DraftsPlaceholder>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <PlaceholderText>
+              New
+            </PlaceholderText>
+          </DraftsPlaceholder>
+        </DraftsGrid>
       )}
       
       <div style={{ marginTop: '40px', marginBottom: '16px' }}>
