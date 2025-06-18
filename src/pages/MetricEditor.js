@@ -363,29 +363,38 @@ const CodeModeContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 16px;
+  gap: 0;
 `;
 
 const PromptInputContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   position: relative;
+  border: 1px solid ${props => props.theme.borderColor};
+  border-bottom: 1px solid rgb(63,63,63);
+  border-radius: 6px 6px 0 0;
+  background: rgb(42,42,42);
+  height: 52px;
+  align-items: center;
+  justify-content: center;
 `;
 
 const PromptInput = styled.textarea`
-  background: ${props => props.theme.surfaceBg};
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 6px;
-  padding: 12px 48px 12px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0 48px 0 12px;
   color: ${props => props.theme.primaryText};
-  font-size: 14px;
+  font-size: 16px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   resize: none;
-  min-height: 40px;
-  max-height: 120px;
-  overflow-y: auto;
+  height: 100%;
+  overflow: hidden;
   transition: border-color 0.2s ease;
+  width: 100%;
+  line-height: 52px;
+  vertical-align: middle;
 
   &::placeholder {
     color: ${props => props.theme.mutedText};
@@ -393,25 +402,28 @@ const PromptInput = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #0072E9;
   }
 `;
 
 const SQLEditorContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  position: relative;
+  border: 1px solid ${props => props.theme.borderColor};
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background: rgb(42,42,42);
 `;
 
 const SQLEditorWrapper = styled.div`
   position: relative;
-  border: 1px solid ${props => props.isFocused ? '#0072E9' : props.theme.borderColor};
-  border-radius: 6px;
-  background: ${props => props.theme.surfaceBg};
+  border: none;
+  border-radius: 0;
+  background: transparent;
   transition: border-color 0.2s ease;
   overflow: visible;
   display: flex;
-  min-height: fit-content;
 `;
 
 const LineNumbers = styled.div`
@@ -420,7 +432,7 @@ const LineNumbers = styled.div`
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 13px;
   line-height: 1.5;
-  padding: 16px 12px 16px 8px;
+  padding: 16px 12px 0 8px;
   text-align: right;
   user-select: none;
   min-width: 45px;
@@ -438,7 +450,6 @@ const CodeContainer = styled.div`
   position: relative;
   flex: 1;
   overflow: visible;
-  min-height: fit-content;
 `;
 
 const SQLTextarea = styled.textarea`
@@ -449,7 +460,7 @@ const SQLTextarea = styled.textarea`
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 13px;
   line-height: 19.5px;
-  padding: 16px 20px;
+  padding: 16px 20px 0 20px;
   border: none;
   resize: none;
   outline: none;
@@ -497,7 +508,7 @@ const SyntaxHighlight = styled.pre`
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 13px;
   line-height: 19.5px;
-  padding: 16px 20px;
+  padding: 16px 20px 0 20px;
   margin: 0;
   border: none;
   position: absolute;
@@ -541,8 +552,8 @@ const PromptSubmitButton = styled.button`
   color: ${props => props.hasText ? 'white' : '#9ca3af'};
   border: 1px solid ${props => props.hasText ? '#625df5' : props.theme.borderColor};
   border-radius: 15px;
-  width: 42px;
-  height: 30px;
+  width: 46px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -566,6 +577,69 @@ const PromptSubmitButton = styled.button`
   svg path {
     fill: ${props => props.hasText ? 'white' : '#9ca3af'};
     transition: fill 0.2s ease;
+  }
+`;
+
+const SQLFooter = styled.div`
+  background: transparent;
+  border-top: 1px solid ${props => props.theme.borderColor};
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+`;
+
+const VersionButton = styled.button`
+  background: transparent;
+  border: 1px solid ${props => props.theme.borderColor};
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: ${props => props.theme.primaryText};
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: ${props => props.theme.secondaryBg};
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
+
+const RunButton = styled.button`
+  background: ${props => props.hasChanges ? '#625df5' : 'transparent'};
+  border: 1px solid ${props => props.hasChanges ? '#625df5' : props.theme.borderColor};
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: ${props => props.hasChanges ? 'white' : props.theme.mutedText};
+  font-size: 14px;
+  font-weight: 500;
+  cursor: ${props => props.hasChanges ? 'pointer' : 'default'};
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: ${props => props.hasChanges ? '#5b56f0' : props.theme.secondaryBg};
+    border-color: ${props => props.hasChanges ? '#5b56f0' : props.theme.borderColor};
+  }
+  
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  svg rect {
+    fill: ${props => props.hasChanges ? 'white' : '#99A5B8'};
   }
 `;
 
@@ -2139,6 +2213,7 @@ const MetricEditor = () => {
   // Code mode state variables
   const [promptText, setPromptText] = useState('');
   const [sqlCode, setSqlCode] = useState('');
+  const [originalSqlCode, setOriginalSqlCode] = useState('');
   const [isSQLEditorFocused, setIsSQLEditorFocused] = useState(false);
   const sqlEditorRef = useRef(null);
 
@@ -2210,7 +2285,9 @@ ORDER BY month DESC;`;
   // Initialize SQL code when switching to code mode
   useEffect(() => {
     if (editorMode === 'code' && sqlCode === '') {
-      setSqlCode(generateRealisticSQLQuery());
+      const initialSql = generateRealisticSQLQuery();
+      setSqlCode(initialSql);
+      setOriginalSqlCode(initialSql);
     }
   }, [editorMode]);
 
@@ -2277,7 +2354,7 @@ ORDER BY month DESC;`;
 
   // Calculate SQL editor height based on content with text wrapping
   const calculateSQLEditorHeight = () => {
-    if (!sqlCode) return 200; // Default height when empty
+    if (!sqlCode) return 150; // Smaller default height when empty
     
     // Estimate character width and container width for wrapping calculation
     const charWidth = 8; // Approximate character width in Monaco font at 13px
@@ -2300,9 +2377,9 @@ ORDER BY month DESC;`;
     });
     
     const lineHeight = 19.5; // Exact line height to match line numbers
-    const verticalPadding = 32; // 16px top + 16px bottom padding
-    const minHeight = 200; // Minimum height
-    const extraBuffer = 80; // Increased buffer to prevent cutoff
+    const verticalPadding = 16; // Only top padding now since bottom is 0
+    const minHeight = 150; // Smaller minimum height
+    const extraBuffer = 20; // Much smaller buffer
     
     const calculatedHeight = (totalVisualLines * lineHeight) + verticalPadding + extraBuffer;
     
@@ -2372,10 +2449,10 @@ ORDER BY month DESC;`;
         const newHeight = calculateSQLEditorHeight();
         editorWrapper.style.height = newHeight + 'px';
         
-        // Also update the container height to ensure proper scrolling
+        // Remove any container min-height to allow natural sizing
         const container = editorWrapper.parentElement;
         if (container) {
-          container.style.minHeight = newHeight + 'px';
+          container.style.minHeight = 'auto';
         }
       }
     }
@@ -2390,8 +2467,8 @@ ORDER BY month DESC;`;
         if (editorWrapper) {
                      // Use scrollHeight for more accurate measurement
            const contentHeight = textarea.scrollHeight;
-           const minHeight = 200;
-           const extraBuffer = 80;
+           const minHeight = 150;
+           const extraBuffer = 20;
            const newHeight = Math.max(minHeight, contentHeight + extraBuffer);
           editorWrapper.style.height = newHeight + 'px';
         }
@@ -5203,12 +5280,12 @@ ORDER BY month DESC;`;
             {/* Code mode content - Prompt input and SQL editor */}
             {editorMode === 'code' && (
               <CodeModeContainer theme={currentTheme}>
-                <PromptInputContainer>
+                <PromptInputContainer theme={currentTheme}>
                   <PromptInput
                     theme={currentTheme}
                     value={promptText}
                     onChange={handlePromptInputChange}
-                    placeholder="Describe what you want to change"
+                                          placeholder="Describe changes to the query"
                     rows={1}
                   />
                   <PromptSubmitButton
@@ -5223,7 +5300,7 @@ ORDER BY month DESC;`;
                   </PromptSubmitButton>
                 </PromptInputContainer>
                 
-                <SQLEditorContainer>
+                <SQLEditorContainer theme={currentTheme}>
                   <SQLEditorWrapper 
                     isFocused={isSQLEditorFocused}
                     theme={currentTheme}
@@ -5289,6 +5366,35 @@ ORDER BY month DESC;`;
                       />
                     </CodeContainer>
                   </SQLEditorWrapper>
+                  
+                  <SQLFooter theme={currentTheme}>
+                    <VersionButton theme={currentTheme}>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <mask id="mask0_1959_344358" style={{maskType:'alpha'}} maskUnits="userSpaceOnUse" x="0" y="0" width="12" height="12">
+                          <path d="M2.99038 4.15387L1.90755 3.79292C2.77292 1.90594 4.47454 1.125 5.9999 1.125C8.68932 1.125 10.875 3.31067 10.875 5.99999C10.8749 8.68934 8.68931 10.875 5.9999 10.875C3.65631 10.875 1.97022 9.38197 1.2836 7.32212C1.18536 7.0274 0.866809 6.86813 0.572091 6.96637C0.336364 7.04494 0.187284 7.26446 0.187317 7.5C0.187325 7.55894 0.196672 7.61889 0.216335 7.67788C1.02972 10.118 3.09363 12 5.9999 12C9.31063 12 11.9999 9.31066 12 6.00001C12 2.68933 9.31062 0 5.9999 0C4.22713 0 2.25379 0.854003 1.125 2.853V1.3125C1.125 1.00184 0.87316 0.75 0.5625 0.75C0.25184 0.75 0 1.00184 0 1.3125V3.9375C0 4.17962 0.154929 4.39457 0.384622 4.47113L2.63462 5.22113C2.92934 5.31937 3.24789 5.1601 3.34613 4.86538C3.44437 4.57066 3.2851 4.25211 2.99038 4.15387Z" fill="#CACED7"/>
+                          <path d="M6.375 3.1875C6.375 2.87684 6.12316 2.625 5.8125 2.625C5.50184 2.625 5.25 2.87684 5.25 3.1875V6.5625C5.25 6.79904 5.39798 7.0103 5.62027 7.09113L7.68277 7.84113C7.97473 7.9473 8.29747 7.79669 8.40363 7.50473C8.5098 7.21277 8.35919 6.89003 8.06723 6.78387L6.375 6.16851V3.1875Z" fill="#CACED7"/>
+                        </mask>
+                        <g mask="url(#mask0_1959_344358)">
+                          <rect width="12" height="12" fill="#99A5B8"/>
+                        </g>
+                      </svg>
+                      Version 3
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 2L8 6L4 10" stroke="#99A5B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" transform="rotate(90 6 6)"/>
+                      </svg>
+                    </VersionButton>
+                    <RunButton theme={currentTheme} hasChanges={sqlCode !== originalSqlCode}>
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <mask id="mask0_1959_344349" style={{maskType:'alpha'}} maskUnits="userSpaceOnUse" x="0" y="0" width="12" height="12">
+                          <path fillRule="evenodd" clipRule="evenodd" d="M2.38307 1.43499C2.24507 1.3546 2.0625 1.4563 2.0625 1.62345V10.3773C2.0625 10.5414 2.24795 10.6431 2.38179 10.5665L9.83318 6.15625C9.9675 6.078 9.96752 5.9157 9.83318 5.83745C7.34119 4.38578 4.86645 2.90405 2.38423 1.4357L2.38307 1.43499ZM3.04756 0.303119C2.80426 0.161389 2.54475 0.0959078 2.29098 0.0947365C1.49203 0.0910487 0.75 0.724818 0.75 1.62345V10.3773C0.75 11.2676 1.48876 11.9091 2.2881 11.9073C2.54107 11.9068 2.80011 11.8418 3.04373 11.6999L10.496 7.28909C10.9987 6.99525 11.25 6.49606 11.25 5.99686C11.25 5.49693 10.9979 4.99701 10.4938 4.70335C8.00276 3.25221 5.52884 1.77096 3.04756 0.303119Z" fill="#CACED7"/>
+                        </mask>
+                        <g mask="url(#mask0_1959_344349)">
+                          <rect width="12" height="12" fill="#99A5B8"/>
+                        </g>
+                      </svg>
+                      Run
+                    </RunButton>
+                  </SQLFooter>
                 </SQLEditorContainer>
               </CodeModeContainer>
             )}
