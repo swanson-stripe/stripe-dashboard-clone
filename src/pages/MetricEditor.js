@@ -2672,19 +2672,13 @@ ORDER BY month DESC;`;
 
   // Get ordered schema based on column order
   const orderedSchema = useMemo(() => {
-    if (columnOrder.length === 0) return schema.filter(col => !removedColumns.has(col.id));
-    
-    const orderedCols = columnOrder.map(id => schema.find(col => col.id === id)).filter(Boolean);
-    // Add any new columns that aren't in the order yet, but exclude removed columns
-    const newCols = schema.filter(col => !columnOrder.includes(col.id) && !removedColumns.has(col.id));
-    
     // Get all available columns from all schemas for added columns
     const allAvailableColumns = [
       ...Object.values(METRIC_SCHEMAS).flat(),
       ...Object.values(REPORT_SCHEMAS).flat()
     ];
     
-    // Add the dynamically added columns at the end using stored definitions
+    // Add the dynamically added columns using stored definitions
     const dynamicallyAddedCols = Array.from(addedColumns)
       .map(colId => {
         // First try to find in existing schemas
@@ -2695,6 +2689,20 @@ ORDER BY month DESC;`;
         return columnDefinitions[colId];
       })
       .filter(Boolean);
+    
+    // Handle blank state (when schema is empty)
+    if (schema.length === 0) {
+      return dynamicallyAddedCols;
+    }
+    
+    // Handle normal state with existing schema
+    if (columnOrder.length === 0) {
+      return [...schema.filter(col => !removedColumns.has(col.id)), ...dynamicallyAddedCols];
+    }
+    
+    const orderedCols = columnOrder.map(id => schema.find(col => col.id === id)).filter(Boolean);
+    // Add any new columns that aren't in the order yet, but exclude removed columns
+    const newCols = schema.filter(col => !columnOrder.includes(col.id) && !removedColumns.has(col.id));
     
     return [...orderedCols, ...newCols, ...dynamicallyAddedCols];
   }, [schema, columnOrder, addedColumns, columnDefinitions, removedColumns]);
@@ -3067,6 +3075,10 @@ ORDER BY month DESC;`;
 
   // Get display title
   const getDisplayTitle = () => {
+    if (currentId === 'new') {
+      return 'Untitled';
+    }
+    
     if (isReport) {
       const reportNames = {
         'high-usage-growth': 'High Usage Growth',
@@ -5678,7 +5690,7 @@ ORDER BY month DESC;`;
               <HeaderTitle>{getDisplayTitle()}</HeaderTitle>
               
               <HeaderButtonsRight data-header-buttons>
-                {(selectedCells.size > 0 || selectedColumns.size > 0 || selectedRows.size > 0 || selectedRow !== null || isAllSelected) && (<CopyButton onClick={handleCopy} title="Copy selected data"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M4 6.375C4 6.02982 4.27982 5.75 4.625 5.75H7.375C7.72018 5.75 8 6.02982 8 6.375C8 6.72018 7.72018 7 7.375 7H4.625C4.27982 7 4 6.72018 4 6.375Z" fill="#474E5A"/><path fillRule="evenodd" clipRule="evenodd" d="M4 8.625C4 8.27982 4.27982 8 4.625 8H7.375C7.72018 8 8 8.27982 8 8.625C8 8.97018 7.72018 9.25 7.375 9.25H4.625C4.27982 9.25 4 8.97018 4 8.625Z" fill="#474E5A"/><path fillRule="evenodd" clipRule="evenodd" d="M8.43699 1.5C8.21497 0.637386 7.43192 0 6.5 0H5.5C4.56808 0 3.78503 0.637386 3.56301 1.5H3C1.89543 1.5 1 2.39543 1 3.5V10C1 11.1046 1.89543 12 3 12H9C10.1046 12 11 11.1046 11 10V3.5C11 2.39543 10.1046 1.5 9 1.5H8.43699ZM4.9 3.1H7.1V2C7.1 1.66863 6.83137 1.4 6.5 1.4H5.5C5.16863 1.4 4.9 1.66863 4.9 2V3.1ZM8 4.5H4C3.72386 4.5 3.5 4.27614 3.5 4V2.9H3C2.66863 2.9 2.4 3.16863 2.4 3.5V10C2.4 10.3314 2.66863 10.6 3 10.6H9C9.33137 10.6 9.6 10.3314 9.6 10V3.5C9.6 3.16863 9.33137 2.9 9 2.9H8.5V4C8.5 4.27614 8.27614 4.5 8 4.5Z" fill="#474E5A"/></svg>{copyButtonText}</CopyButton>)} <SaveButton onClick={handleSave} title="Save" data-save-button>
+                {(selectedCells.size > 0 || selectedColumns.size > 0 || selectedRows.size > 0 || selectedRow !== null || isAllSelected) && (<CopyButton onClick={handleCopy} title="Copy selected data"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M4 6.375C4 6.02982 4.27982 5.75 4.625 5.75H7.375C7.72018 5.75 8 6.02982 8 6.375C8 6.72018 7.72018 7 7.375 7H4.625C4.27982 7 4 6.72018 4 6.375Z" fill="#474E5A"/><path fillRule="evenodd" clipRule="evenodd" d="M4 8.625C4 8.27982 4.27982 8 4.625 8H7.375C7.72018 8 8 8.27982 8 8.625C8 8.97018 7.72018 9.25 7.375 9.25H4.625C4.27982 9.25 4 8.97018 4 8.625Z" fill="#474E5A"/><path fillRule="evenodd" clipRule="evenodd" d="M8.43699 1.5C8.21497 0.637386 7.43192 0 6.5 0H5.5C4.56808 0 3.78503 0.637386 3.56301 1.5H3C1.89543 1.5 1 2.39543 1 3.5V10C1 11.1046 1.89543 12 3 12H9C10.1046 12 11 11.1046 11 10V3.5C11 2.39543 10.1046 1.5 9 1.5H8.43699ZM4.9 3.1H7.1V2C7.1 1.66863 6.83137 1.4 6.5 1.4H5.5C5.16863 1.4 4.9 1.66863 4.9 2V3.1ZM8 4.5H4C3.72386 4.5 3.5 4.27614 3.5 4V2.9H3C2.66863 2.9 2.4 3.16863 2.4 3.5V10C2.4 10.3314 2.66863 10.6 3 10.6H9C9.33137 10.6 9.6 10.3314 9.6 10V3.5C9.6 3.16863 9.33137 2.9 9 2.9H8.5V4C8.5 4.27614 8.27614 4.5 8 4.5Z" fill="#474E5A"/></svg>{copyButtonText}</CopyButton>)} <SaveButton onClick={handleSave} title="Save" data-save-button style={{ opacity: orderedSchema.length === 0 ? 0.5 : 1 }}>
                   Save
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'rotate(90deg)' }}>
                     <path d="M4 2L8 6L4 10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -5908,13 +5920,16 @@ ORDER BY month DESC;`;
               ) : (
                 <div style={{ 
                   display: 'flex', 
+                  flexDirection: 'column',
                   alignItems: 'center', 
                   justifyContent: 'center', 
                   height: '100%', 
-                  fontSize: '16px', 
-                  color: '#6b7280' 
+                  textAlign: 'center',
+                  color: isDarkMode ? '#9ca3af' : '#6b7280'
                 }}>
-                  No schema found for metric "{currentId}". Available schemas: {Object.keys(METRIC_SCHEMAS).join(', ')}
+                  <div style={{ fontSize: '18px', fontWeight: '500' }}>
+                    Add columns from the left panel to get started
+                  </div>
                 </div>
               )}
             </SpreadsheetWrapper>
