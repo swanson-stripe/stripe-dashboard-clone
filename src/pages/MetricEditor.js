@@ -2099,6 +2099,101 @@ const SavePopoverButton = styled.button`
   }
 `;
 
+// Version Popover styled components
+const VersionPopoverContainer = styled.div`
+  position: absolute;
+  background: rgb(42, 42, 42);
+  border: 1px solid var(--summary-border, #e3e8ee);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 320px;
+  overflow: hidden;
+  pointer-events: auto;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1001;
+`;
+
+const VersionPopoverRow = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid var(--summary-border);
+  transition: background-color 0.2s ease;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background: var(--hover-bg);
+  }
+`;
+
+const VersionPopoverContent = styled.div`
+  width: 100%;
+  text-align: left;
+`;
+
+const VersionPopoverTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+`;
+
+const VersionPopoverTitle = styled.div`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+`;
+
+const VersionPopoverDescription = styled.div`
+  font-size: 12px;
+  color: white;
+  margin-bottom: 8px;
+  line-height: 1.4;
+`;
+
+const VersionPopoverMetadata = styled.div`
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const VersionPopoverIcons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const VersionPopoverIcon = styled.button`
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+  }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  &.more-icon svg {
+    transform: rotate(90deg);
+  }
+`;
+
 // Helper for sentence case
 function toSentenceCase(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').toLowerCase().replace(/\b([a-z])/g, function(match) { return match.toLowerCase(); });
@@ -2199,6 +2294,9 @@ const MetricEditor = () => {
   const [savePopoverTab, setSavePopoverTab] = useState('save');
   const [reportType, setReportType] = useState('shared');
   const [accessLevel, setAccessLevel] = useState('view');
+
+  // Version popover state
+  const [showVersionPopover, setShowVersionPopover] = useState(false);
 
   // Copy button state
   const [copyButtonText, setCopyButtonText] = useState('Copy');
@@ -3386,7 +3484,48 @@ ORDER BY month DESC;`;
     setShowSavePopover(false);
   };
 
-  const handleCopy = async (event) => { event.stopPropagation(); try { let data = ""; if (selectedCells.size > 0) { const cellsArray = Array.from(selectedCells); data = cellsArray.map(cellKey => { const [rowIndex, columnId] = cellKey.split("-"); const row = sortedData[parseInt(rowIndex)]; const column = orderedSchema.find(col => col.id === columnId); return column ? formatCellValue(row[columnId], column) : ""; }).join("\t"); } else if (selectedColumns.size > 0) { const columnIds = Array.from(selectedColumns); const headers = columnIds.map(id => orderedSchema.find(col => col.id === id)?.label || id); data = headers.join("\t") + "\n" + sortedData.map(row => columnIds.map(id => formatCellValue(row[id], orderedSchema.find(col => col.id === id))).join("\t")).join("\n"); } await navigator.clipboard.writeText(data); if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); setCopyButtonText("Copied"); copyTimeoutRef.current = setTimeout(() => setCopyButtonText("Copy"), 5000); } catch (error) { console.error("Copy failed:", error); } }; const getSaveButtonText = () => {
+  // Version popover handlers
+  const handleVersionClick = (event) => {
+    event.stopPropagation();
+    setShowVersionPopover(prev => !prev);
+  };
+
+  const handleVersionPopoverClose = () => {
+    setShowVersionPopover(false);
+  };
+
+  const handleVersionAction = (action, versionId) => {
+    console.log('Version action:', action, 'for version:', versionId);
+    setShowVersionPopover(false);
+  };
+
+  const handleCopy = async (event) => { 
+    event.stopPropagation(); 
+    try { 
+      let data = ""; 
+      if (selectedCells.size > 0) { 
+        const cellsArray = Array.from(selectedCells); 
+        data = cellsArray.map(cellKey => { 
+          const [rowIndex, columnId] = cellKey.split("-"); 
+          const row = sortedData[parseInt(rowIndex)]; 
+          const column = orderedSchema.find(col => col.id === columnId); 
+          return column ? formatCellValue(row[columnId], column) : ""; 
+        }).join("\t"); 
+      } else if (selectedColumns.size > 0) { 
+        const columnIds = Array.from(selectedColumns); 
+        const headers = columnIds.map(id => orderedSchema.find(col => col.id === id)?.label || id); 
+        data = headers.join("\t") + "\n" + sortedData.map(row => columnIds.map(id => formatCellValue(row[id], orderedSchema.find(col => col.id === id))).join("\t")).join("\n"); 
+      } 
+      await navigator.clipboard.writeText(data); 
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current); 
+      setCopyButtonText("Copied"); 
+      copyTimeoutRef.current = setTimeout(() => setCopyButtonText("Copy"), 5000); 
+    } catch (error) { 
+      console.error("Copy failed:", error); 
+    } 
+  }; 
+  
+  const getSaveButtonText = () => {
     if (savePopoverTab === 'save') {
       return 'Save and update';
     } else {
@@ -3441,13 +3580,21 @@ ORDER BY month DESC;`;
           setShowSavePopover(false);
         }
       }
+      
+      // Handle version popover click outside
+      if (showVersionPopover) {
+        const versionPopover = event.target.closest('[data-version-popover]');
+        if (!versionPopover) {
+          setShowVersionPopover(false);
+        }
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
       return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showColumnMenu, showSavePopover]);
+  }, [showColumnMenu, showSavePopover, showVersionPopover]);
 
   // Analysis panel handlers
   const handleAnalyzeClick = () => {
@@ -5174,43 +5321,43 @@ ORDER BY month DESC;`;
                       </svg>
                     </SectionSearchClear>
                   )}
-              </SectionSearchContainer>
-              {Object.entries(filteredSTRIPE_SCHEMA).map(([sectionName, section]) => {
-                  // Sort tables to put highlighted ones first
-                  const sortedTables = Object.entries(section).sort(([tableNameA, objectsA], [tableNameB, objectsB]) => {
-                    const hasHighlightedA = objectsA.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameA}`));
-                    const hasHighlightedB = objectsB.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameB}`));
+                </SectionSearchContainer>
+                {Object.entries(filteredSTRIPE_SCHEMA).map(([sectionName, section]) => {
+                    // Sort tables to put highlighted ones first
+                    const sortedTables = Object.entries(section).sort(([tableNameA, objectsA], [tableNameB, objectsB]) => {
+                      const hasHighlightedA = objectsA.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameA}`));
+                      const hasHighlightedB = objectsB.some(obj => currentlyUsedObjects.has(`${obj.id}@${tableNameB}`));
+                      
+                      if (hasHighlightedA && !hasHighlightedB) return -1;
+                      if (!hasHighlightedA && hasHighlightedB) return 1;
+                      return 0;
+                    });
                     
-                    if (hasHighlightedA && !hasHighlightedB) return -1;
-                    if (!hasHighlightedA && hasHighlightedB) return 1;
-                    return 0;
-                  });
-                  
-                  return (
-                    <SchemaSection key={sectionName}>
-                      <SubSectionTitle>{SECTION_DISPLAY_NAMES[sectionName] || sectionName}</SubSectionTitle>
-                      {sortedTables.map(([tableName, objects]) => {
-                        const tableKey = `${sectionName}-${tableName}`;
-                        const isExpanded = !collapsedTables.has(tableKey);
-                        
-                        return (
-                          <SchemaTable key={tableName}>
-                            <SchemaTableHeader onClick={() => handleTableToggle(tableKey)}>
-                              <SchemaTableHeaderTitle>{tableName}</SchemaTableHeaderTitle>
-                              <SchemaTableToggle isExpanded={isExpanded}>
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </SchemaTableToggle>
-                            </SchemaTableHeader>
-                            {isExpanded && (
-                              <SchemaObjectList>
-                                {objects.map((obj, index) => (
-                                  <SchemaObjectItem 
-                                    key={index} 
-                                    isHighlighted={currentlyUsedObjects.has(`${obj.id}@${tableName}`)}
-                                    onClick={() => handleSchemaObjectClick(obj, tableName)}
-                                    style={{ cursor: 'pointer' }}
+                    return (
+                      <SchemaSection key={sectionName}>
+                        <SubSectionTitle>{SECTION_DISPLAY_NAMES[sectionName] || sectionName}</SubSectionTitle>
+                        {sortedTables.map(([tableName, objects]) => {
+                          const tableKey = `${sectionName}-${tableName}`;
+                          const isExpanded = !collapsedTables.has(tableKey);
+                          
+                          return (
+                            <SchemaTable key={tableName}>
+                              <SchemaTableHeader onClick={() => handleTableToggle(tableKey)}>
+                                <SchemaTableHeaderTitle>{tableName}</SchemaTableHeaderTitle>
+                                <SchemaTableToggle isExpanded={isExpanded}>
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 2L8 6L4 10" stroke="#474E5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </SchemaTableToggle>
+                              </SchemaTableHeader>
+                              {isExpanded && (
+                                <SchemaObjectList>
+                                  {objects.map((obj, index) => (
+                                    <SchemaObjectItem 
+                                      key={index} 
+                                      isHighlighted={currentlyUsedObjects.has(`${obj.id}@${tableName}`)}
+                                      onClick={() => handleSchemaObjectClick(obj, tableName)}
+                                      style={{ cursor: 'pointer' }}
                                   >
                                     <SchemaObjectLabel>
                                       <span>{obj.label}</span>
@@ -5368,7 +5515,7 @@ ORDER BY month DESC;`;
                   </SQLEditorWrapper>
                   
                   <SQLFooter theme={currentTheme}>
-                    <VersionButton theme={currentTheme}>
+                    <VersionButton theme={currentTheme} onClick={handleVersionClick} style={{ position: 'relative' }}>
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <mask id="mask0_1959_344358" style={{maskType:'alpha'}} maskUnits="userSpaceOnUse" x="0" y="0" width="12" height="12">
                           <path d="M2.99038 4.15387L1.90755 3.79292C2.77292 1.90594 4.47454 1.125 5.9999 1.125C8.68932 1.125 10.875 3.31067 10.875 5.99999C10.8749 8.68934 8.68931 10.875 5.9999 10.875C3.65631 10.875 1.97022 9.38197 1.2836 7.32212C1.18536 7.0274 0.866809 6.86813 0.572091 6.96637C0.336364 7.04494 0.187284 7.26446 0.187317 7.5C0.187325 7.55894 0.196672 7.61889 0.216335 7.67788C1.02972 10.118 3.09363 12 5.9999 12C9.31063 12 11.9999 9.31066 12 6.00001C12 2.68933 9.31062 0 5.9999 0C4.22713 0 2.25379 0.854003 1.125 2.853V1.3125C1.125 1.00184 0.87316 0.75 0.5625 0.75C0.25184 0.75 0 1.00184 0 1.3125V3.9375C0 4.17962 0.154929 4.39457 0.384622 4.47113L2.63462 5.22113C2.92934 5.31937 3.24789 5.1601 3.34613 4.86538C3.44437 4.57066 3.2851 4.25211 2.99038 4.15387Z" fill="#CACED7"/>
@@ -5382,6 +5529,115 @@ ORDER BY month DESC;`;
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M4 2L8 6L4 10" stroke="#99A5B8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" transform="rotate(90 6 6)"/>
                       </svg>
+                      
+                      {/* Version Popover */}
+                      {showVersionPopover && (
+                        <VersionPopoverContainer 
+                          data-version-popover 
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            '--summary-bg': currentTheme.primaryBg,
+                            '--summary-border': isDarkMode ? '#3f3f3f' : '#e3e8ee',
+                            '--hover-bg': currentTheme.secondaryBg,
+                            '--text-primary': currentTheme.primaryText,
+                            '--text-secondary': currentTheme.secondaryText,
+                            '--text-muted': currentTheme.mutedText
+                          }}
+                        >
+                          <VersionPopoverRow>
+                            <VersionPopoverContent>
+                              <VersionPopoverTitleRow>
+                                <VersionPopoverTitle>Version 3 (Current)</VersionPopoverTitle>
+                                <VersionPopoverIcons>
+                                  <VersionPopoverIcon onClick={() => handleVersionAction('run', 'v3')} title="Run this version">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <mask id="mask0_1959_344349" style={{maskType:'alpha'}} maskUnits="userSpaceOnUse" x="0" y="0" width="12" height="12">
+                                        <path fillRule="evenodd" clipRule="evenodd" d="M2.38307 1.43499C2.24507 1.3546 2.0625 1.4563 2.0625 1.62345V10.3773C2.0625 10.5414 2.24795 10.6431 2.38179 10.5665L9.83318 6.15625C9.9675 6.078 9.96752 5.9157 9.83318 5.83745C7.34119 4.38578 4.86645 2.90405 2.38423 1.4357L2.38307 1.43499ZM3.04756 0.303119C2.80426 0.161389 2.54475 0.0959078 2.29098 0.0947365C1.49203 0.0910487 0.75 0.724818 0.75 1.62345V10.3773C0.75 11.2676 1.48876 11.9091 2.2881 11.9073C2.54107 11.9068 2.80011 11.8418 3.04373 11.6999L10.496 7.28909C10.9987 6.99525 11.25 6.49606 11.25 5.99686C11.25 5.49693 10.9979 4.99701 10.4938 4.70335C8.00276 3.25221 5.52884 1.77096 3.04756 0.303119Z" fill="#CACED7"/>
+                                      </mask>
+                                      <g mask="url(#mask0_1959_344349)">
+                                        <rect width="12" height="12" fill="currentColor"/>
+                                      </g>
+                                    </svg>
+                                  </VersionPopoverIcon>
+                                  <VersionPopoverIcon className="more-icon" onClick={() => handleVersionAction('more', 'v3')} title="More options">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M7 7.875C7.48325 7.875 7.875 7.48325 7.875 7C7.875 6.51675 7.48325 6.125 7 6.125C6.51675 6.125 6.125 6.51675 6.125 7C6.125 7.48325 6.51675 7.875 7 7.875Z" fill="currentColor"/>
+                                      <path d="M7 3.5C7.48325 3.5 7.875 3.10825 7.875 2.625C7.875 2.14175 7.48325 1.75 7 1.75C6.51675 1.75 6.125 2.14175 6.125 2.625C6.125 3.10825 6.51675 3.5 7 3.5Z" fill="currentColor"/>
+                                      <path d="M7 12.25C7.48325 12.25 7.875 11.8583 7.875 11.375C7.875 10.8917 7.48325 10.5 7 10.5C6.51675 10.5 6.125 10.8917 6.125 11.375C6.125 11.8583 6.51675 12.25 7 12.25Z" fill="currentColor"/>
+                                    </svg>
+                                  </VersionPopoverIcon>
+                                </VersionPopoverIcons>
+                              </VersionPopoverTitleRow>
+                              <VersionPopoverDescription>This version optimizes query performance by adding strategic indexes and reducing redundant joins.</VersionPopoverDescription>
+                              <VersionPopoverMetadata>
+                                <span>sarah.chen@company.com • 2 hours ago</span>
+                              </VersionPopoverMetadata>
+                            </VersionPopoverContent>
+                          </VersionPopoverRow>
+                          
+                          <VersionPopoverRow>
+                            <VersionPopoverContent>
+                              <VersionPopoverTitleRow>
+                                <VersionPopoverTitle>Version 2</VersionPopoverTitle>
+                                <VersionPopoverIcons>
+                                  <VersionPopoverIcon onClick={() => handleVersionAction('run', 'v2')} title="Run this version">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <mask id="mask0_1959_344349" style={{maskType:'alpha'}} maskUnits="userSpaceOnUse" x="0" y="0" width="12" height="12">
+                                        <path fillRule="evenodd" clipRule="evenodd" d="M2.38307 1.43499C2.24507 1.3546 2.0625 1.4563 2.0625 1.62345V10.3773C2.0625 10.5414 2.24795 10.6431 2.38179 10.5665L9.83318 6.15625C9.9675 6.078 9.96752 5.9157 9.83318 5.83745C7.34119 4.38578 4.86645 2.90405 2.38423 1.4357L2.38307 1.43499ZM3.04756 0.303119C2.80426 0.161389 2.54475 0.0959078 2.29098 0.0947365C1.49203 0.0910487 0.75 0.724818 0.75 1.62345V10.3773C0.75 11.2676 1.48876 11.9091 2.2881 11.9073C2.54107 11.9068 2.80011 11.8418 3.04373 11.6999L10.496 7.28909C10.9987 6.99525 11.25 6.49606 11.25 5.99686C11.25 5.49693 10.9979 4.99701 10.4938 4.70335C8.00276 3.25221 5.52884 1.77096 3.04756 0.303119Z" fill="#CACED7"/>
+                                      </mask>
+                                      <g mask="url(#mask0_1959_344349)">
+                                        <rect width="12" height="12" fill="currentColor"/>
+                                      </g>
+                                    </svg>
+                                  </VersionPopoverIcon>
+                                  <VersionPopoverIcon className="more-icon" onClick={() => handleVersionAction('more', 'v2')} title="More options">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M7 7.875C7.48325 7.875 7.875 7.48325 7.875 7C7.875 6.51675 7.48325 6.125 7 6.125C6.51675 6.125 6.125 6.51675 6.125 7C6.125 7.48325 6.51675 7.875 7 7.875Z" fill="currentColor"/>
+                                      <path d="M7 3.5C7.48325 3.5 7.875 3.10825 7.875 2.625C7.875 2.14175 7.48325 1.75 7 1.75C6.51675 1.75 6.125 2.14175 6.125 2.625C6.125 3.10825 6.51675 3.5 7 3.5Z" fill="currentColor"/>
+                                      <path d="M7 12.25C7.48325 12.25 7.875 11.8583 7.875 11.375C7.875 10.8917 7.48325 10.5 7 10.5C6.51675 10.5 6.125 10.8917 6.125 11.375C6.125 11.8583 6.51675 12.25 7 12.25Z" fill="currentColor"/>
+                                    </svg>
+                                  </VersionPopoverIcon>
+                                </VersionPopoverIcons>
+                              </VersionPopoverTitleRow>
+                              <VersionPopoverDescription>This version refactors the data aggregation logic to improve readability and maintainability.</VersionPopoverDescription>
+                              <VersionPopoverMetadata>
+                                <span>alex.thompson@company.com • 1 day ago</span>
+                              </VersionPopoverMetadata>
+                            </VersionPopoverContent>
+                          </VersionPopoverRow>
+                          
+                          <VersionPopoverRow>
+                            <VersionPopoverContent>
+                              <VersionPopoverTitleRow>
+                                <VersionPopoverTitle>Version 1</VersionPopoverTitle>
+                                <VersionPopoverIcons>
+                                  <VersionPopoverIcon onClick={() => handleVersionAction('run', 'v1')} title="Run this version">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <mask id="mask0_1959_344349" style={{maskType:'alpha'}} maskUnits="userSpaceOnUse" x="0" y="0" width="12" height="12">
+                                        <path fillRule="evenodd" clipRule="evenodd" d="M2.38307 1.43499C2.24507 1.3546 2.0625 1.4563 2.0625 1.62345V10.3773C2.0625 10.5414 2.24795 10.6431 2.38179 10.5665L9.83318 6.15625C9.9675 6.078 9.96752 5.9157 9.83318 5.83745C7.34119 4.38578 4.86645 2.90405 2.38423 1.4357L2.38307 1.43499ZM3.04756 0.303119C2.80426 0.161389 2.54475 0.0959078 2.29098 0.0947365C1.49203 0.0910487 0.75 0.724818 0.75 1.62345V10.3773C0.75 11.2676 1.48876 11.9091 2.2881 11.9073C2.54107 11.9068 2.80011 11.8418 3.04373 11.6999L10.496 7.28909C10.9987 6.99525 11.25 6.49606 11.25 5.99686C11.25 5.49693 10.9979 4.99701 10.4938 4.70335C8.00276 3.25221 5.52884 1.77096 3.04756 0.303119Z" fill="#CACED7"/>
+                                      </mask>
+                                      <g mask="url(#mask0_1959_344349)">
+                                        <rect width="12" height="12" fill="currentColor"/>
+                                      </g>
+                                    </svg>
+                                  </VersionPopoverIcon>
+                                  <VersionPopoverIcon className="more-icon" onClick={() => handleVersionAction('more', 'v1')} title="More options">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M7 7.875C7.48325 7.875 7.875 7.48325 7.875 7C7.875 6.51675 7.48325 6.125 7 6.125C6.51675 6.125 6.125 6.51675 6.125 7C6.125 7.48325 6.51675 7.875 7 7.875Z" fill="currentColor"/>
+                                      <path d="M7 3.5C7.48325 3.5 7.875 3.10825 7.875 2.625C7.875 2.14175 7.48325 1.75 7 1.75C6.51675 1.75 6.125 2.14175 6.125 2.625C6.125 3.10825 6.51675 3.5 7 3.5Z" fill="currentColor"/>
+                                      <path d="M7 12.25C7.48325 12.25 7.875 11.8583 7.875 11.375C7.875 10.8917 7.48325 10.5 7 10.5C6.51675 10.5 6.125 10.8917 6.125 11.375C6.125 11.8583 6.51675 12.25 7 12.25Z" fill="currentColor"/>
+                                    </svg>
+                                  </VersionPopoverIcon>
+                                </VersionPopoverIcons>
+                              </VersionPopoverTitleRow>
+                              <VersionPopoverDescription>This version establishes the initial data foundation and basic metric calculations for the dashboard.</VersionPopoverDescription>
+                              <VersionPopoverMetadata>
+                                <span>michael.rodriguez@company.com • 3 days ago</span>
+                              </VersionPopoverMetadata>
+                            </VersionPopoverContent>
+                          </VersionPopoverRow>
+                        </VersionPopoverContainer>
+                      )}
                     </VersionButton>
                     <RunButton theme={currentTheme} hasChanges={sqlCode !== originalSqlCode}>
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
