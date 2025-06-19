@@ -391,7 +391,7 @@ const PromptInput = styled.textarea`
   resize: none;
   height: 100%;
   overflow: hidden;
-  transition: border-color 0.2s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   line-height: 52px;
   vertical-align: middle;
@@ -420,7 +420,26 @@ const ProcessingContainer = styled.div`
   padding: 16px;
   border-bottom: 1px solid ${props => props.theme.borderColor};
   background: ${props => props.theme.primaryBg};
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromTop 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top;
+  
+  @keyframes slideInFromTop {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      max-height: 200px;
+      padding-top: 16px;
+      padding-bottom: 16px;
+    }
+  }
 `;
 
 const SQLEditorWrapper = styled.div`
@@ -428,7 +447,7 @@ const SQLEditorWrapper = styled.div`
   border: none;
   border-radius: 0;
   background: transparent;
-  transition: border-color 0.2s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
   display: flex;
 `;
@@ -2435,6 +2454,16 @@ ORDER BY month DESC;`;
     // Set height based on content, with min and max constraints
     const newHeight = Math.min(Math.max(textarea.scrollHeight, 40), 120);
     textarea.style.height = newHeight + 'px';
+  };
+
+  // Handle Enter key submission for prompt input
+  const handlePromptKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault(); // Prevent default textarea behavior
+      if (promptText.trim() && !isProcessing) {
+        handlePromptSubmit();
+      }
+    }
   };
 
   // Handle prompt submission
@@ -5645,6 +5674,7 @@ ORDER BY month DESC;`;
                     theme={currentTheme}
                     value={promptText}
                     onChange={handlePromptInputChange}
+                    onKeyDown={handlePromptKeyDown}
                     placeholder="Describe changes to the query"
                     rows={1}
                   />
