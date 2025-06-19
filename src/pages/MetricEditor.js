@@ -2315,6 +2315,13 @@ const MetricEditor = () => {
   const [isSQLEditorFocused, setIsSQLEditorFocused] = useState(false);
   const sqlEditorRef = useRef(null);
 
+  // Processing state for prompt submission
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStage, setProcessingStage] = useState(""); // "analyzing", "generating", "optimizing", "completed"
+  const [submittedPrompt, setSubmittedPrompt] = useState("");
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const processingTimeoutRef = useRef(null);
+
   // Generate realistic SQL query based on current metric/report
   const generateRealisticSQLQuery = () => {
     const displayTitle = getDisplayTitle();
