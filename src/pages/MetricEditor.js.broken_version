@@ -391,7 +391,7 @@ const PromptInput = styled.textarea`
   resize: none;
   height: 100%;
   overflow: hidden;
-  transition: border-color 0.2s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   line-height: 52px;
   vertical-align: middle;
@@ -417,168 +417,37 @@ const SQLEditorContainer = styled.div`
 `;
 
 const ProcessingContainer = styled.div`
-  background: ${props => props.theme.primaryBg};
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 8px;
   padding: 16px;
-  margin: 12px 0;
-  animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  transition: all 0.3s ease;
+  border-bottom: 1px solid ${props => props.theme.borderColor};
+  background: ${props => props.theme.primaryBg};
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromTop 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top;
   
-  @keyframes slideIn {
+  @keyframes slideInFromTop {
     from {
       opacity: 0;
       transform: translateY(-10px);
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
     }
     to {
       opacity: 1;
       transform: translateY(0);
+      max-height: 200px;
+      padding-top: 16px;
+      padding-bottom: 16px;
     }
   }
 `;
 
-const ProcessingPrompt = styled.div`
-  color: ${props => props.theme.primaryText};
-  font-size: 14px;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  background: ${props => props.theme.secondaryBg};
-  border-radius: 6px;
-  border-left: 3px solid #625df5;
-`;
-
-const FragmentContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-`;
-
-const SQLFragment = styled.span`
-  background: ${props => props.theme.secondaryBg};
-  color: ${props => props.theme.primaryText};
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 12px;
-  border: 1px solid ${props => props.theme.borderColor};
-  animation: typewriter 0.5s ease-in-out;
-  
-  @keyframes typewriter {
-    from {
-      opacity: 0;
-      transform: scale(0.9);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-`;
-
-const ChatBubbleContainer = styled.div`
-  background: ${props => props.theme.primaryBg};
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 12px;
-  padding: 16px;
-  margin: 12px 0;
-  position: relative;
-  animation: chatBubbleSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  max-width: 85%;
-  align-self: flex-end;
-  margin-left: auto;
-  
-  /* Chat bubble tail */
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    right: 20px;
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 8px solid ${props => props.theme.primaryBg};
-  }
-  
-  &::before {
-    content: '';
-    position: absolute;
-    bottom: -9px;
-    right: 19px;
-    width: 0;
-    height: 0;
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-top: 9px solid ${props => props.theme.borderColor};
-  }
-  
-  @keyframes chatBubbleSlideIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-`;
-
-const ChatBubbleText = styled.div`
-  color: ${props => props.theme.primaryText};
-  font-size: 14px;
-  line-height: 1.4;
-  margin: 0;
-`;
-
-const ChatBubbleFooter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 12px;
-  font-size: 12px;
-  color: ${props => props.theme.mutedText};
-`;
-
-const ProcessingIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-const LoadingDots = styled.div`
-  display: flex;
-  gap: 2px;
-  
-  & > div {
-    width: 4px;
-    height: 4px;
-    background: ${props => props.theme.mutedText};
-    border-radius: 50%;
-    animation: loadingDots 1.4s ease-in-out infinite both;
-    
-    &:nth-child(1) { animation-delay: -0.32s; }
-    &:nth-child(2) { animation-delay: -0.16s; }
-    &:nth-child(3) { animation-delay: 0s; }
-  }
-  
-  @keyframes loadingDots {
-    0%, 80%, 100% {
-      transform: scale(0);
-      opacity: 0.5;
-    }
-    40% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-`; const SQLEditorWrapper = styled.div`
+const SQLEditorWrapper = styled.div`
   position: relative;
   border: none;
   border-radius: 0;
   background: transparent;
-  transition: border-color 0.2s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
   display: flex;
 `;
@@ -2610,79 +2479,62 @@ ORDER BY month DESC;`;
     }
   };
 
-  // Handle prompt submission with refined animation
-  const handlePromptSubmit = async () => {
-    if (promptText.trim() && !isProcessing) {
-      const originalPrompt = promptText;
-      const originalSql = sqlCode;
+// Handle prompt submission with refined animation
+const handlePromptSubmit = async () => {
+  if (promptText.trim() && !isProcessing) {
+    const originalPrompt = promptText;
+    const originalSql = sqlCode;
+    
+    // Initialize processing state
+    setSubmittedPrompt(originalPrompt);
+    setIsProcessing(true);
+    setPromptText(''); // Clear input to show submission
+    
+    try {
+      // Stage 1: Move prompt to processing container (1s)
+      setAnimationStage('moved');
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Initialize processing state
-      setSubmittedPrompt(originalPrompt);
-      setIsProcessing(true);
-      setPromptText(''); // Clear input to show submission
+      // Stage 2: Generate and display SQL fragments (2-6s based on length)
+      setAnimationStage('reconstructing');
+      const fragments = generateSQLFragments(originalPrompt);
+      setSqlFragments(fragments);
       
-      try {
-        // Stage 0: Show chat bubble with submitted prompt (2s)
-        setAnimationStage('chatBubble');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      // Display fragments one by one with typewriter effect
+      for (let i = 0; i < fragments.length; i++) {
+        setCurrentFragmentIndex(i);
+        const fragmentDelay = Math.max(500, fragments[i].length * 50); // Longer for longer fragments
+        await new Promise(resolve => setTimeout(resolve, fragmentDelay));
+      }
+      
+      // Stage 3: Update SQL editor lines with red->green highlighting
+      setAnimationStage('updating');
+      const linesToUpdate = identifyLinesToUpdate(originalSql, originalPrompt);
+      setUpdatingLines(linesToUpdate);
+      
+      for (let i = 0; i < linesToUpdate.length; i++) {
+        const lineUpdate = linesToUpdate[i];
+        setCurrentLineIndex(i);
+        setHighlightedLines(new Set([lineUpdate.index]));
         
-        // Stage 1: Move prompt to processing container (1s)
-        setAnimationStage('moved');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Red highlighting (0.4s)
+        setLineHighlightStage('red');
+        await new Promise(resolve => setTimeout(resolve, 400));
         
-        // Stage 2: Generate and display SQL fragments (2-6s based on length)
-        setAnimationStage('reconstructing');
-        const fragments = generateSQLFragments(originalPrompt);
-        setSqlFragments(fragments);
+        // Update the actual SQL
+        const updatedLines = originalSql.split('\n');
+        updatedLines[lineUpdate.index] = lineUpdate.newLine;
+        setSqlCode(updatedLines.join('\n'));
         
-        // Display fragments one by one with typewriter effect
-        for (let i = 0; i < fragments.length; i++) {
-          setCurrentFragmentIndex(i);
-          const fragmentDelay = Math.max(500, fragments[i].length * 50); // Longer for longer fragments
-          await new Promise(resolve => setTimeout(resolve, fragmentDelay));
-        }
+        // Green highlighting (0.6s)
+        setLineHighlightStage('green');
+        await new Promise(resolve => setTimeout(resolve, 600));
         
-        // Stage 3: Update SQL editor lines with red->green highlighting
-        setAnimationStage('updating');
-        const linesToUpdate = identifyLinesToUpdate(originalSql, originalPrompt);
-        setUpdatingLines(linesToUpdate);
-        
-        for (let i = 0; i < linesToUpdate.length; i++) {
-          const lineUpdate = linesToUpdate[i];
-          setCurrentLineIndex(i);
-          setHighlightedLines(new Set([lineUpdate.index]));
-          
-          // Red highlighting (0.4s)
-          setLineHighlightStage('red');
-          await new Promise(resolve => setTimeout(resolve, 400));
-          
-          // Update the actual SQL
-          const updatedLines = originalSql.split('\n');
-          updatedLines[lineUpdate.index] = lineUpdate.newLine;
-          setSqlCode(updatedLines.join('\n'));
-          
-          // Green highlighting (0.6s)
-          setLineHighlightStage('green');
-          await new Promise(resolve => setTimeout(resolve, 600));
-          
-          setLineHighlightStage('complete');
-        }
-        
-        // Reset after completion
-        setTimeout(() => {
-          setIsProcessing(false);
-          setAnimationStage('');
-          setSubmittedPrompt('');
-          setSqlFragments([]);
-          setCurrentFragmentIndex(0);
-          setHighlightedLines(new Set());
-          setLineHighlightStage('');
-          setUpdatingLines([]);
-          setCurrentLineIndex(0);
-        }, 1000);
-        
-      } catch (error) {
-        console.error('Processing failed:', error);
+        setLineHighlightStage('complete');
+      }
+      
+      // Reset after completion
+      setTimeout(() => {
         setIsProcessing(false);
         setAnimationStage('');
         setSubmittedPrompt('');
@@ -2692,8 +2544,193 @@ ORDER BY month DESC;`;
         setLineHighlightStage('');
         setUpdatingLines([]);
         setCurrentLineIndex(0);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Processing failed:', error);
+      setIsProcessing(false);
+      setAnimationStage('');
+      setSubmittedPrompt('');
+      setSqlFragments([]);
+      setCurrentFragmentIndex(0);
+      setHighlightedLines(new Set());
+      setLineHighlightStage('');
+      setUpdatingLines([]);
+      setCurrentLineIndex(0);
+    }
+  }
+};
+
+  // Helper function to simulate processing stages
+  const simulateProcessingStage = (duration, progressIncrement) => {
+    return new Promise((resolve) => {
+      const startProgress = processingProgress;
+      const startTime = Date.now();
+      
+      const updateProgress = () => {
+        const elapsed = Date.now() - startTime;
+        const stageProgress = Math.min(1, elapsed / duration);
+        const newProgress = startProgress + (stageProgress * progressIncrement);
+        
+        setProcessingProgress(Math.min(100, newProgress));
+        
+        if (elapsed >= duration) {
+          resolve();
+        } else {
+          requestAnimationFrame(updateProgress);
+        }
+      };
+      
+      updateProgress();
+    });
+  };
+
+  // Generate updated SQL based on prompt content
+  const generateUpdatedSQL = (originalSQL, prompt) => {
+    const lowerPrompt = prompt.toLowerCase();
+    
+    // Add LIMIT clause
+    if (lowerPrompt.includes('limit') || lowerPrompt.includes('top')) {
+      const limitMatch = prompt.match(/(\d+)/);
+      const limit = limitMatch ? limitMatch[1] : '10';
+      return originalSQL.replace(/ORDER BY.*?;/s, `ORDER BY month DESC\nLIMIT ${limit};`);
+    }
+    
+    // Change time grouping
+    if (lowerPrompt.includes('daily') || lowerPrompt.includes('day')) {
+      return originalSQL
+        .replace(/DATE_TRUNC\('month'/g, "DATE_TRUNC('day'")
+        .replace(/month/g, 'day');
+    }
+    
+    // Add filtering
+    if (lowerPrompt.includes('last month') || lowerPrompt.includes('recent')) {
+      return originalSQL.replace(/INTERVAL \d+ MONTH/, 'INTERVAL 1 MONTH');
+    }
+    
+    // Add new columns
+    if (lowerPrompt.includes('average') || lowerPrompt.includes('avg')) {
+      const lines = originalSQL.split('\n');
+      const selectIndex = lines.findIndex(line => line.trim().startsWith('SELECT'));
+      if (selectIndex !== -1) {
+        lines.splice(selectIndex + 2, 0, '  AVG(amount) as average_transaction,');
+        return lines.join('\n');
       }
     }
+    
+    // Remove columns
+    if (lowerPrompt.includes('remove') || lowerPrompt.includes('exclude')) {
+      return originalSQL
+        .split('\n')
+        .filter(line => !line.includes('COUNT(DISTINCT'))
+        .join('\n');
+    }
+    
+    // Default: Add optimization comment and DISTINCT
+    const comment = `-- Optimized query based on: "${prompt}"\n`;
+    return comment + originalSQL.replace('SELECT', 'SELECT DISTINCT');
+  };
+
+  // Helper functions for processing UI
+  const getProcessingTitle = (stage) => {
+    switch (stage) {
+      case 'analyzing': return 'Analyzing Request';
+      case 'generating': return 'Generating SQL';
+      case 'optimizing': return 'Optimizing Query';
+      case 'completed': return 'Query Updated!';
+      default: return 'Processing';
+    }
+  };
+
+  const getProcessingSubtitle = (stage) => {
+    switch (stage) {
+      case 'analyzing': return 'Understanding your requirements and current query structure';
+      case 'generating': return 'Applying changes and generating optimized SQL code';
+      case 'optimizing': return 'Fine-tuning performance and ensuring query efficiency';
+      case 'completed': return 'Your SQL query has been successfully updated';
+      default: return 'Please wait while we process your request';
+    }
+  };
+
+  const getProcessingStageText = (stage) => {
+    switch (stage) {
+      case 'analyzing': return 'Analyzing prompt...';
+      case 'generating': return 'Generating SQL...';
+      case 'optimizing': return 'Optimizing query...';
+      case 'completed': return 'Completed successfully!';
+      default: return 'Processing...';
+    }
+  };
+
+  // Helper functions for code animation
+  const breakPromptIntoTokens = (prompt) => {
+    // Split prompt into meaningful tokens (words, operators, etc.)
+    const tokens = prompt.match(/\w+|[^\w\s]/g) || [];
+    return tokens.map((token, index) => ({
+      id: index,
+      text: token,
+      type: getTokenType(token),
+      originalIndex: index,
+      animationDelay: Math.random() * 300 // Random delay for breaking animation
+    }));
+  };
+
+  const getTokenType = (token) => {
+    const sqlKeywords = ['select', 'from', 'where', 'limit', 'order', 'by', 'group', 'having', 'join', 'inner', 'left', 'right', 'outer', 'union', 'distinct', 'count', 'sum', 'avg', 'min', 'max', 'date_trunc', 'interval'];
+    const operators = ['=', '>', '<', '>=', '<=', '!=', '<>', 'and', 'or', 'not', 'in', 'like', 'between'];
+    const timeKeywords = ['daily', 'weekly', 'monthly', 'yearly', 'last', 'this', 'next', 'today', 'yesterday', 'week', 'month', 'year', 'day'];
+    
+    const lowerToken = token.toLowerCase();
+    
+    if (sqlKeywords.includes(lowerToken)) return 'sql-keyword';
+    if (operators.includes(lowerToken)) return 'operator';
+    if (timeKeywords.includes(lowerToken)) return 'time-keyword';
+    if (/^\d+$/.test(token)) return 'number';
+    if (/^['"`]/.test(token)) return 'string';
+    return 'identifier';
+  };
+
+  const generatePseudoQuery = (prompt) => {
+    const lowerPrompt = prompt.toLowerCase();
+    let pseudoQuery = [];
+    
+    // Start with a comment showing the original prompt
+    pseudoQuery.push(`-- Processing: "${prompt}"`);
+    pseudoQuery.push('');
+    
+    // Generate pseudo-SQL based on prompt content
+    if (lowerPrompt.includes('limit') || lowerPrompt.includes('top')) {
+      const limitMatch = prompt.match(/\d+/);
+      const limitValue = limitMatch ? limitMatch[0] : '10';
+      pseudoQuery.push(`MODIFY query SET`);
+      pseudoQuery.push(`  LIMIT = ${limitValue}`);
+    } else if (lowerPrompt.includes('daily') || lowerPrompt.includes('day')) {
+      pseudoQuery.push(`TRANSFORM time_grouping FROM`);
+      pseudoQuery.push(`  DATE_TRUNC('month', created)`);
+      pseudoQuery.push(`TO`);
+      pseudoQuery.push(`  DATE_TRUNC('day', created)`);
+    } else if (lowerPrompt.includes('weekly') || lowerPrompt.includes('week')) {
+      pseudoQuery.push(`TRANSFORM time_grouping FROM`);
+      pseudoQuery.push(`  DATE_TRUNC('month', created)`);
+      pseudoQuery.push(`TO`);
+      pseudoQuery.push(`  DATE_TRUNC('week', created)`);
+    } else if (lowerPrompt.includes('average') || lowerPrompt.includes('avg')) {
+      pseudoQuery.push(`ADD aggregation`);
+      pseudoQuery.push(`  AVG(amount) as average_value`);
+    } else if (lowerPrompt.includes('remove') || lowerPrompt.includes('delete')) {
+      pseudoQuery.push(`REMOVE columns WHERE`);
+      pseudoQuery.push(`  column_type = 'COUNT(DISTINCT)'`);
+    } else if (lowerPrompt.includes('last month') || lowerPrompt.includes('previous month')) {
+      pseudoQuery.push(`UPDATE time_filter SET`);
+      pseudoQuery.push(`  interval = '1 MONTH'`);
+      pseudoQuery.push(`  reference = 'PREVIOUS'`);
+    } else {
+      pseudoQuery.push(`OPTIMIZE query FOR`);
+      pseudoQuery.push(`  performance = 'enhanced'`);
+      pseudoQuery.push(`  readability = 'improved'`);
+    }
+    
+    return pseudoQuery.join('\n');
   };
 
   // Generate SQL fragments from user prompt for reconstruction animation
@@ -2732,104 +2769,94 @@ ORDER BY month DESC;`;
     // Default fragments if none matched
     if (fragments.length === 0) {
       fragments.push('SELECT DISTINCT');
-      fragments.push('-- Query optimization');
+      fragments.push('/* optimized */');
     }
     
     return fragments;
   };
 
-  // Identify lines in SQL that need to be updated based on prompt
+  const highlightPseudoSQL = (code) => {
+    if (!code) return '';
+    
+    const keywords = /\b(MODIFY|TRANSFORM|ADD|REMOVE|UPDATE|SET|FROM|TO|WHERE|FOR|query|time_grouping|aggregation|columns|time_filter|interval|reference|performance|readability|enhanced|improved)\b/gi;
+    const strings = /'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/g;
+    const numbers = /\b\d+(\.\d+)?\b/g;
+    const comments = /--.*$/gm;
+    const operators = /[=<>!]+/g;
+    
+    return code
+      .replace(comments, '<span style="color: #6b7280; font-style: italic;">$&</span>')
+      .replace(strings, '<span style="color: #10b981;">$&</span>')
+      .replace(keywords, '<span style="color: #3b82f6; font-weight: 600;">$1</span>')
+      .replace(numbers, '<span style="color: #f59e0b;">$&</span>')
+      .replace(operators, '<span style="color: #ef4444;">$&</span>');
+  };
+
+  // SQL syntax highlighting function with line highlighting support
+const highlightSQL = (code) => {
+  if (!code) return '';
+  
+  const lines = code.split('\n');
+  const highlightedLines = lines.map((line, index) => {
+    // Apply syntax highlighting to the line
+    let highlightedLine = line
+      .replace(/--.*$/gm, '<span class="sql-comment">$&</span>')
+      .replace(/'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/g, '<span class="sql-string">$&</span>')
+      .replace(/\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|HAVING|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|UNION|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|INDEX|TABLE|DATABASE|AS|AND|OR|NOT|IN|LIKE|BETWEEN|IS|NULL|TRUE|FALSE|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MIN|MAX|DISTINCT|LIMIT|OFFSET|ASC|DESC|DATE_TRUNC|DATE_SUB|CURRENT_DATE|INTERVAL|MONTH|YEAR|DAY|WEEK)\b/gi, '<span class="sql-keyword">$1</span>')
+      .replace(/\b([A-Za-z_][A-Za-z0-9_]*)\s*(?=\()/g, '<span class="sql-function">$1</span>')
+      .replace(/\b\d+(\.\d+)?\b/g, '<span class="sql-number">$&</span>');
+    
+    // Add line highlighting based on processing state
+    if (highlightedLines.has(index)) {
+      const bgColor = lineHighlightStage === 'red' ? 'rgba(239, 68, 68, 0.3)' : 
+                     lineHighlightStage === 'green' ? 'rgba(16, 185, 129, 0.3)' : 
+                     'transparent';
+      
+      return `<div style="background-color: ${bgColor}; transition: background-color 0.3s ease; padding: 0 4px; margin: 0 -4px;">${highlightedLine}</div>`;
+    }
+    
+    return `<div>${highlightedLine}</div>`;
+  });
+  
+  return highlightedLines.join('');
+};
+  
   const identifyLinesToUpdate = (originalSQL, prompt) => {
-    const lines = originalSQL.split('\n');
-    const lowerPrompt = prompt.toLowerCase();
+    const lines = originalSQL.split("\n");
     const linesToUpdate = [];
+    const lowerPrompt = prompt.toLowerCase();
     
     lines.forEach((line, index) => {
       const lowerLine = line.toLowerCase();
       
-      // Add LIMIT clause
-      if (lowerPrompt.includes('limit') && lowerLine.includes('order by')) {
-        const limitMatch = prompt.match(/(\d+)/);
-        const limit = limitMatch ? limitMatch[1] : '10';
-        linesToUpdate.push({
-          index,
-          newLine: line + `\nLIMIT ${limit};`
-        });
-      }
-      
-      // Change time grouping
-      if (lowerPrompt.includes('daily') && lowerLine.includes("date_trunc('month'")) {
-        linesToUpdate.push({
-          index,
-          newLine: line.replace(/DATE_TRUNC\('month'/g, "DATE_TRUNC('day'")
-        });
-      }
-      
-      // Add new columns
-      if (lowerPrompt.includes('average') && lowerLine.includes('sum(amount)')) {
-        linesToUpdate.push({
-          index,
-          newLine: line + ',\n  AVG(amount) as average_transaction'
-        });
-      }
-      
-      // Update WHERE clause
-      if (lowerPrompt.includes('last month') && lowerLine.includes('interval') && lowerLine.includes('month')) {
-        linesToUpdate.push({
-          index,
-          newLine: line.replace(/INTERVAL \d+ MONTH/, 'INTERVAL 1 MONTH')
-        });
+      // Identify lines that should be updated based on prompt
+      if (lowerPrompt.includes("limit") && lowerLine.includes("order by")) {
+        linesToUpdate.push({ index, oldLine: line, newLine: line + "\nLIMIT 10" });
+      } else if (lowerPrompt.includes("daily") && lowerLine.includes("date_trunc")) {
+        linesToUpdate.push({ index, oldLine: line, newLine: line.replace(/month|week/gi, "day") });
+      } else if (lowerPrompt.includes("average") && lowerLine.includes("sum(")) {
+        linesToUpdate.push({ index, oldLine: line, newLine: line.replace(/SUM\(/gi, "AVG(") });
+      } else if (lowerPrompt.includes("country") && lowerLine.includes("group by")) {
+        linesToUpdate.push({ index, oldLine: line, newLine: line + ", customers.country" });
       }
     });
     
-    // If no specific lines found, add a comment at the top
-    if (linesToUpdate.length === 0) {
-      linesToUpdate.push({
-        index: 0,
-        newLine: `-- Optimized query based on: "${prompt}"\n${lines[0]}`
-      });
-    }
-    
-    return linesToUpdate;
+    return linesToUpdate.length > 0 ? linesToUpdate : [{ index: lines.length - 1, oldLine: lines[lines.length - 1], newLine: lines[lines.length - 1] + "\n-- Updated based on prompt" }];
   };
-
-  // SQL syntax highlighting function with line highlighting support
-  const highlightSQL = (code) => {
     if (!code) return '';
     
-    const lines = code.split('\n');
-    const highlightedLinesArray = Array.from(highlightedLines);
+    const keywords = /\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|HAVING|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|UNION|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|INDEX|TABLE|DATABASE|AS|AND|OR|NOT|IN|LIKE|BETWEEN|IS|NULL|TRUE|FALSE|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MIN|MAX|DISTINCT|LIMIT|OFFSET|ASC|DESC|DATE_TRUNC|DATE_SUB|CURRENT_DATE|INTERVAL|MONTH|YEAR|DAY|WEEK)\b/gi;
+    const strings = /'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/g;
+    const numbers = /\b\d+(\.\d+)?\b/g;
+    const functions = /\b([A-Za-z_][A-Za-z0-9_]*)\s*(?=\()/g;
+    const comments = /--.*$/gm;
     
-    const processedLines = lines.map((line, index) => {
-      // Apply syntax highlighting
-      const keywords = /\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|HAVING|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|UNION|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|INDEX|TABLE|DATABASE|AS|AND|OR|NOT|IN|LIKE|BETWEEN|IS|NULL|TRUE|FALSE|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MIN|MAX|DISTINCT|LIMIT|OFFSET|ASC|DESC|DATE_TRUNC|DATE_SUB|CURRENT_DATE|INTERVAL|MONTH|YEAR|DAY|WEEK)\b/gi;
-      const strings = /'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/g;
-      const numbers = /\b\d+(\.\d+)?\b/g;
-      const functions = /\b([A-Za-z_][A-Za-z0-9_]*)\s*(?=\()/g;
-      const comments = /--.*$/gm;
-      
-      let highlightedLine = line
-        .replace(comments, '<span class="sql-comment">$&</span>')
-        .replace(strings, '<span class="sql-string">$&</span>')
-        .replace(keywords, '<span class="sql-keyword">$1</span>')
-        .replace(functions, '<span class="sql-function">$1</span>')
-        .replace(numbers, '<span class="sql-number">$&</span>');
-      
-      // Apply line highlighting if this line is in the highlighted set
-      if (highlightedLinesArray.includes(index)) {
-        const bgColor = lineHighlightStage === 'red' 
-          ? 'rgba(239, 68, 68, 0.3)' 
-          : lineHighlightStage === 'green' 
-          ? 'rgba(16, 185, 129, 0.3)' 
-          : 'transparent';
-        
-        highlightedLine = `<span style="background-color: ${bgColor}; display: block; width: 100%; transition: background-color 0.3s ease;">${highlightedLine}</span>`;
-      }
-      
-      return highlightedLine;
-    });
-    
-    return processedLines.join('\n');
+    return code
+      .replace(comments, '<span class="sql-comment">$&</span>')
+      .replace(strings, '<span class="sql-string">$&</span>')
+      .replace(keywords, '<span class="sql-keyword">$1</span>')
+      .replace(functions, '<span class="sql-function">$1</span>')
+      .replace(numbers, '<span class="sql-number">$&</span>');
   };
 
   // Calculate SQL editor height based on content with text wrapping
@@ -2861,10 +2888,13 @@ ORDER BY month DESC;`;
     const minHeight = 150; // Smaller minimum height
     const extraBuffer = 20; // Much smaller buffer
     
+    // Account for processing UI space when it's visible
+    const processingUIHeight = isProcessing ? 120 : 0; // Approximate height of processing UI
+    
     const calculatedHeight = (totalVisualLines * lineHeight) + verticalPadding + extraBuffer;
     
-    // Always show all content - no maximum height limit
-    return Math.max(minHeight, calculatedHeight);
+    // Always show all content - no maximum height limit, but account for processing UI
+    return Math.max(minHeight, calculatedHeight) + processingUIHeight;
   };
 
   // Get visual line count including wrapped lines for line numbers
@@ -5867,7 +5897,7 @@ ORDER BY month DESC;`;
                     theme={currentTheme}
                     value={promptText}
                     onChange={handlePromptInputChange}
-                                          onKeyDown={handlePromptKeyDown}
+                    onKeyDown={handlePromptKeyDown}
                     placeholder="Describe changes to the query"
                     rows={1}
                   />
@@ -5875,7 +5905,7 @@ ORDER BY month DESC;`;
                     hasText={promptText.trim().length > 0}
                     theme={currentTheme}
                     onClick={handlePromptSubmit}
-                    disabled={promptText.trim().length === 0}
+                    disabled={promptText.trim().length === 0 || isProcessing}
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M4.26465 12.0684C4.08008 12.0684 3.88184 11.9863 3.73828 11.8428L0.744141 8.90332C0.600586 8.75977 0.518555 8.55469 0.518555 8.35645C0.518555 8.1582 0.600586 7.95312 0.744141 7.81641L3.73828 4.87695C3.88184 4.7334 4.08008 4.64453 4.26465 4.64453C4.69531 4.64453 4.97559 4.94531 4.97559 5.35547C4.97559 5.57422 4.89355 5.73145 4.75684 5.86816L3.59473 6.98926L2.74707 7.68652L3.9707 7.625H10.335C10.8408 7.625 11.0391 7.42676 11.0391 6.9209V3.89941C11.0391 3.38672 10.8408 3.18848 10.335 3.18848H7.5459C7.11523 3.18848 6.80078 2.86035 6.80078 2.45703C6.80078 2.05371 7.11523 1.72559 7.5459 1.72559H10.3828C11.8594 1.72559 12.4814 2.34766 12.4814 3.82422V6.98926C12.4814 8.44531 11.8594 9.08789 10.3828 9.08789H3.9707L2.74707 9.0332L3.59473 9.72363L4.75684 10.8516C4.89355 10.9814 4.97559 11.1455 4.97559 11.3643C4.97559 11.7744 4.69531 12.0684 4.26465 12.0684Z" fill="#818DA0"/>
@@ -5883,45 +5913,124 @@ ORDER BY month DESC;`;
                   </PromptSubmitButton>
                 </PromptInputContainer>
                 
-                {/* Chat bubble treatment for submitted prompt */}
-                {isProcessing && animationStage === 'chatBubble' && submittedPrompt && (
-                  <ChatBubbleContainer theme={currentTheme}>
-                    <ChatBubbleText theme={currentTheme}>
-                      {submittedPrompt}
-                    </ChatBubbleText>
-                    <ChatBubbleFooter theme={currentTheme}>
-                      <ProcessingIndicator>
-                        <span>Processing</span>
-                        <LoadingDots theme={currentTheme}>
-                          <div></div>
-                          <div></div>
-                          <div></div>
-                        </LoadingDots>
-                      </ProcessingIndicator>
-                    </ChatBubbleFooter>
-                  </ChatBubbleContainer>
-                )}
-
-                {/* Existing processing UI for later stages */}
-                {isProcessing && (animationStage === 'moved' || animationStage === 'reconstructing') && submittedPrompt && (
-                  <ProcessingContainer theme={currentTheme}>
-                    <ProcessingPrompt theme={currentTheme}>
-                      {submittedPrompt}
-                    </ProcessingPrompt>
-                    
-                    {animationStage === 'reconstructing' && sqlFragments.length > 0 && (
-                      <FragmentContainer>
-                        {sqlFragments.slice(0, currentFragmentIndex + 1).map((fragment, index) => (
-                          <SQLFragment key={index} theme={currentTheme}>
-                            {fragment}
-                          </SQLFragment>
-                        ))}
-                      </FragmentContainer>
-                    )}
-                  </ProcessingContainer>
-                )}
-
                 <SQLEditorContainer theme={currentTheme}>
+                  {/* Refined Processing UI */}
+                  {isProcessing && (
+                    <ProcessingContainer theme={currentTheme}>
+                      {/* Stage 1: Show moved prompt */}
+                      {animationStage === 'moved' && submittedPrompt && (
+                        <div style={{
+                          padding: '12px',
+                          background: currentTheme.secondaryBg,
+                          border: `1px solid ${currentTheme.borderColor}`,
+                          borderRadius: '6px',
+                          marginBottom: '12px'
+                        }}>
+                          <div style={{ 
+                            color: currentTheme.secondaryText, 
+                            fontSize: '12px',
+                            marginBottom: '6px'
+                          }}>
+                            Processing request:
+                          </div>
+                          <div style={{ 
+                            color: currentTheme.primaryText,
+                            fontSize: '14px',
+                            fontStyle: 'italic'
+                          }}>
+                            "{submittedPrompt}"
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Stage 2: Show SQL fragments being reconstructed */}
+                      {animationStage === 'reconstructing' && (
+                        <div style={{
+                          padding: '12px',
+                          background: currentTheme.secondaryBg,
+                          border: `1px solid ${currentTheme.borderColor}`,
+                          borderRadius: '6px',
+                          marginBottom: '12px'
+                        }}>
+                          <div style={{ 
+                            color: currentTheme.secondaryText, 
+                            fontSize: '12px',
+                            marginBottom: '8px'
+                          }}>
+                            Generating SQL fragments:
+                          </div>
+                          
+                          {/* Show submitted prompt */}
+                          <div style={{ 
+                            color: currentTheme.primaryText,
+                            fontSize: '14px',
+                            marginBottom: '12px',
+                            fontStyle: 'italic'
+                          }}>
+                            "{submittedPrompt}"
+                          </div>
+                          
+                          {/* Show SQL fragments */}
+                          <div style={{
+                            fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                            fontSize: '13px',
+                            lineHeight: '1.5'
+                          }}>
+                            {sqlFragments.slice(0, currentFragmentIndex + 1).map((fragment, index) => (
+                              <div 
+                                key={index}
+                                style={{
+                                  color: currentTheme.primaryText,
+                                  marginBottom: '4px',
+                                  opacity: index === currentFragmentIndex ? 1 : 0.7,
+                                  animation: index === currentFragmentIndex ? 'typewriter 0.5s steps(20) forwards' : 'none'
+                                }}
+                              >
+                                {fragment}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Stage 3: Show SQL editor updating */}
+                      {animationStage === 'updating' && (
+                        <div style={{
+                          padding: '12px',
+                          background: currentTheme.secondaryBg,
+                          border: `1px solid ${currentTheme.borderColor}`,
+                          borderRadius: '6px',
+                          marginBottom: '12px'
+                        }}>
+                          <div style={{ 
+                            color: currentTheme.secondaryText, 
+                            fontSize: '12px',
+                            marginBottom: '8px'
+                          }}>
+                            Updating SQL query:
+                          </div>
+                          
+                          <div style={{ 
+                            color: currentTheme.primaryText,
+                            fontSize: '14px',
+                            marginBottom: '8px',
+                            fontStyle: 'italic'
+                          }}>
+                            "{submittedPrompt}"
+                          </div>
+                          
+                          <div style={{
+                            fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                            fontSize: '12px',
+                            color: currentTheme.secondaryText
+                          }}>
+                            Updating line {currentLineIndex + 1} of {updatingLines.length}...
+                          </div>
+                        </div>
+                      )}
+                    </ProcessingContainer>
+                  )}
+                  
                   <SQLEditorWrapper 
                     isFocused={isSQLEditorFocused}
                     theme={currentTheme}
