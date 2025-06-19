@@ -5661,8 +5661,71 @@ ORDER BY month DESC;`;
                 </PromptInputContainer>
                 
                 <SQLEditorContainer theme={currentTheme}>
+                  {/* Embedded Processing UI */}
+                  {isProcessing && (
+                    <ProcessingContainer theme={currentTheme}>
+                      <div style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px"
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <div style={{
+                            width: "20px",
+                            height: "20px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#625df5"
+                          }}>
+                            {processingStage === "completed" ? (
+                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6.5 11.5L3 8L4.5 6.5L6.5 8.5L11.5 3.5L13 5L6.5 11.5Z" fill="currentColor"/>
+                              </svg>
+                            ) : (
+                              <div style={{ animation: "spin 1s linear infinite" }}>
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="12 6" strokeLinecap="round"/>
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{
+                            fontSize: "14px",
+                            fontWeight: "500",
+                            color: currentTheme.primaryText
+                          }}>
+                            {getProcessingStageText(processingStage)}
+                          </div>
+                        </div>
+                        <div style={{
+                          width: "100%",
+                          height: "4px",
+                          background: currentTheme.secondaryBg,
+                          borderRadius: "2px",
+                          overflow: "hidden"
+                        }}>
+                          <div style={{
+                            height: "100%",
+                            background: "linear-gradient(90deg, #625df5, #7c3aed)",
+                            borderRadius: "2px",
+                            transition: "width 0.3s ease",
+                            width: `${processingProgress}%`
+                          }}/>
+                        </div>
+                        {submittedPrompt && (
+                          <div style={{
+                            fontSize: "12px",
+                            color: currentTheme.secondaryText,
+                            fontStyle: "italic"
+                          }}>
+                            Processing: "{submittedPrompt}"
+                          </div>
+                        )}
+                      </div>
+                    </ProcessingContainer>
                   )}
-                  )}
+                  
                   <SQLEditorWrapper 
                     isFocused={isSQLEditorFocused}
                     theme={currentTheme}
