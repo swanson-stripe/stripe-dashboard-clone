@@ -416,6 +416,13 @@ const SQLEditorContainer = styled.div`
   background: rgb(42,42,42);
 `;
 
+const ProcessingContainer = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid ${props => props.theme.borderColor};
+  background: ${props => props.theme.primaryBg};
+  transition: all 0.3s ease;
+`;
+
 const SQLEditorWrapper = styled.div`
   position: relative;
   border: none;
@@ -2629,10 +2636,13 @@ ORDER BY month DESC;`;
     const minHeight = 150; // Smaller minimum height
     const extraBuffer = 20; // Much smaller buffer
     
+    // Account for processing UI space when it's visible
+    const processingUIHeight = isProcessing ? 120 : 0; // Approximate height of processing UI
+    
     const calculatedHeight = (totalVisualLines * lineHeight) + verticalPadding + extraBuffer;
     
-    // Always show all content - no maximum height limit
-    return Math.max(minHeight, calculatedHeight);
+    // Always show all content - no maximum height limit, but account for processing UI
+    return Math.max(minHeight, calculatedHeight) + processingUIHeight;
   };
 
   // Get visual line count including wrapped lines for line numbers
@@ -5631,126 +5641,11 @@ ORDER BY month DESC;`;
             {editorMode === 'code' && (
               <CodeModeContainer theme={currentTheme}>
                 <PromptInputContainer theme={currentTheme}>
-                  {/* Processing Overlay */}
-                  {isProcessing && (
-                    <div style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: "rgba(0, 0, 0, 0.4)",
-                      backdropFilter: "blur(4px)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      zIndex: 1000,
-                      borderRadius: "8px"
-                    }}>
-                      <div style={{
-                        background: currentTheme.primaryBg,
-                        border: `1px solid ${currentTheme.borderColor}`,
-                        borderRadius: "12px",
-                        padding: "24px",
-                        minWidth: "320px",
-                        maxWidth: "400px",
-                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
-                      }}>
-                        <div style={{ marginBottom: "20px", textAlign: "center" }}>
-                          <h3 style={{
-                            fontSize: "18px",
-                            fontWeight: "600",
-                            color: currentTheme.primaryText,
-                            margin: "0 0 8px 0"
-                          }}>
-                            {getProcessingTitle(processingStage)}
-                          </h3>
-                          <p style={{
-                            fontSize: "14px",
-                            color: currentTheme.secondaryText,
-                            margin: "0",
-                            lineHeight: "1.4"
-                          }}>
-                            {getProcessingSubtitle(processingStage)}
-                          </p>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <div style={{
-                              width: "24px",
-                              height: "24px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#625df5"
-                            }}>
-                              {processingStage === "completed" ? (
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M6.5 11.5L3 8L4.5 6.5L6.5 8.5L11.5 3.5L13 5L6.5 11.5Z" fill="currentColor"/>
-                                </svg>
-                              ) : (
-                                <div style={{ animation: "spin 1s linear infinite" }}>
-                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="12 6" strokeLinecap="round"/>
-                                  </svg>
-                                </div>
-                              )}
-                            </div>
-                            <div style={{
-                              fontSize: "14px",
-                              fontWeight: "500",
-                              color: currentTheme.primaryText
-                            }}>
-                              {getProcessingStageText(processingStage)}
-                            </div>
-                          </div>
-                          <div style={{
-                            width: "100%",
-                            height: "6px",
-                            background: currentTheme.secondaryBg,
-                            borderRadius: "3px",
-                            overflow: "hidden"
-                          }}>
-                            <div style={{
-                              height: "100%",
-                              background: "linear-gradient(90deg, #625df5, #7c3aed)",
-                              borderRadius: "3px",
-                              transition: "width 0.3s ease",
-                              width: `${processingProgress}%`
-                            }}/>
-                          </div>
-                          {submittedPrompt && (
-                            <div style={{
-                              background: currentTheme.secondaryBg,
-                              borderRadius: "8px",
-                              padding: "12px"
-                            }}>
-                              <div style={{
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                color: currentTheme.secondaryText,
-                                marginBottom: "4px"
-                              }}>
-                                Processing request:
-                              </div>
-                              <div style={{
-                                fontSize: "14px",
-                                color: currentTheme.primaryText,
-                                fontStyle: "italic"
-                              }}>
-                                \"{submittedPrompt}\"
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   <PromptInput
                     theme={currentTheme}
                     value={promptText}
                     onChange={handlePromptInputChange}
-                                          placeholder="Describe changes to the query"
+                    placeholder="Describe changes to the query"
                     rows={1}
                   />
                   <PromptSubmitButton
@@ -5766,6 +5661,8 @@ ORDER BY month DESC;`;
                 </PromptInputContainer>
                 
                 <SQLEditorContainer theme={currentTheme}>
+                  )}
+                  )}
                   <SQLEditorWrapper 
                     isFocused={isSQLEditorFocused}
                     theme={currentTheme}
