@@ -12,29 +12,38 @@ A sophisticated React dashboard application (~50+ components, 15,000+ lines) wit
 - **Theme system** (Light/Dark mode)
 - **Advanced state management** without external libraries
 
+## 🔥 Key Features
+
+### Dual Interface Modes
+```javascript
+// Dual interface modes
+const [editorMode, setEditorMode] = useState("visual"); // "visual" | "code"
+```
+
+### Advanced Processing Pipeline
+```javascript
+// Advanced processing pipeline
+const [animationStage, setAnimationStage] = useState("");
+// Stages: "chatBubble" → "moved" → "reconstructing" → "updating"
+```
+
+### Excel-like Data Manipulation
+```javascript
+// Excel-like data manipulation
+const [selectedCells, setSelectedCells] = useState(new Set());
+const [selectedColumns, setSelectedColumns] = useState(new Set());
+```
+
+## ⭐ Recent Enhancement: Chat Bubble Treatment (Latest)
+
+**Purpose**: Improve UX for AI prompt processing in MetricEditor
+
 ## 🎯 Core Component Analysis
 
 ### 1. MetricEditor.js - The Crown Jewel
 **Location**: `src/pages/MetricEditor.js` (~6,700 lines)
 **Complexity Level**: Very High
 **Purpose**: Advanced metric creation and editing interface
-
-#### **Key Features:**
-```javascript
-// Dual interface modes
-const [editorMode, setEditorMode] = useState("visual"); // "visual" | "code"
-
-// Advanced processing pipeline
-const [animationStage, setAnimationStage] = useState("");
-// Stages: "chatBubble" → "moved" → "reconstructing" → "updating"
-
-// Excel-like data manipulation
-const [selectedCells, setSelectedCells] = useState(new Set());
-const [selectedColumns, setSelectedColumns] = useState(new Set());
-```
-```
-#### **Recent Enhancement: Chat Bubble Treatment (Latest)**
-**Purpose**: Improve UX for AI prompt processing in MetricEditor
 
 ## Development Guidelines
 Follow existing patterns for theme compatibility and state management.
