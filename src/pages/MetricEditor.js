@@ -773,146 +773,6 @@ const HeaderButtons = styled.div`
 `;
 
 const HeaderButtonsRight = styled.div`
-
-// Processing UI Components
-const ProcessingOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: ${props => props.theme.primaryBg}f0;
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  border-radius: 8px;
-`;
-
-const ProcessingCard = styled.div`
-  background: ${props => props.theme.primaryBg};
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.15);
-  text-align: center;
-  min-width: 320px;
-  max-width: 400px;
-`;
-
-const ProcessingHeader = styled.div`
-  margin-bottom: 24px;
-`;
-
-const ProcessingTitle = styled.h3`
-  color: ${props => props.theme.primaryText};
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-`;
-
-const ProcessingSubtitle = styled.p`
-  color: ${props => props.theme.secondaryText};
-  font-size: 14px;
-  margin: 0;
-  line-height: 1.5;
-`;
-
-const ProgressContainer = styled.div`
-  margin: 24px 0;
-`;
-
-const ProgressBar = styled.div`
-  width: 100%;
-  height: 8px;
-  background: ${props => props.theme.borderColor};
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 16px;
-`;
-
-const ProgressFill = styled.div`
-  height: 100%;
-  background: linear-gradient(90deg, #625df5 0%, #5b56f0 100%);
-  border-radius: 4px;
-  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  width: ${props => props.progress}%;
-`;
-
-const StageIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: ${props => props.theme.secondaryText};
-  font-size: 14px;
-  font-weight: 500;
-`;
-
-const StageIcon = styled.div`
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const Spinner = styled.div`
-  width: 20px;
-  height: 20px;
-  border: 2px solid ${props => props.theme.borderColor};
-  border-top: 2px solid #625df5;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-const CheckIcon = styled.div`
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #10b981;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  
-  &::after {
-    content: "✓";
-  }
-`;
-
-const SubmittedPromptDisplay = styled.div`
-  background: ${props => props.theme.secondaryBg};
-  border: 1px solid ${props => props.theme.borderColor};
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 24px;
-  text-align: left;
-`;
-
-const PromptLabel = styled.div`
-  color: ${props => props.theme.secondaryText};
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 8px;
-`;
-
-const PromptContent = styled.div`
-  color: ${props => props.theme.primaryText};
-  font-size: 14px;
-  line-height: 1.5;
-  font-style: italic;
-`;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2571,124 +2431,12 @@ ORDER BY month DESC;`;
   };
 
   // Handle prompt submission
-  const handlePromptSubmit = async () => {
-    if (promptText.trim() && !isProcessing) {
-      const originalPrompt = promptText;
-      const originalSql = sqlCode;
-      
-      // Initialize processing state
-      setSubmittedPrompt(originalPrompt);
-      setIsProcessing(true);
-      setProcessingProgress(0);
-      setPromptText(''); // Clear input to show submission
-      
-      try {
-        // Stage 1: Analyzing prompt (1.5s)
-        setProcessingStage('analyzing');
-        await simulateProcessingStage(1500, 25);
-        
-        // Stage 2: Generating SQL (2s)
-        setProcessingStage('generating');
-        await simulateProcessingStage(2000, 50);
-        
-        // Update SQL based on prompt content
-        const updatedSQL = generateUpdatedSQL(originalSql, originalPrompt);
-        setSqlCode(updatedSQL);
-        
-        // Stage 3: Optimizing query (1.5s)
-        setProcessingStage('optimizing');
-        await simulateProcessingStage(1500, 25);
-        
-        // Stage 4: Completed
-        setProcessingStage('completed');
-        setProcessingProgress(100);
-        
-        // Reset after showing completion
-        setTimeout(() => {
-          setIsProcessing(false);
-          setProcessingStage('');
-          setSubmittedPrompt('');
-          setProcessingProgress(0);
-        }, 1500);
-        
-      } catch (error) {
-        console.error('Processing failed:', error);
-        setIsProcessing(false);
-        setProcessingStage('');
-        setSubmittedPrompt('');
-        setProcessingProgress(0);
-      }
+  const handlePromptSubmit = () => {
+    if (promptText.trim()) {
+      console.log('Submitting prompt:', promptText);
+      console.log('Current SQL query:', sqlCode);
+      // TODO: Implement actual prompt processing
     }
-  };
-
-  // Helper function to simulate processing stages
-  const simulateProcessingStage = (duration, progressIncrement) => {
-    return new Promise((resolve) => {
-      const startProgress = processingProgress;
-      const startTime = Date.now();
-      
-      const updateProgress = () => {
-        const elapsed = Date.now() - startTime;
-        const stageProgress = Math.min(1, elapsed / duration);
-        const newProgress = startProgress + (stageProgress * progressIncrement);
-        
-        setProcessingProgress(Math.min(100, newProgress));
-        
-        if (elapsed >= duration) {
-          resolve();
-        } else {
-          requestAnimationFrame(updateProgress);
-        }
-      };
-      
-      updateProgress();
-    });
-  };
-
-  // Generate updated SQL based on prompt content
-  const generateUpdatedSQL = (originalSQL, prompt) => {
-    const lowerPrompt = prompt.toLowerCase();
-    
-    // Add LIMIT clause
-    if (lowerPrompt.includes('limit') || lowerPrompt.includes('top')) {
-      const limitMatch = prompt.match(/(\d+)/);
-      const limit = limitMatch ? limitMatch[1] : '10';
-      return originalSQL.replace(/ORDER BY.*?;/s, `ORDER BY month DESC\nLIMIT ${limit};`);
-    }
-    
-    // Change time grouping
-    if (lowerPrompt.includes('daily') || lowerPrompt.includes('day')) {
-      return originalSQL
-        .replace(/DATE_TRUNC\('month'/g, "DATE_TRUNC('day'")
-        .replace(/month/g, 'day');
-    }
-    
-    // Add filtering
-    if (lowerPrompt.includes('last month') || lowerPrompt.includes('recent')) {
-      return originalSQL.replace(/INTERVAL \d+ MONTH/, 'INTERVAL 1 MONTH');
-    }
-    
-    // Add new columns
-    if (lowerPrompt.includes('average') || lowerPrompt.includes('avg')) {
-      const lines = originalSQL.split('\n');
-      const selectIndex = lines.findIndex(line => line.trim().startsWith('SELECT'));
-      if (selectIndex !== -1) {
-        lines.splice(selectIndex + 2, 0, '  AVG(amount) as average_transaction,');
-        return lines.join('\n');
-      }
-    }
-    
-    // Remove columns
-    if (lowerPrompt.includes('remove') || lowerPrompt.includes('exclude')) {
-      return originalSQL
-        .split('\n')
-        .filter(line => !line.includes('COUNT(DISTINCT'))
-        .join('\n');
-    }
-    
-    // Default: Add optimization comment and DISTINCT
-    const comment = `-- Optimized query based on: "${prompt}"\n`;
-    return comment + originalSQL.replace('SELECT', 'SELECT DISTINCT');
   };
 
   // SQL syntax highlighting function
@@ -5744,15 +5492,14 @@ ORDER BY month DESC;`;
                     theme={currentTheme}
                     value={promptText}
                     onChange={handlePromptInputChange}
-                                          placeholder={isProcessing ? "Processing..." : "Describe changes to the query"}
-                    disabled={isProcessing}
+                                          placeholder="Describe changes to the query"
                     rows={1}
                   />
                   <PromptSubmitButton
                     hasText={promptText.trim().length > 0}
                     theme={currentTheme}
                     onClick={handlePromptSubmit}
-                    disabled={promptText.trim().length === 0 || isProcessing}
+                    disabled={promptText.trim().length === 0}
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M4.26465 12.0684C4.08008 12.0684 3.88184 11.9863 3.73828 11.8428L0.744141 8.90332C0.600586 8.75977 0.518555 8.55469 0.518555 8.35645C0.518555 8.1582 0.600586 7.95312 0.744141 7.81641L3.73828 4.87695C3.88184 4.7334 4.08008 4.64453 4.26465 4.64453C4.69531 4.64453 4.97559 4.94531 4.97559 5.35547C4.97559 5.57422 4.89355 5.73145 4.75684 5.86816L3.59473 6.98926L2.74707 7.68652L3.9707 7.625H10.335C10.8408 7.625 11.0391 7.42676 11.0391 6.9209V3.89941C11.0391 3.38672 10.8408 3.18848 10.335 3.18848H7.5459C7.11523 3.18848 6.80078 2.86035 6.80078 2.45703C6.80078 2.05371 7.11523 1.72559 7.5459 1.72559H10.3828C11.8594 1.72559 12.4814 2.34766 12.4814 3.82422V6.98926C12.4814 8.44531 11.8594 9.08789 10.3828 9.08789H3.9707L2.74707 9.0332L3.59473 9.72363L4.75684 10.8516C4.89355 10.9814 4.97559 11.1455 4.97559 11.3643C4.97559 11.7744 4.69531 12.0684 4.26465 12.0684Z" fill="#818DA0"/>
@@ -5761,42 +5508,6 @@ ORDER BY month DESC;`;
                 </PromptInputContainer>
                 
                 <SQLEditorContainer theme={currentTheme}>
-                  {/* Processing Overlay */}
-                  {isProcessing && (
-                    <ProcessingOverlay theme={currentTheme}>
-                      <ProcessingCard theme={currentTheme}>
-                        <ProcessingHeader>
-                          <ProcessingTitle theme={currentTheme}>
-                            {getProcessingTitle(processingStage)}
-                          </ProcessingTitle>
-                          <ProcessingSubtitle theme={currentTheme}>
-                            {getProcessingSubtitle(processingStage)}
-                          </ProcessingSubtitle>
-                        </ProcessingHeader>
-                        
-                        {submittedPrompt && (
-                          <SubmittedPromptDisplay theme={currentTheme}>
-                            <PromptLabel theme={currentTheme}>Your Request</PromptLabel>
-                            <PromptContent theme={currentTheme}>"{submittedPrompt}"</PromptContent>
-                          </SubmittedPromptDisplay>
-                        )}
-                        
-                        <ProgressContainer>
-                          <ProgressBar theme={currentTheme}>
-                            <ProgressFill progress={processingProgress} />
-                          </ProgressBar>
-                          
-                          <StageIndicator theme={currentTheme}>
-                            <StageIcon>
-                              {processingStage === "completed" ? <CheckIcon /> : <Spinner />}
-                            </StageIcon>
-                            {getProcessingStageText(processingStage)}
-                          </StageIndicator>
-                        </ProgressContainer>
-                      </ProcessingCard>
-                    </ProcessingOverlay>
-                  )}
-
                   <SQLEditorWrapper 
                     isFocused={isSQLEditorFocused}
                     theme={currentTheme}
